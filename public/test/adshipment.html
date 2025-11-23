@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shipments Mock</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #f0f0f0; }
+  .pill { padding: 2px 6px; border-radius: 4px; background: #007bff; color: white; font-size: 12px; }
+  .muted { color: #888; }
+  .error { color: red; }
+  button { margin-right: 4px; padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; }
+  .view-details { background: #10b981; color: white; }
+  .cancel-shipment { background: #b71c1c; color: white; }
+  .modal-backdrop { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; }
+  .modal { background:white; padding:20px; border-radius:8px; max-width:500px; width:90%; }
+</style>
+</head>
+<body>
+
+<h2>Shipments Table (Mock Data)</h2>
+<table id="shipmentTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Warehouse/Outlet</th>
+      <th>Unit Price</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function showToast(msg, type='info') { console.log(`[${type.toUpperCase()}] ${msg}`); }
+function niceDate(dateStr) { return new Date(dateStr).toLocaleDateString(); }
+function formatNGN(num) { return '₦' + Number(num).toLocaleString(); }
+
+const mockShipments = [
+  { id: 1, date: '2025-11-19', productName: 'Perfume A', qty: 10, warehouseName: 'Main WH', unitPrice: 2000, status: 'Shipped', outletName: '' },
+  { id: 2, date: '2025-11-18', productName: 'Perfume B', qty: 5, warehouseName: '', unitPrice: 3500, status: 'In Transit', outletName: 'Outlet 1' },
+  { id: 3, date: '2025-11-17', productName: 'Perfume C', qty: 2, warehouseName: 'Main WH', unitPrice: 5000, status: 'Cancelled', outletName: '' }
+];
+
+async function renderShipments() {
+  const tbody = $('#shipmentTable tbody'); 
+  tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+
+  try {
+    const shipments = mockShipments; // using mock data
+    tbody.innerHTML = '';
+
+    shipments.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${niceDate(s.date)}</td>
+        <td>${s.productName}</td>
+        <td>${s.qty}</td>
+        <td>${s.warehouseName || s.outletName || '—'}</td>
+        <td>${formatNGN(s.unitPrice)}</td>
+        <td><span class="pill">${s.status}</span></td>
+        <td>
+          <button class="view-details" data-id="${s.id}">View</button>
+          <button class="cancel-shipment" data-id="${s.id}">Cancel</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    if (shipments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No shipments found</td></tr>';
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="error">Failed: ${err.message}</td></tr>`;
+    showToast('server error: ' + (err?.message || 'Failed'), 'error');
+  }
+}
+
+// Event listener for View & Cancel buttons
+$('#shipmentTable').addEventListener('click', (e) => {
+  const id = Number(e.target.dataset.id);
+  const shipment = mockShipments.find(s => s.id === id);
+  if (!shipment) return;
+
+  // Cancel shipment
+  if (e.target.classList.contains('cancel-shipment')) {
+    if (!confirm('Are you sure you want to cancel this shipment?')) return;
+    shipment.status = 'Cancelled';
+    showToast(`Shipment ${id} cancelled`, 'success');
+    renderShipments();
+    return;
+  }
+
+  // View shipment
+  if (e.target.classList.contains('view-details')) {
+    const modal = $('#modal');
+    const backdrop = $('#modalBackdrop');
+    modal.innerHTML = `
+      <h4>Shipment Details</h4>
+      <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
+      <p><strong>Product:</strong> ${shipment.productName}</p>
+      <p><strong>Qty:</strong> ${shipment.qty}</p>
+      <p><strong>Warehouse/Outlet:</strong> ${shipment.warehouseName || shipment.outletName || '—'}</p>
+      <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
+      <div style="text-align:right;margin-top:14px;">
+        <button id="closeModal" class="btn secondary">Close</button>
+      </div>`;
+    backdrop.style.display = 'flex';
+    $('#closeModal').onclick = () => backdrop.style.display = 'none';
+    backdrop.onclick = (ev) => { if(ev.target === backdrop) backdrop.style.display='none'; };
+  }
+});
+
+renderShipments();
+</script>
+
+</body>
+</html>

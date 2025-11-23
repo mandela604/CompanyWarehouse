@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse Admin — Products / Inventory</title>
+<style>
+  :root{
+    --blue:#0b5ed7;
+    --dark-red:#b71c1c;
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --shadow:0 6px 18px rgba(11,94,215,0.08);
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);}
+  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px;}
+  @media(max-width:900px){.app{grid-template-columns:1fr}}
+  /* Sidebar */
+  .sidebar{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+  .brand{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;}
+  .brand h2{margin:0;font-size:16px;}
+  .small{font-size:12px;color:var(--muted);}
+  .nav{margin-top:18px;}
+  .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px;}
+  .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03));box-shadow:inset 0 0 0 1px rgba(11,94,215,0.03);}
+  .nav a:hover{background:#f1f5ff}
+  .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40;}
+  @media(max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40;padding:18px;border-radius:0}.sidebar.open{left:0}.hamburger{display:block}}
+
+  /* Main */
+  main{padding:6px 0;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .search{display:flex;gap:12px;align-items:center;}
+  .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px;}
+  .actions{display:flex;gap:8px;align-items:center;}
+  .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer;}
+  
+  .btn.secondary{
+    background:transparent;
+    border:1px solid rgba(15,23,42,0.06);
+    color:var(--muted);
+    }
+
+    #exportBtn{
+        background-color:#0b5ed7 ;
+        color: #fff;
+    }
+  /* Table */
+  table{width:100%;border-collapse:collapse;background:var(--card);box-shadow:var(--shadow);border-radius:12px;overflow:hidden;margin-bottom:10px;}
+  th,td{padding:12px;text-align:left;border-bottom:1px solid #f1f5f9;}
+  th{background:#f1f5ff;color:var(--muted);font-weight:600;}
+  tr:hover{background:#f9faff;}
+
+  /* Modals */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60;}
+  .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:600px;}
+  .form-row{display:flex;gap:10px;margin-bottom:10px;}
+  .form-row input,.form-row select{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb;}
+</style>
+</head>
+<body>
+
+<button class="hamburger" id="hambBtn">☰</button>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">W</div>
+      <div>
+        <h2>WareAdmin</h2>
+        <div class="small">Inventory • Nigeria</div>
+      </div>
+    </div>
+    <div class="nav">
+      <a href="#" data-route="overview">Overview</a>
+      <a href="#" data-route="warehouses">Warehouses</a>
+      <a href="#" data-route="outlets">Outlets</a>
+      <a href="#" class="active" data-route="products">Products / Inventory</a>
+      <a href="#" data-route="accounts">Accounts</a>
+      <a href="#" data-route="reports">Reports</a>
+      <a href="#" data-route="settings">Settings</a>
+    </div>
+    <hr style="margin:14px 0;border:none;border-top:1px solid #eef3fb">
+    <div style="font-size:13px;color:var(--muted)">Quick actions</div>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn" id="createWarehouseBtn">+ Create Warehouse</button>
+      <button class="btn" style="background:var(--dark-red)" id="createOutletBtn">+ Create Outlet</button>
+      <button class="btn secondary" id="addProductBtn">+ Add Product</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="search">
+        <input id="searchInput" placeholder="Search products...">
+      </div>
+      <div class="actions">
+        <div class="small muted">Admin</div>
+        <button class="btn secondary" id="exportBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>SKU</th><th>Name</th><th>Quantity</th><th>Warehouse</th><th>Unit Price</th><th>Action</th></tr>
+      </thead>
+      <tbody id="productTable"></tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-bottom:20px;">
+      <button class="btn secondary" id="prevPage">Prev</button>
+      <span id="pageInfo">Page 1</span>
+      <button class="btn secondary" id="nextPage">Next</button>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+  // Sample DB
+  let DB = JSON.parse(localStorage.getItem('wareadmin_data')) || {
+    warehouses:[
+      {id:'wh-lagos',name:'Lagos Central Warehouse'},
+      {id:'wh-abuja',name:'Abuja Main'}
+    ],
+    products:[
+      {sku:'PRD-001',name:'N95 Masks',qty:120,warehouseId:'wh-lagos',unitPrice:4500},
+      {sku:'PRD-002',name:'Hand Sanitizer',qty:320,warehouseId:'wh-lagos',unitPrice:2500},
+      {sku:'PRD-003',name:'Laptop Charger',qty:40,warehouseId:'wh-abuja',unitPrice:15000},
+      // add more products here
+    ]
+  };
+
+  function persist(){ localStorage.setItem('wareadmin_data',JSON.stringify(DB)); }
+  function warehouseName(id){ return (DB.warehouses.find(w=>w.id===id)||{}).name||'—'; }
+
+  // ---------- Pagination ----------
+  let currentPage = 1;
+  const pageSize = 10;
+
+  function renderProducts(){
+    const tbody = document.getElementById('productTable'); 
+    tbody.innerHTML='';
+    const start = (currentPage-1)*pageSize;
+    const end = start+pageSize;
+    const visibleProducts = DB.products.slice(start,end);
+
+    visibleProducts.forEach(p=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.sku}</td><td>${p.name}</td><td>${p.qty}</td><td>${warehouseName(p.warehouseId)}</td><td>₦${p.unitPrice.toLocaleString()}</td>
+        <td><button class="btn secondary" onclick="adjustStock('${p.sku}')">Adjust</button></td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('pageInfo').textContent = `Page ${currentPage}`;
+  }
+
+  document.getElementById('prevPage').addEventListener('click',()=>{
+    if(currentPage>1){ currentPage--; renderProducts(); }
+  });
+  document.getElementById('nextPage').addEventListener('click',()=>{
+    if(currentPage*pageSize<DB.products.length){ currentPage++; renderProducts(); }
+  });
+
+  // ---------- Search ----------
+  document.getElementById('searchInput').addEventListener('input',e=>{
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('#productTable tr').forEach(tr=>{
+      tr.style.display = tr.innerText.toLowerCase().includes(q)?'':'none';
+    });
+  });
+
+  // ---------- Add Product ----------
+  document.getElementById('addProductBtn').addEventListener('click',()=>{
+    showModal(`<h4>Add Product / Inventory</h4>
+      <div class="form-row"><input id="sku" placeholder="SKU"/></div>
+      <div class="form-row"><input id="pname" placeholder="Product Name"/></div>
+      <div class="form-row"><input id="pqty" type="number" placeholder="Quantity"/></div>
+      <div class="form-row"><input id="pprice" type="number" placeholder="Unit Price"/></div>
+      <div class="form-row"><select id="pwh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+      <div style="text-align:right"><button class="btn secondary" onclick="closeModal()">Cancel</button> <button class="btn" id="saveProd">Save</button></div>`);
+
+    document.getElementById('saveProd').onclick = ()=>{
+      DB.products.push({
+        sku: document.getElementById('sku').value,
+        name: document.getElementById('pname').value,
+        qty: Number(document.getElementById('pqty').value),
+        unitPrice: Number(document.getElementById('pprice').value),
+        warehouseId: document.getElementById('pwh').value
+      });
+      persist(); closeModal(); renderProducts();
+    }
+  });
+
+  // ---------- Adjust Stock ----------
+  function adjustStock(sku){
+    const p = DB.products.find(x=>x.sku===sku);
+    showModal(`<h4>Adjust Stock — ${p.name}</h4>
+      <div class="form-row"><input id="adjQty" type="number" placeholder="Change in qty (use negative to reduce)"/></div>
+      <div style="text-align:right"><button class="btn secondary" onclick="closeModal()">Cancel</button> <button class="btn" id="saveAdj">Save</button></div>`);
+    document.getElementById('saveAdj').onclick = ()=>{
+      const delta = Number(document.getElementById('adjQty').value)||0;
+      p.qty += delta; persist(); closeModal(); renderProducts();
+    }
+  }
+
+  // ---------- Modals ----------
+  function showModal(html){ document.getElementById('modal').innerHTML = html; document.getElementById('modalBackdrop').style.display='flex'; }
+  function closeModal(){ document.getElementById('modalBackdrop').style.display='none'; document.getElementById('modal').innerHTML=''; }
+  document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop') closeModal();});
+
+  // ---------- Export CSV ----------
+  document.getElementById('exportBtn').addEventListener('click',()=>{
+    const rows = DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
+    const csv = 'SKU,Name,Qty,Warehouse,UnitPrice\n'+rows;
+    const blob = new Blob([csv],{type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='products.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // ---------- Hamburger sidebar toggle ----------
+  document.getElementById('hambBtn').addEventListener('click',()=>{ document.getElementById('sidebar').classList.toggle('open');});
+
+  // initial render
+  renderProducts();
+</script>
+</body>
+</html>

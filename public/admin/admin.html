@@ -1,0 +1,1509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Admin — Dashboard</title>
+  <style>
+    :root{
+      --blue:#0b5ed7;
+      --dark-red:#b71c1c;
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --glass: rgba(255,255,255,0.75);
+      --shadow: 0 6px 18px rgba(11,94,215,0.08);
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,var(--bg),#eef3fb);
+      color:#111827;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .brand h2{font-size:16px;margin:0}
+    .small{font-size:12px;color:var(--muted)}
+    .nav{margin-top:18px}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03));box-shadow:inset 0 0 0 1px rgba(11,94,215,0.03)}
+    .nav a:hover{background:#f1f5ff}
+
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40;padding:18px;border-radius:0} .sidebar.open{left:0} .hamburger{display:block}}
+
+    main{padding:6px 0}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .search{display:flex;gap:12px;align-items:center}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--dark-red));
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(11,94,215,0.15);
+      border-color: rgba(11,94,215,0.15);
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin: 4px 0;
+    }
+    .card .small-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .panel{display:flex;gap:16px;align-items:stretch}
+    .panel-left{flex:2;display:flex;flex-direction:column}
+    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
+
+    .table {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      flex: 1;
+    }
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{
+      background:#f8fafc;color:var(--muted);font-weight:600;text-transform:uppercase;
+      letter-spacing:0.5px;padding:14px 12px;text-align:left;font-size:11px
+    }
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb;color:#111827}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    tr:last-child td{border-bottom:none}
+
+    .widget {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+    }
+    .widget::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--dark-red));
+    }
+    .widget h4 {
+      margin: 0 0 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .widget h4::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .mini-list{display:grid;gap:10px}
+    .mini-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px;border-radius:10px;background:linear-gradient(90deg,#fff,#fafcff)}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:680px}
+    .modal h4{margin:0 0 14px}
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    .form-row input,.form-row select,textarea{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb}
+
+    .muted{color:var(--muted)}
+    .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);font-weight:600;color:var(--blue);display:inline-block}
+
+    .inline-list{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px}
+    .box{
+      background:var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      flex:1 1 220px;
+      border:1px solid #e5e7eb;
+      position:relative;
+      overflow:hidden;
+      transition:all 0.25s ease;
+    }
+    .box::before{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:4px;
+      background:linear-gradient(90deg,var(--blue),var(--dark-red));
+    }
+    .box:hover{
+      transform:translateY(-4px);
+      box-shadow:0 16px 32px rgba(11,94,215,0.15);
+      border-color:rgba(11,94,215,0.15);
+    }
+    .box h4{
+      margin:0 0 8px;
+      font-size:16px;
+      font-weight:700;
+      color:#111827;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .box h4::before{
+      content:'';
+      width:8px;height:8px;
+      border-radius:50%;
+      background:var(--blue);
+    }
+    .box .location{font-size:13px;color:var(--muted);margin:0 0 12px}
+    .box .stats{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .box .stock{font-weight:700;font-size:20px;color:var(--blue)}
+    .box .badge{background:rgba(11,94,215,0.1);color:var(--blue);padding:4px 10px;border-radius:999px;font-weight:600;font-size:12px}
+
+    .section{display:none}
+    .section.active{display:block}
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body>
+
+  <button class="hamburger" id="hambBtn" aria-label="menu">Menu</button>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">W</div>
+        <div>
+          <h2>WareAdmin</h2>
+          <div class="small">Inventory • Nigeria</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="warehouses">Warehouses</a>
+        <a href="#" data-route="outlets">Outlets</a>
+        <a href="#" data-route="products">Products / Inventory</a>
+        <a href="#" data-route="accounts">Accounts</a>
+        <a href="#" data-route="reports">Reports</a>
+        <a href="#" data-route="settings">Settings</a>
+        <a href="#" data-route="sales">Sales Records</a>
+      </div>
+
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="createWarehouseBtn">+ Create Warehouse</button>
+        <button class="btn" style="background:var(--dark-red)" id="createOutletBtn">+ Create Outlet</button>
+        <button class="btn" id="shipToWarehouseBtn">+ Ship to Warehouse</button>
+      <!-- <button class="btn" id="shipToOutletBtn" style="background:#d97706">+ Ship to Outlet</button>
+        <button class="btn secondary" id="addProductBtn">+ Add Product</button> -->
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search products, warehouses, outlets...">
+          <div class="small muted" id="currentWarehouse">Viewing: All Warehouses</div>
+        </div>
+        <div class="actions">
+          <div class="small muted">Admin</div>
+          <button class="btn secondary" id="exportBtn">Export</button>
+          <button class="btn" id="newReportBtn">New Report</button>
+        </div>
+      </div>
+
+      <!-- ==================== OVERVIEW ==================== -->
+      <section id="overviewSection" class="section active">
+        <div class="grid" id="overviewCards"></div>
+
+        <div class="panel">
+          <div class="panel-left">
+            <div class="table">
+              <h3 style="margin:0 0 16px;padding:0 16px">Recent Shipments</h3>
+              <table id="shipmentTable">
+                <thead>
+                  <tr><th>Date</th><th>Product</th><th>Qty</th><th>To</th><th>Price</th><th>Status</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside class="panel-right">
+            <div class="widget">
+              <h4>Top Warehouses</h4>
+              <div class="mini-list" id="quickStats"></div>
+            </div>
+            <div class="widget">
+              <h4>Top Outlets</h4>
+              <div class="mini-list" id="topOutlets"></div>
+            </div>
+            <div class="widget" id="pendingWidget">
+              <h4>Pending Receipts</h4>
+              <div class="mini-list" id="pendingList"></div>
+            </div>
+          </aside>
+        </div>   
+      </section>
+
+      <!-- ==================== WAREHOUSES ==================== -->
+      <section id="warehousesSection" class="section">
+        <h2 style="margin-top:0">All Warehouses</h2>
+        <div class="inline-list" id="warehousesList"></div>
+      </section>
+
+      <!-- ==================== OUTLETS ==================== -->
+      <section id="outletsSection" class="section">
+        <h2 style="margin-top:0">All Outlets</h2>
+        <div class="inline-list" id="outletsList"></div>
+      </section>
+
+      <!-- ==================== PRODUCTS ==================== -->
+      <section id="productsSection" class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="margin:0">Products / Inventory</h2>
+  <button class="btn" id="addProductBtn">+ Add Product</button>
+</div>
+        <div class="table">
+          <table id="productTable">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>In Stock</th>
+                <th>Warehouse</th>
+                <th>Unit Price</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="pagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap"></div>
+        </div>
+      </section>
+
+      <!-- ==================== ACCOUNTS ==================== -->
+      <section id="accountsSection" class="section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0">Accounts</h2>
+          <button class="btn" id="addUserBtn">+ Add User</button>
+        </div>
+        <div class="table">
+          <table id="accountsTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== REPORTS ==================== -->
+      <section id="reportsSection" class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">Reports</h2>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="reportFilter" class="btn secondary" style="padding:8px 12px;border-radius:10px;font-size:13px">
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month" selected>This Month</option>
+            </select>
+            <button class="btn" id="exportReportBtn">Export PDF</button>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card"><h3>Total Revenue</h3><div class="value">—</div><div class="small-note">All time</div></div>
+          <div class="card"><h3>Total Stock</h3><div class="value">—</div><div class="small-note">All warehouses</div></div>
+          <div class="card"><h3>Units Sold</h3><div class="value">—</div><div class="small-note">This month</div></div>
+          <div class="card"><h3>Low Stock</h3><div class="value">—</div><div class="small-note">Items < 50 units</div></div>
+        </div>
+
+        <div class="table" style="margin-top:20px">
+          <h3 style="margin:0 0 12px">Top Products</h3>
+          <table id="topProductsTable">
+            <thead><tr><th>SKU</th><th>Name</th><th>Sold</th><th>Revenue</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="reportPagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap"></div>
+        </div>
+      </section>
+
+      <!-- ==================== SALES RECORDS ==================== -->
+      <section id="salesSection" class="section">
+        <h2 style="margin-top:0">All Sales Records</h2>
+        <div class="table">
+          <table id="salesTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Outlet</th>
+                <th>Rep (Recorder)</th>
+                <th>Manager (Approver)</th>
+                <th>Status</th>
+                <th>Sent From</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== FULL-PAGE SALES VIEWER ==================== -->
+      <section id="fullSalesSection" class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0" id="fullSalesTitle">Sales for …</h2>
+          <button class="btn secondary" id="backFromFullSalesBtn">← Back</button>
+        </div>
+
+        <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
+          <input type="text" id="fullSalesDatePicker" placeholder="All time" 
+                 style="padding:8px 12px;border-radius:10px;border:1px solid #e6eefb;font-size:13px;min-width:220px">
+        </div>
+
+        <div class="table">
+          <table id="fullSalesTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Rep</th>
+                <th>Unit Price</th><th>Line Total</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div id="fullSalesPagination" style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"></div>
+        </div>
+      </section>
+
+      <!-- ==================== SETTINGS ==================== -->
+      <section id="settingsSection" class="section">
+        <h2 style="margin-top:0">Settings</h2>
+
+        <div class="widget">
+          <h4>System Configuration</h4>
+          <div class="form-row">
+            <label>Low Stock Threshold</label>
+            <input id="lowStockThreshold" type="number" value="50" style="flex:0 0 100px">
+            <button class="btn secondary" onclick="saveLowStockThreshold()">Save</button>
+          </div>
+        </div>
+
+        <div class="widget">
+          <h4>Users</h4>
+          <div class="table">
+            <table id="settingsUsersTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Manages</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="widget">
+          <h4>My Profile (Admin)</h4>
+          <div class="form-row"><input id="adminEmail" placeholder="Email" /></div>
+          <div class="form-row"><input id="adminPhone" placeholder="Phone" /></div>
+          <div class="form-row"><input id="adminPassword" type="password" placeholder="New Password (leave blank to keep)" /></div>
+          <div style="text-align:right">
+            <button class="btn secondary" onclick="saveAdminProfile()">Update Profile</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <script>
+    localStorage.removeItem('wareadmin_data');
+
+    const sample = {
+      warehouses: [
+        {id:'wh-lagos',name:'Lagos Central Warehouse',location:'Ikeja, Lagos'},
+        {id:'wh-abuja',name:'Abuja Main',location:'Garki, Abuja'}
+      ],
+      outlets: [
+        {id:'out-1',name:'Ikeja Outlet',warehouseId:'wh-lagos', repId: null},
+        {id:'out-2',name:'Victoria Island Outlet',warehouseId:'wh-lagos', repId: null},
+        {id:'out-3',name:'Wuse Outlet',warehouseId:'wh-abuja', repId: null}
+      ],
+      products: [
+        {sku:'PRD-001',name:'N95 Masks (Box)',qty:120,warehouseId:'wh-lagos',unitPrice:4500},
+        {sku:'PRD-002',name:'Hand sanitizer 500ml',qty:320,warehouseId:'wh-lagos',unitPrice:2500},
+        {sku:'PRD-003',name:'Laptop Charger',qty:40,warehouseId:'wh-abuja',unitPrice:15000}
+      ],
+      shipments: [],
+     accounts: [
+  {id:'acc-admin',name:'Super Admin',role:'admin',email:'admin@wareadmin.local', phone: '+234 800 000 0000'},
+  {id:'acc-rep-ikeja',name:'Aisha Bello',role:'rep',email:'aisha@outlet.local', phone: '+234 803 456 7890'},
+  {id:'acc-rep-vi',name:'Tunde Adebayo',role:'rep',email:'tunde@outlet.local', phone: '+234 802 123 4567'},
+  {id:'acc-rep-wuse',name:'Fatima Yusuf',role:'rep',email:'fatima@outlet.local', phone: '+234 809 876 5432'},
+  {id:'acc-mgr-lagos',name:'Chinedu Okeke',role:'manager',email:'chinedu@warehouse.local', phone: '+234 801 234 5678'},
+  {id:'acc-mgr-abuja',name:'Hassan Musa',role:'manager',email:'hassan@warehouse.local', phone: '+234 807 654 3210'}
+]
+    };
+
+    function load(){ const raw=fetch('/api/warehouses'); if(raw) return JSON.parse(raw); localStorage.setItem('wareadmin_data',JSON.stringify(sample)); return structuredClone(sample); }
+    let DB = load();
+
+    const STATUS = {
+      IN_TRANSIT: 'In Transit',
+      PENDING:    'Pending',
+      APPROVED:   'Approved',
+      RECEIVED:   'Received'
+    };
+
+    const currentUser = { id: 'acc-admin', role: 'admin' };
+    function isAdmin() { return currentUser.role === 'admin'; }
+
+    function $(s){return document.querySelector(s)}
+    function $all(s){return document.querySelectorAll(s)}
+
+    function formatNGN(n){ return '₦' + (n||0).toLocaleString(); }
+    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(d); }
+    function warehouseName(id){ return (DB.warehouses.find(w=>w.id===id)||{}).name||'—'; }
+
+    function displayStatus(shipment) { return shipment.status; }
+
+    function navigateTo(route) {
+      $all('.section').forEach(s => s.classList.remove('active'));
+      const target = $(`#${route}Section`);
+      if (target) target.classList.add('active');
+      $all('.nav a').forEach(a => a.classList.remove('active'));
+      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+      if (navLink) navLink.classList.add('active');
+      if (route === 'salesViewer') renderSalesViewerPage();
+    }
+
+    function renderOverviewCards(){
+      const cards=$('#overviewCards'); cards.innerHTML='';
+      const totalInventory=DB.products.reduce((a,p)=>a+p.qty,0);
+      const outgoing = DB.shipments.filter(s => s.status === STATUS.IN_TRANSIT).reduce((a,s) => a + s.qty, 0);
+      const productsSent=DB.shipments.length;
+
+      const items = [
+        {title:'Products Sent',value:productsSent,sub:'Total shipments'},
+        {title:'In Transit',value:outgoing,sub:'Awaiting manager approval'},
+        {title:'Total Inventory',value:totalInventory,sub:'All warehouses (qty)'}
+      ];
+
+      items.forEach(it=>{
+        const c=document.createElement('div'); c.className='card';
+        c.innerHTML=`<h3>${it.title}</h3><div class="value">${it.value}</div><div class="small-note">${it.sub}</div>`;
+        cards.appendChild(c);
+      });
+
+      const salesCard=document.createElement('div');
+      salesCard.className='card sales-summary';
+      salesCard.id='salesSummaryCard';
+      salesCard.innerHTML=`
+        <div class="header">
+          <h3>Total Sales</h3>
+          <div id="salesDateDisplay" class="small muted">All time</div>
+        </div>
+        <div class="body">
+          <div><strong id="salesUnits">0</strong> units</div>
+          <div><strong id="salesRevenue">₦0</strong></div>
+        </div>`;
+      cards.appendChild(salesCard);
+
+      initSalesDatePicker();
+      renderSalesSummary();
+    }
+
+    function renderShipments(){
+      const tbody = $('#shipmentTable tbody'); tbody.innerHTML = '';
+      const filtered = DB.shipments.filter(s => !s.status.includes('Sold') && !s.status.includes('Approved') && !s.status.includes('Received')).slice().reverse().slice(0,5);
+      filtered.forEach(s => {
+        const prod = DB.products.find(p => p.sku === s.productSku) || {name: s.productSku};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.date}</td>
+          <td>${prod.name}</td>
+          <td>${s.qty}</td>
+          <td>${warehouseName(s.warehouseId)}</td>
+          <td>${formatNGN(s.unitPrice)}</td>
+          <td><span class="pill">${displayStatus(s)}</span></td>
+           <td><button class="view-details" data-id="${s.id}">View</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    const ITEMS_PER_PAGE = 10;
+    let currentPage = 1;
+
+    function renderProducts(){
+      const tbody = $('#productTable tbody');
+      const pagination = $('#pagination');
+      tbody.innerHTML = ''; pagination.innerHTML = '';
+
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageItems = DB.products.slice(start, end);
+
+      pageItems.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.sku}</td>
+          <td>${p.name}</td>
+          <td><strong>${p.qty}</strong></td>
+          <td>${warehouseName(p.warehouseId)}</td>
+          <td>${formatNGN(p.unitPrice)}</td>
+          <td>
+            <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct('${p.sku}')">Edit</button>
+            <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteProduct('${p.sku}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const totalPages = Math.ceil(DB.products.length / ITEMS_PER_PAGE);
+      const prevBtn = document.createElement('button'); prevBtn.className = 'btn secondary'; prevBtn.textContent = 'Prev'; prevBtn.disabled = currentPage === 1; prevBtn.onclick = () => { currentPage--; renderProducts(); }; pagination.appendChild(prevBtn);
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button'); btn.className = 'btn' + (i === currentPage ? '' : ' secondary'); btn.textContent = i; btn.onclick = () => { currentPage = i; renderProducts(); }; pagination.appendChild(btn);
+      }
+      const nextBtn = document.createElement('button'); nextBtn.className = 'btn secondary'; nextBtn.textContent = 'Next'; nextBtn.disabled = currentPage === totalPages; nextBtn.onclick = () => { currentPage++; renderProducts(); }; pagination.appendChild(nextBtn);
+    }
+
+    function renderQuickStats(){
+      const el=$('#quickStats'); el.innerHTML='';
+      const byWarehouse=DB.warehouses.map(w=>{ const inv=DB.products.filter(p=>p.warehouseId===w.id).reduce((a,p)=>a+p.qty,0); return {name:w.name,inv}; }).sort((a,b)=>b.inv-a.inv);
+      byWarehouse.forEach(b=>{ const div=document.createElement('div'); div.className='mini-item'; div.innerHTML=`<div>${b.name}</div><div><strong>${b.inv}</strong></div>`; el.appendChild(div); });
+    }
+
+    function renderTopOutlets(){
+      const el=$('#topOutlets'); el.innerHTML='';
+      const counts=DB.outlets.reduce((acc,o)=>{acc[o.warehouseId]=(acc[o.warehouseId]||0)+1;return acc;},{});
+      const list=Object.entries(counts).map(([wid,c])=>({name:warehouseName(wid),count:c})).sort((a,b)=>b.count-a.count);
+      list.forEach(l=>{ const div=document.createElement('div'); div.className='mini-item'; div.innerHTML=`<div>${l.name}</div><div class="pill">${l.count}</div>`; el.appendChild(div); });
+    }
+
+    function renderPending(){
+      $('#pendingWidget').style.display = 'block';
+      const list = $('#pendingList'); list.innerHTML = '';
+      const pending = DB.shipments.filter(s => s.status === STATUS.IN_TRANSIT);
+      if (pending.length === 0) { list.innerHTML = '<div class="mini-item muted">No pending shipments</div>'; return; }
+      pending.forEach(s => {
+        const prod = DB.products.find(p => p.sku === s.productSku) || {name: s.productSku};
+        const div = document.createElement('div'); div.className = 'mini-item';
+        div.innerHTML = `<div>${prod.name} × ${s.qty}</div>`;
+        list.appendChild(div);
+      });
+    }
+
+async function renderWarehouses() {
+  const container = $('#warehousesList');
+  container.innerHTML = '<div class="muted">Loading...</div>';
+
+  try {
+    const res = await fetch('/api/warehouses');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const warehouses = await res.json();
+
+    // Recalculate stats (or get from backend)
+    const outletsRes = await fetch('/api/outlets');
+    const outlets = await outletsRes.json();
+    const shipmentsRes = await fetch('/api/shipments');
+    const shipments = await shipmentsRes.json();
+
+    warehouses.forEach(w => {
+      w.totalOutlets = outlets.filter(o => o.warehouseId === w.id).length;
+      w.totalStock = w.totalStock || 0;
+      w.totalRevenue = shipments
+        .filter(s => s.warehouseId === w.id && s.status === 'Sold')
+        .reduce((a, s) => a + s.qty * s.unitPrice, 0);
+    });
+
+    container.innerHTML = '';
+    warehouses.forEach(w => {
+      const itemsList = w.items.map(it => 
+        `<div style="font-size:12px; color:var(--muted); margin:2px 0">
+          • ${it.name} × ${it.qty} @ ${formatNGN(it.unitPrice)}
+        </div>`
+      ).join('');
+
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.innerHTML = `
+        <h4 style="display:flex; justify-content:space-between; gap:8px; margin-bottom:6px">
+          <span>${w.name}</span>
+          <div>
+            <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editWarehouse('${w.id}')">Edit</button>
+            <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="deleteWarehouse('${w.id}')">Delete</button>
+          </div>
+        </h4>
+        <p class="location">${w.location}</p>
+        <p class="small muted" style="margin:4px 0">Manager: <strong>${w.manager || '—'}</strong></p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; font-size:12px">
+          <div><strong>${w.totalOutlets}</strong> Outlets</div>
+          <div><strong>${w.totalProducts}</strong> Products</div>
+          <div><strong>${w.totalShipments}</strong> Shipments</div>
+          <div><strong>${formatNGN(w.totalRevenue)}</strong> Revenue</div>
+        </div>
+
+        <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
+          <div><div class="stock">${w.totalStock}</div><div class="badge">In Stock</div></div>
+          <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="openFullSalesPage('${w.id}', 'warehouse')">View Sales</button>
+        </div>
+      `;
+      container.appendChild(box);
+    });
+  } catch (err) {
+   container.innerHTML = `<div class="error">Failed: ${err.message}</div>`;  }
+}
+
+
+   async function renderOutlets() {
+  const container = $('#outletsList');
+  container.innerHTML = '<div class="muted">Loading outlets...</div>';
+
+  try {
+   const saved = localStorage.getItem('mock-outlets.json');
+    let outlets = saved ? JSON.parse(saved) : null;
+
+    // 2. If no saved data → load original file
+    if (!outlets) {
+      const res = await fetch('mock-outlets.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      outlets = await res.json();
+    }
+    container.innerHTML = '';
+    outlets.forEach(o => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.innerHTML = `
+  <h4 style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px">
+    <span>${o.name}</span>
+    <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editOutlet('${o.id}')">Edit</button>
+    <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="deleteOutlet('${o.id}')">Delete</button>
+  </h4>
+  <p class="location">${o.location}</p>
+  <p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName || '—'}</strong></p>
+  <p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>
+  <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
+    <div><div class="stock">${o.totalStock}</div><div class="badge">In Stock</div></div>
+    <div><div class="stock">${formatNGN(o.totalSales)}</div><div class="badge">Sales</div></div>
+    <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="openFullSalesPage('${o.id}', 'outlet')">View Sales</button>
+  </div>
+`;
+      container.appendChild(box);
+    });
+  } catch (err) {
+    console.error('Fetch error:', err);
+    container.innerHTML = `<div class="muted">Failed to load: ${err.message}</div>`;
+  }
+}
+
+    function renderAccounts(){
+      const tbody = $('#accountsTable tbody'); tbody.innerHTML = '';
+      DB.accounts.forEach(acc => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${acc.name}</strong></td>
+          <td><span class="pill">${acc.role}</span></td>
+          <td>${acc.email || '—'}</td>
+          <td>${acc.phone || '—'}</td>
+          <td><span class="pill" style="background:rgba(34,197,94,0.1);color:#166534">Active</span></td>
+          <td>
+            <button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editUser('${acc.id}')">Edit</button>
+            <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteUser('${acc.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    const REPORT_ITEMS_PER_PAGE = 5;
+    let reportPage = 1;
+
+    function renderReports() {
+      const filter = $('#reportFilter').value;
+      const now = new Date();
+      let startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (filter === 'today') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (filter === 'week') { const d = now.getDay(); startDate = new Date(now); startDate.setDate(now.getDate() - d); }
+
+      const isInRange = (d) => new Date(d) >= startDate;
+      let relevantShipments = DB.shipments.filter(s => s.status === 'Sold' && isInRange(s.date));
+      const revenue = relevantShipments.reduce((a, s) => a + s.qty * s.unitPrice, 0);
+      const unitsSold = relevantShipments.reduce((a, s) => a + s.qty, 0);
+
+      $('#reportsSection .grid').children[0].querySelector('.value').textContent = formatNGN(revenue);
+      $('#reportsSection .grid').children[2].querySelector('.value').textContent = unitsSold.toLocaleString();
+
+      const topProducts = DB.products.map(p => {
+        const sold = relevantShipments.filter(s => s.productSku === p.sku).reduce((a, s) => a + s.qty, 0);
+        return { ...p, sold, revenue: sold * p.unitPrice };
+      }).filter(p => p.sold > 0).sort((a, b) => b.revenue - a.revenue);
+
+      const start = (reportPage - 1) * REPORT_ITEMS_PER_PAGE;
+      const end = start + REPORT_ITEMS_PER_PAGE;
+      const pageItems = topProducts.slice(start, end);
+
+      const tbody = $('#topProductsTable tbody'); tbody.innerHTML = '';
+      pageItems.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${p.sku}</td><td>${p.name}</td><td><strong>${p.sold}</strong></td><td>${formatNGN(p.revenue)}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      const pagination = $('#reportPagination'); pagination.innerHTML = '';
+      const totalPages = Math.ceil(topProducts.length / REPORT_ITEMS_PER_PAGE);
+      const prevBtn = document.createElement('button'); prevBtn.className = 'btn secondary'; prevBtn.textContent = 'Prev'; prevBtn.disabled = reportPage === 1; prevBtn.onclick = () => { reportPage--; renderReports(); }; pagination.appendChild(prevBtn);
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button'); btn.className = 'btn' + (i === reportPage ? '' : ' secondary'); btn.textContent = i; btn.onclick = () => { reportPage = i; renderReports(); }; pagination.appendChild(btn);
+      }
+      const nextBtn = document.createElement('button'); nextBtn.className = 'btn secondary'; nextBtn.textContent = 'Next'; nextBtn.disabled = reportPage === totalPages; nextBtn.onclick = () => { reportPage++; renderReports(); }; pagination.appendChild(nextBtn);
+    }
+
+    $('#reportFilter').addEventListener('change', () => { reportPage = 1; renderReports(); });
+
+    function renderSales() {
+      const tbody = $('#salesTable tbody'); tbody.innerHTML = '';
+      DB.shipments.filter(s => s.status.includes('Sold') || s.status.includes('Approved')).forEach(s => {
+        const prod = DB.products.find(p => p.sku === s.productSku) || { name: s.productSku };
+        const outlet = DB.outlets.find(o => o.id === s.outletId) || { name: '—' };
+        const rep = s.senderId ? DB.accounts.find(a => a.id === s.senderId) : null;
+        let manager = null;
+        if (s.status === 'Manager Approved') {
+          const approvedBy = DB.shipments.find(x => x.id === s.id && x.sentFrom === 'Manager')?.senderId;
+          manager = approvedBy ? DB.accounts.find(a => a.id === approvedBy) : null;
+        } else {
+          const warehouse = DB.warehouses.find(w => w.id === s.warehouseId);
+          manager = warehouse?.managerId ? DB.accounts.find(a => a.id === warehouse.managerId) : null;
+        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.date}</td>
+          <td>${prod.name}</td>
+          <td><strong>${s.qty}</strong></td>
+          <td>${outlet.name || '—'}</td>
+          <td>${rep?.name || '—'}</td>
+          <td>${s.status === 'Manager Approved' ? (manager?.name || '—') : '—'}</td>
+          <td><span class="pill">${s.status}</span></td>
+          <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
+          <td></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    let fullSalesTargetId = null;
+    let fullSalesTargetType = null;
+    let fullSalesPage = 1;
+    const FULL_SALES_PER_PAGE = 10;
+    let fullSalesPicker = null;
+
+    function openFullSalesPage(id, type) {
+      fullSalesTargetId = id;
+      fullSalesTargetType = type;
+      const name = type === 'outlet' ? DB.outlets.find(o => o.id === id)?.name || 'Outlet' : DB.warehouses.find(w => w.id === id)?.name || 'Warehouse';
+      $('#fullSalesTitle').textContent = `Sales for ${name}`;
+      fullSalesPage = 1;
+      navigateTo('fullSales');
+      renderFullSales();
+    }
+
+    $('#backFromFullSalesBtn').addEventListener('click', () => {
+      const prev = fullSalesTargetType === 'outlet' ? 'outlets' : 'warehouses';
+      navigateTo(prev);
+    });
+
+    function renderFullSales() {
+      const filterDates = fullSalesPicker?.selectedDates;
+      const hasRange = filterDates && filterDates.length === 2;
+      const from = hasRange ? filterDates[0].toISOString().slice(0,10) : null;
+      const to   = hasRange ? filterDates[1].toISOString().slice(0,10) : null;
+
+      let sales = DB.shipments.filter(s => s.status.includes('Sold') || s.status.includes('Approved'));
+      if (fullSalesTargetType === 'outlet') {
+        sales = sales.filter(s => s.outletId === fullSalesTargetId);
+      } else {
+        const outletIds = DB.outlets.filter(o => o.warehouseId === fullSalesTargetId).map(o => o.id);
+        sales = sales.filter(s => outletIds.includes(s.outletId));
+      }
+      if (from) sales = sales.filter(s => (!to || s.date <= to) && s.date >= from);
+
+      const start = (fullSalesPage - 1) * FULL_SALES_PER_PAGE;
+      const end = start + FULL_SALES_PER_PAGE;
+      const pageItems = sales.slice(start, end);
+
+      const tbody = $('#fullSalesTable tbody'); tbody.innerHTML = '';
+      pageItems.forEach(s => {
+        const prod = DB.products.find(p => p.sku === s.productSku) || {name: s.productSku, unitPrice:0};
+        const rep  = s.senderId ? DB.accounts.find(a => a.id === s.senderId)?.name || '—' : '—';
+        const line = s.qty * prod.unitPrice;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.date}</td>
+          <td>${prod.sku}</td>
+          <td>${prod.name}</td>
+          <td><strong>${s.qty}</strong></td>
+          <td>${rep}</td>
+          <td>${formatNGN(prod.unitPrice)}</td>
+          <td>${formatNGN(line)}</td>
+          <td><span class="pill">${s.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const pagination = $('#fullSalesPagination'); pagination.innerHTML = '';
+      const totalPages = Math.ceil(sales.length / FULL_SALES_PER_PAGE);
+      const prev = document.createElement('button'); prev.className = 'btn secondary'; prev.textContent = 'Prev'; prev.disabled = fullSalesPage === 1; prev.onclick = () => { fullSalesPage--; renderFullSales(); }; pagination.appendChild(prev);
+            for (let i = 1; i <= totalPages; i++) {
+        const b = document.createElement('button');
+        b.className = 'btn' + (i === fullSalesPage ? '' : ' secondary');
+        b.textContent = i;
+        b.onclick = () => { fullSalesPage = i; renderFullSales(); };
+        pagination.appendChild(b);
+      }
+      const next = document.createElement('button'); next.className = 'btn secondary'; next.textContent = 'Next'; next.disabled = fullSalesPage === totalPages; next.onclick = () => { fullSalesPage++; renderFullSales(); }; pagination.appendChild(next);
+    }
+
+    function initFullSalesPicker() {
+      if (fullSalesPicker) return;
+      fullSalesPicker = flatpickr('#fullSalesDatePicker', {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        onChange: () => { fullSalesPage = 1; renderFullSales(); }
+      });
+    }
+
+    const originalNavigateTo = navigateTo;
+    navigateTo = function(route) {
+      originalNavigateTo(route);
+      if (route === 'fullSales') initFullSalesPicker();
+    };
+
+    let salesPicker = null;
+    function initSalesDatePicker(){
+      const input = document.createElement('input');
+      input.type='text'; input.placeholder='Pick range'; input.style.cssText='padding:4px 8px;border-radius:6px;border:1px solid #e6eefb;font-size:12px;width:100%';
+      $('#salesDateDisplay').appendChild(input);
+      salesPicker = flatpickr(input,{
+        mode:'range',
+        dateFormat:'Y-m-d',
+        onChange: dates => {
+          if(dates.length===2){
+            const [f,t]=dates;
+            $('#salesDateDisplay').dataset.from=f.toISOString().slice(0,10);
+            $('#salesDateDisplay').dataset.to=t.toISOString().slice(0,10);
+            $('#salesDateDisplay').textContent=`${niceDate(f)} – ${niceDate(t)}`;
+          }else{
+            delete $('#salesDateDisplay').dataset.from;
+            delete $('#salesDateDisplay').dataset.to;
+            $('#salesDateDisplay').textContent='All time';
+          }
+          renderSalesSummary();
+        }
+      });
+    }
+
+    function renderSalesSummary(){
+      const from = $('#salesDateDisplay').dataset.from;
+      const to   = $('#salesDateDisplay').dataset.to;
+      const sales = DB.shipments.filter(s=>{
+        if(!from) return true;
+        return s.date >= from && (!to || s.date <= to);
+      });
+      const units = sales.reduce((a,s)=>a+s.qty,0);
+      const revenue = sales.reduce((a,s)=>a+s.qty*s.unitPrice,0);
+      $('#salesUnits').textContent = units.toLocaleString();
+      $('#salesRevenue').textContent = formatNGN(revenue);
+    }
+
+    function persist(){ localStorage.setItem('wareadmin_data',JSON.stringify(DB)); }
+
+    function showModal(html){ $('#modal').innerHTML=html; $('#modalBackdrop').style.display='flex'; }
+    function closeModal(){ $('#modalBackdrop').style.display='none'; $('#modal').innerHTML=''; }
+
+    $('#createWarehouseBtn').addEventListener('click', () => {
+      const managerOptions = DB.accounts.map(acc => `<option value="${acc.id}">${acc.name} (${acc.role})</option>`).join('');
+      showModal(`
+        <h4>Create Warehouse</h4>
+        <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
+        <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
+        <div class="form-row">
+          <select id="whManager">
+            <option value="">No manager</option>
+            ${managerOptions}
+          </select>
+        </div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveWh">Create</button>
+        </div>
+      `);
+     $('#saveNewWh').onclick = () => {
+        const name = $('#newWhName').value.trim();
+        const location = $('#newWhLocation').value.trim();
+        const managerId = $('#newWhManager').value || null;
+
+        if (!name || !location) return alert('Fill name and location');
+
+        const manager = managerId ? DB.accounts.find(a => a.id === managerId) : null;
+        const id = 'wh-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+        const newWh = {
+            id,
+            name,
+            location,
+            managerId,
+            manager: manager?.name || '',
+            totalStock: 0,
+            totalRevenue: 0,
+            totalShipments: 0,
+            totalProducts: 0,
+            totalOutlets: 0,
+            items: []
+        };
+
+  let warehouses = JSON.parse(localStorage.getItem('mock-warehouses.json') || '[]');
+  warehouses.push(newWh);
+  localStorage.setItem('mock-warehouses.json', JSON.stringify(warehouses));
+
+  closeModal();
+  renderWarehouses();
+};
+    });
+
+    $('#createOutletBtn').addEventListener('click', () => {
+      showModal(`
+        <h4>Create Outlet</h4>
+        <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
+        <div class="form-row">
+          <select id="outWh">
+            ${DB.warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <select id="outRep">
+            <option value="">No rep</option>
+            ${DB.accounts.filter(a => a.role === 'rep').map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+          </select>
+        </div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveOut">Create</button>
+        </div>
+      `);
+      $('#saveOut').onclick = () => {
+        const name = $('#outName').value.trim();
+        const warehouseId = $('#outWh').value;
+        const repId = $('#outRep').value || null;
+        if (!name || !warehouseId) return alert('Name and warehouse required');
+        DB.outlets.push({ id: 'out-' + Date.now(), name, warehouseId, repId });
+        persist(); closeModal(); renderOutlets();
+      };
+    });
+
+    $('#addProductBtn').addEventListener('click',()=>{ 
+      showModal(`<h4>Add Product / Inventory</h4>
+        <div class="form-row"><input id="sku" placeholder="SKU (eg PRD-001)" /></div>
+        <div class="form-row"><input id="pname" placeholder="Product name" /></div>
+        <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
+        <div class="form-row"><input id="pprice" type="number" placeholder="Unit price (NGN)" /></div>
+        <div class="form-row"><select id="pwh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+        <div style="text-align:right"><button class="btn secondary" onclick="closeModal()">Cancel</button> <button class="btn" id="saveProd">Save</button></div>`);
+      $('#saveProd').onclick=()=>{ 
+        DB.products.push({sku:$('#sku').value,name:$('#pname').value,qty:Number($('#pqty').value),unitPrice:Number($('#pprice').value),warehouseId:$('#pwh').value});
+        DB.shipments.push({date:new Date().toISOString().slice(0,10),productSku:$('#sku').value,qty:Number($('#pqty').value),warehouseId:$('#pwh').value,unitPrice:Number($('#pprice').value),status:'Received'});
+        persist(); closeModal(); resetProductPage();
+      };
+    });
+
+    $('#addUserBtn').addEventListener('click', () => {
+      showModal(`
+        <h4>Add User</h4>
+        <div class="form-row"><input id="newName" placeholder="Full name" /></div>
+        <div class="form-row"><input id="newEmail" type="email" placeholder="Email" /></div>
+        <div class="form-row"><input id="newPhone" placeholder="Phone (e.g. +234 800 000 0000)" /></div>
+        <div class="form-row">
+          <select id="newRole">
+            <option value="admin">admin</option>
+            <option value="manager">manager</option>
+            <option value="rep">rep</option>
+          </select>
+        </div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveNew">Create</button>
+        </div>
+      `);
+      $('#saveNew').onclick = () => {
+        const name = $('#newName').value.trim();
+        const email = $('#newEmail').value.trim();
+        const phone = $('#newPhone').value.trim();
+        const role = $('#newRole').value;
+        if (!name || !email) return alert('Name and email required');
+        const id = 'acc-' + Date.now();
+        DB.accounts.push({ id, name, email, role, phone: phone || null });
+        persist(); closeModal(); renderAccounts();
+      };
+    });
+
+    $('#shipToWarehouseBtn').addEventListener('click', () => {
+      showModal(`
+        <h4>Ship Stock to Warehouse</h4>
+        <div class="form-row">
+          <select id="targetWh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select>
+        </div>
+        <div class="form-row"><input id="sku" placeholder="SKU" /></div>
+        <div class="form-row"><input id="pname" placeholder="Product name" /></div>
+        <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
+        <div class="form-row"><input id="pprice" type="number" placeholder="Unit price (NGN)" /></div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveShipWh">Ship</button>
+        </div>
+      `);
+      $('#saveShipWh').onclick = () => {
+        const whId   = $('#targetWh').value;
+        const sku    = $('#sku').value.trim();
+        const name   = $('#pname').value.trim();
+        const qty    = Number($('#pqty').value);
+        const price  = Number($('#pprice').value);
+        if (!sku||!name||qty<=0||price<=0) return alert('Fill all fields');
+        let prod = DB.products.find(p=>p.sku===sku);
+        if (prod) { if (prod.warehouseId!==whId) return alert('SKU exists in another warehouse'); prod.qty += qty; } 
+        else { prod = {sku, name, qty, unitPrice:price, warehouseId:whId}; DB.products.push(prod); }
+              DB.shipments.push({
+          id: 'shp-'+Date.now(),
+          date: new Date().toISOString().slice(0,10),
+          productSku: sku,
+          qty,
+          warehouseId: whId,
+          outletId: null,
+          unitPrice: price,
+          status: STATUS.IN_TRANSIT,
+          from: 'Company',
+          outletStock: 0  // how much is currently at the outlet
+        });  persist(); closeModal(); refreshAll();
+      };
+    });
+
+   document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+
+  // Clear old active states
+  document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
+  a.classList.add('active');
+
+  const route = a.dataset.route;
+  $all('.section').forEach(s => s.classList.remove('active'));
+
+  if (route === 'overview')    { $('#overviewSection').classList.add('active'); refreshAll(); }
+  else if (route === 'warehouses') { $('#warehousesSection').classList.add('active'); renderWarehouses(); }
+  else if (route === 'outlets')    { $('#outletsSection').classList.add('active'); renderOutlets(); }
+  else if (route === 'products')   { $('#productsSection').classList.add('active'); renderProducts(); }
+  else if (route === 'accounts')   { $('#accountsSection').classList.add('active'); renderAccounts(); }
+  else if (route === 'reports')    { $('#reportsSection').classList.add('active'); renderReports(); }
+  else if (route === 'sales')      { $('#salesSection').classList.add('active'); renderSales(); }
+  else if (route === 'settings')   { $('#settingsSection').classList.add('active'); renderSettings(); }
+}));
+
+    $('#hambBtn').addEventListener('click',()=>{ document.getElementById('sidebar').classList.toggle('open'); });
+
+    $('#modalBackdrop').addEventListener('click',e=>{ if(e.target.id==='modalBackdrop') closeModal(); });
+
+    $('#globalSearch').addEventListener('input',e=>{
+      const q=e.target.value.toLowerCase();
+      $('#productTable tbody').querySelectorAll('tr').forEach(tr=>{ tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none'; });
+    });
+
+    $('#exportBtn').addEventListener('click',()=>{
+      const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
+      const csv='SKU,Name,Qty,Warehouse,UnitPrice\n'+rows;
+      const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='products.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+   
+async function loadWarehouses() {
+  let list = JSON.parse(localStorage.getItem('mock-warehouses.json') || '[]');
+  if (!list.length) {
+    const r = await fetch('mock-warehouses.json');
+    list = await r.json();
+    localStorage.setItem('mock-warehouses.json', JSON.stringify(list));
+  }
+  return list;
+}
+
+async function persistWarehouses(warehouses) {
+  const outlets = JSON.parse(localStorage.getItem('mock-outlets.json') || '[]');
+  const shipments = JSON.parse(localStorage.getItem('mock-shipments.json') || '[]');
+
+  warehouses.forEach(w => {
+    w.totalOutlets = outlets.filter(o => o.warehouseId === w.id).length;
+    w.totalProducts = w.items.length;
+    w.totalShipments = shipments.filter(s => s.warehouseId === w.id).length;
+    w.totalRevenue = shipments
+      .filter(s => s.warehouseId === w.id && s.status.includes('Sold'))
+      .reduce((a, s) => a + s.qty * s.unitPrice, 0);
+    w.totalStock = w.items.reduce((a, i) => a + Number(i.qty), 0);
+  });
+
+  localStorage.setItem('mock-warehouses.json', JSON.stringify(warehouses));
+  return warehouses;
+}
+
+async function editWarehouse(id) {
+  let warehouses = await loadWarehouses();
+  const wh = warehouses.find(w => w.id === id);
+  if (!wh) return alert('Warehouse not found');
+
+  const managerOptions = DB.accounts
+    .filter(a => ['manager', 'admin'].includes(a.role))
+    .map(a => `<option value="${a.id}" ${a.id === wh.managerId ? 'selected' : ''}>${a.name}</option>`)
+    .join('');
+
+  const itemsHTML = wh.items.map(it => 
+    `<div style="font-size:12px;color:var(--muted);margin:2px 0">• ${it.name} × ${it.qty} @ ${formatNGN(it.unitPrice)}</div>`
+  ).join('') || '<em class="muted">No items</em>';
+
+  showModal(`
+    <h4>Edit Warehouse – ${wh.name}</h4>
+    <div class="form-row"><input id="editWhName" value="${wh.name}" placeholder="Warehouse name" /></div>
+    <div class="form-row"><input id="editWhLocation" value="${wh.location}" placeholder="Location" /></div>
+    <div class="form-row">
+      <select id="editWhManager"><option value="">No manager</option>${managerOptions}</select>
+    </div>
+    <div style="margin-top:12px;"><strong>Current items:</strong><br>${itemsHTML}</div>
+    <div style="text-align:right; margin-top:16px">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEditWhBtn">Save</button>
+    </div>
+  `);
+
+  $('#saveEditWhBtn').onclick = async () => {
+    const newName = $('#editWhName').value.trim();
+    const newLocation = $('#editWhLocation').value.trim();
+    const newMgrId = $('#editWhManager').value || null;
+
+    if (!newName || !newLocation) return alert('Name & location required');
+
+    const manager = newMgrId ? DB.accounts.find(a => a.id === newMgrId) : null;
+
+    wh.name = newName;
+    wh.location = newLocation;
+    wh.managerId = newMgrId;
+    wh.manager = manager?.name || '';
+
+    await persistWarehouses(warehouses);
+    DB.warehouses = warehouses;  // <-- SYNC
+    persist();
+
+    closeModal();
+    renderWarehouses();
+    refreshAll();
+  };
+}
+
+async function editOutlet(id) {
+  // Load from localStorage first, fallback to JSON
+  let outlets = [];
+  const saved = localStorage.getItem('mock-outlets.json');
+  if (saved) outlets = JSON.parse(saved);
+  else {
+    const res = await fetch('mock-outlets.json');
+    if (!res.ok) { alert('Failed to load'); return; }
+    outlets = await res.json();
+  }
+
+  const o = outlets.find(x => x.id === id);
+  if (!o) { alert('Outlet not found'); return; }
+
+  // Rep dropdown: only reps, pre-select by repId
+  const repOptions = DB.accounts
+    .filter(a => a.role === 'rep')
+    .map(a => `<option value="${a.id}" ${a.id === o.repId ? 'selected' : ''}>${a.name}</option>`)
+    .join('');
+
+  showModal(`
+  <h4>Edit Outlet – ${o.name}</h4>
+
+  <div class="form-row"><input id="editOutName" value="${o.name}" placeholder="Outlet name" /></div>
+
+  <div class="form-row">
+    <select id="editOutWh">
+      ${DB.warehouses.map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name}</option>`).join('')}
+    </select>
+  </div>
+
+  <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
+
+  <div class="form-row">
+    <label style="font-size:12px; color:var(--muted)">Current Rep: <strong>${o.repName || '—'}</strong></label>
+    <select id="editOutRep">
+      <option value="">No rep</option>
+      ${repOptions}
+    </select>
+  </div>
+
+  <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
+
+  <div class="form-row"><input id="editOutTotalStock" type="number" value="${o.totalStock}" placeholder="Stock in outlet" /></div>
+  <div class="form-row"><input id="editOutTotalSales" type="number" value="${o.totalSales}" placeholder="Total sales (NGN)" /></div>
+
+  <div style="text-align:right; margin-top:12px">
+    <button class="btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn" id="saveEditOut">Save</button>
+  </div>
+`);
+
+ $('#saveEditOut').onclick = () => {
+  const newName = $('#editOutName').value.trim();
+  const newWhId = $('#editOutWh').value;
+  const newLocation = $('#editOutLocation').value.trim();
+  const newRepId = $('#editOutRep').value || null;
+  const newPhone = $('#editOutPhone').value.trim();
+  const newStock = Number($('#editOutTotalStock').value);
+  const newSales = Number($('#editOutTotalSales').value);
+
+  if (!newName || !newLocation) return alert('Name & location required');
+  if (isNaN(newStock) || isNaN(newSales)) return alert('Stock & sales must be numbers');
+
+  const idx = outlets.findIndex(x => x.id === id);
+  const selectedRep = newRepId ? DB.accounts.find(a => a.id === newRepId) : null;
+
+  outlets[idx] = {
+    ...outlets[idx],
+    name: newName,
+    warehouseId: newWhId,
+    warehouse: DB.warehouses.find(w => w.id === newWhId)?.name || '',
+    location: newLocation,
+    repId: newRepId,
+    repName: selectedRep?.name || '',
+    phone: newPhone,
+    totalStock: newStock,
+    totalSales: newSales
+  };
+
+  localStorage.setItem('mock-outlets.json', JSON.stringify(outlets));
+  renderOutlets();
+  closeModal();
+};
+}
+
+    function editProduct(sku){
+      const p = DB.products.find(x => x.sku === sku);
+      showModal(`
+        <h4>Edit Product – ${p.sku}</h4>
+        <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
+        <div class="form-row"><input id="editPQty" type="number" value="${p.qty}" placeholder="Quantity" /></div>
+        <div class="form-row"><input id="editPPrice" type="number" value="${p.unitPrice}" placeholder="Unit price (NGN)" /></div>
+        <div class="form-row">
+          <select id="editPWh">
+            ${DB.warehouses.map(w => `<option value="${w.id}" ${w.id===p.warehouseId?'selected':''}>${w.name}</option>`).join('')}
+          </select>
+        </div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveEditProd">Save</button>
+        </div>
+      `);
+      $('#saveEditProd').onclick = () => {
+        const newName = $('#editPName').value.trim();
+        const newQty = Number($('#editPQty').value);
+        const newPrice = Number($('#editPPrice').value);
+        const newWh = $('#editPWh').value;
+        if (!newName || isNaN(newQty) || isNaN(newPrice) || newQty < 0 || newPrice < 0) {
+          alert('Please fill all fields correctly');
+          return;
+        }
+        p.name = newName; p.qty = newQty; p.unitPrice = newPrice; p.warehouseId = newWh;
+        persist(); closeModal(); renderProducts();
+      };
+    }
+
+    function deleteWarehouse(id) {
+      if (!confirm('Delete warehouse and all its data? This cannot be undone.')) return;
+      DB.warehouses = DB.warehouses.filter(w => w.id !== id);
+      DB.outlets = DB.outlets.filter(o => o.warehouseId !== id);
+      DB.products = DB.products.filter(p => p.warehouseId !== id);
+      DB.shipments = DB.shipments.filter(s => s.warehouseId === id || (s.outletId && DB.outlets.find(o => o.id === s.outletId)?.warehouseId === id));
+      persist(); renderWarehouses(); renderOutlets(); renderProducts(); refreshAll();
+    }
+
+    function deleteOutlet(id) {
+      if (!confirm('Delete this outlet?')) return;
+      DB.outlets = DB.outlets.filter(o => o.id !== id);
+      DB.shipments = DB.shipments.filter(s => s.outletId !== id);
+      persist(); renderOutlets(); refreshAll();
+    }
+
+    function deleteProduct(sku) {
+      const product = DB.products.find(p => p.sku === sku);
+      if (!product) return;
+      if (confirm(`Delete product "${product.name}" (SKU: ${sku})? This cannot be undone.`)) {
+        DB.products = DB.products.filter(p => p.sku !== sku);
+        DB.shipments = DB.shipments.filter(s => s.productSku !== sku);
+        persist(); resetProductPage(); refreshAll();
+      }
+    }
+
+    function editUser(id){
+      const user = DB.accounts.find(a => a.id === id);
+      showModal(`
+        <h4>Edit User</h4>
+        <div class="form-row"><input id="editName" value="${user.name}" /></div>
+        <div class="form-row"><input id="editEmail" value="${user.email}" /></div>
+        <div class="form-row">
+          <select id="editRole">
+            <option ${user.role==='admin'?'selected':''}>admin</option>
+            <option ${user.role==='manager'?'selected':''}>manager</option>
+            <option ${user.role==='rep'?'selected':''}>rep</option>
+          </select>
+        </div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="saveEdit">Save</button>
+        </div>
+      `);
+      $('#saveEdit').onclick = () => {
+        user.name = $('#editName').value;
+        user.email = $('#editEmail').value;
+        user.role = $('#editRole').value;
+        persist(); closeModal(); renderAccounts();
+      };
+    }
+
+    function deleteUser(id){
+      if(confirm('Delete this user?')) {
+        DB.accounts = DB.accounts.filter(a => a.id !== id);
+        persist(); renderAccounts();
+      }
+    }
+
+    function saveLowStockThreshold() {
+      const thresh = Number($('#lowStockThreshold').value);
+      if (thresh > 0) {
+        localStorage.setItem('lowStockThresh', thresh);
+        alert('Low stock threshold saved!');
+        renderReports();
+      } else alert('Threshold must be positive');
+    }
+
+    function renderSettings() {
+      $('#lowStockThreshold').value = localStorage.getItem('lowStockThresh') || 50;
+      const tbody = $('#settingsUsersTable tbody'); tbody.innerHTML = '';
+      DB.accounts.forEach(acc => {
+        const manages = [];
+        if (acc.role === 'manager' || acc.role === 'admin') {
+          DB.warehouses.forEach(w => { if (w.managerId === acc.id) manages.push(w.name); });
+          DB.outlets.forEach(o => { if (o.managerId === acc.id) manages.push(o.name); });
+        }
+        const managesText = manages.length ? manages.join(', ') : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${acc.name}</strong></td>
+          <td><span class="pill">${acc.role}</span></td>
+          <td>${acc.email || '—'}</td>
+          <td>${acc.phone || '—'}</td>
+          <td><small class="muted">${managesText}</small></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      const admin = DB.accounts.find(a => a.role === 'admin') || DB.accounts[0];
+      $('#adminEmail').value = admin.email || '';
+      $('#adminPhone').value = admin.phone || '';
+    }
+
+    function saveAdminProfile() {
+      const admin = DB.accounts.find(a => a.role === 'admin') || DB.accounts[0];
+      const email = $('#adminEmail').value.trim();
+      const phone = $('#adminPhone').value.trim();
+      const pass = $('#adminPassword').value;
+      if (!email) return alert('Email is required');
+      admin.email = email; admin.phone = phone;
+      if (pass) admin.password = pass;
+      persist(); alert('Profile updated!'); renderSettings();
+    }
+
+    function refreshAll(){ 
+      renderOverviewCards(); 
+      renderShipments(); 
+      renderProducts(); 
+      renderQuickStats(); 
+      renderTopOutlets(); 
+      renderPending();
+      if (document.querySelector('#reportsSection').classList.contains('active')) { reportPage = 1; renderReports(); }
+      if (document.querySelector('#salesSection').classList.contains('active')) { renderSales(); }
+      if (document.querySelector('#warehousesSection').classList.contains('active')) renderWarehouses();
+      if (document.querySelector('#outletsSection').classList.contains('active')) renderOutlets();
+    }
+
+    function resetProductPage() { currentPage = 1; renderProducts(); }
+
+    refreshAll();
+renderSalesSummary();
+renderOverviewCards();  
+  </script>
+</body>
+</html>

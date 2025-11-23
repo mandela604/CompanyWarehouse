@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product Table Demo</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  th { background: #f4f4f4; }
+  .btn { padding: 4px 8px; cursor: pointer; border: none; border-radius: 3px; }
+  .secondary { background: #aaa; color: white; }
+  .modal-backdrop { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; 
+  }
+  .modal { background: white; padding: 20px; border-radius: 5px; min-width: 300px; }
+</style>
+</head>
+<body>
+
+<h2>Products</h2>
+<table id="productTable">
+  <thead>
+    <tr>
+      <th>SKU</th>
+      <th>Name</th>
+      <th>Qty</th>
+      <th>Company</th>
+      <th>Unit Price</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div id="pagination"></div>
+
+<script>
+const ITEMS_PER_PAGE = 5;
+let currentPage = 1;
+let totalPages = 1;
+
+// Demo product data
+let productsDemo = Array.from({length: 23}, (_, i) => ({
+  sku: 'SKU'+(i+1),
+  name: 'Product '+(i+1),
+  qty: Math.floor(Math.random()*100)+1,
+  companyName: 'Company '+((i%3)+1),
+  unitPrice: Math.floor(Math.random()*1000)+100
+}));
+
+function formatNGN(n){ return '₦' + (n||0).toLocaleString(); }
+
+async function fakeFetch(url) {
+  // Simulate API delay
+  return new Promise(resolve => {
+    setTimeout(() => {
+      if (url.startsWith('/api/products')) {
+        const page = parseInt(new URLSearchParams(url.split('?')[1]).get('page')) || 1;
+        const limit = parseInt(new URLSearchParams(url.split('?')[1]).get('limit')) || 5;
+        const start = (page-1)*limit;
+        const end = start + limit;
+        resolve({
+          ok: true,
+          json: () => Promise.resolve({ products: productsDemo.slice(start,end), totalPages: Math.ceil(productsDemo.length/limit) })
+        });
+      }
+    }, 200);
+  });
+}
+
+async function renderProducts() {
+  const tbody = document.querySelector('#productTable tbody'); 
+  tbody.innerHTML = '';
+  const pagination = document.getElementById('pagination'); 
+  pagination.innerHTML = '';
+
+  // Fetch paginated data
+  const res = await fakeFetch(`/api/products?page=${currentPage}&limit=${ITEMS_PER_PAGE}`);
+  const data = await res.json();
+  totalPages = data.totalPages;
+
+  // Render table rows
+  data.products.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.sku}</td>
+      <td>${p.name}</td>
+      <td><strong>${p.qty}</strong></td>
+      <td>${p.companyName}</td>
+      <td>${formatNGN(p.unitPrice)}</td>
+      <td>
+        <button class="btn secondary" onclick="editProduct('${p.sku}')">Edit</button>
+        <button class="btn" style="background:var(--dark-red);" onclick="deleteProduct('${p.sku}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Pagination
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary'; prevBtn.textContent = 'Prev';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => { currentPage--; renderProducts(); };
+  pagination.appendChild(prevBtn);
+
+  for(let i=1;i<=totalPages;i++){
+    const btn = document.createElement('button');
+    btn.className = 'btn'+(i===currentPage?'':' secondary');
+    btn.textContent = i;
+    btn.onclick = () => { currentPage=i; renderProducts(); };
+    pagination.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary'; nextBtn.textContent = 'Next';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => { currentPage++; renderProducts(); };
+  pagination.appendChild(nextBtn);
+}
+
+// Demo modal
+function showModal(html){
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  const modal = document.createElement('div'); modal.className='modal';
+  modal.innerHTML = html;
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', e => { if(e.target===backdrop) backdrop.remove(); });
+}
+function closeModal(){ document.querySelector('.modal-backdrop')?.remove(); }
+
+// Demo edit
+function editProduct(sku){
+  const p = productsDemo.find(x=>x.sku===sku);
+  if(!p) return;
+  showModal(`
+    <h4>Edit Product – ${p.sku}</h4>
+    <div class="form-row"><input id="editPName" value="${p.name}" /></div>
+    <div class="form-row"><input id="editPQty" type="number" value="${p.qty}" /></div>
+    <div class="form-row"><input id="editPPrice" type="number" value="${p.unitPrice}" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEditProd">Save</button>
+    </div>
+  `);
+  document.getElementById('saveEditProd').onclick=()=>{
+    p.name=document.getElementById('editPName').value;
+    p.qty=Number(document.getElementById('editPQty').value);
+    p.unitPrice=Number(document.getElementById('editPPrice').value);
+    closeModal(); renderProducts();
+  };
+}
+
+// Demo delete
+function deleteProduct(sku){
+  const p = productsDemo.find(x=>x.sku===sku);
+  if(!p) return;
+  if(confirm(`Delete "${p.name}"?`)){
+    productsDemo = productsDemo.filter(x=>x.sku!==sku);
+    renderProducts();
+  }
+}
+
+renderProducts();
+</script>
+
+</body>
+</html>

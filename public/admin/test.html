@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shipment List Demo</title>
+<style>
+  :root {
+    --primary: #0b5ed7;
+    --card: #fff;
+    --muted: #64748b;
+    --shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f8fafc;
+    margin: 0; padding: 40px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #eef3fb;
+  }
+  th {
+    background: #f1f5ff;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  tr:hover { background: rgba(11,94,215,0.03); }
+  button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { opacity: 0.9; }
+  .pill {
+    background: rgba(11,94,215,0.1);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 12px;
+  }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+  .modal {
+    background: var(--card);
+    padding: 24px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .inner-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .inner-table th, .inner-table td {
+    border-bottom: 1px solid #f1f5ff;
+    padding: 8px;
+  }
+  .inner-table th {
+    background: #f8fafc;
+    color: var(--muted);
+  }
+  .btn.secondary {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  h4 { margin-top: 0; color: #0f172a; }
+</style>
+</head>
+<body>
+
+<h2>Shipments</h2>
+<table id="shipmentTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Warehouse</th>
+      <th>Unit Price</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function niceDate(d) {
+  return new Date(d).toLocaleDateString();
+}
+function formatNGN(n) {
+  return '₦' + n.toLocaleString();
+}
+
+// Mock fetch() to simulate backend
+window.fetch = async (url) => {
+  if (url === '/api/shipments') {
+    return {
+      ok: true,
+      json: async () => ([
+        {
+          id: 's1',
+          date: Date.now(),
+          productName: 'iPhone 15 Pro',
+          qty: 10,
+          warehouseName: 'Main Warehouse',
+          unitPrice: 850000,
+          status: 'In Transit',
+        },
+        {
+          id: 's2',
+          date: Date.now(),
+          productName: 'Samsung S24 Ultra',
+          qty: 5,
+          warehouseName: 'Lagos Outlet',
+          unitPrice: 780000,
+          status: 'Delivered',
+        }
+      ])
+    };
+  }
+
+  if (url.startsWith('/api/shipments/')) {
+    const id = url.split('/').pop();
+    const shipmentDetails = {
+      s1: {
+        id: 's1',
+        date: Date.now(),
+        from: { name: 'Company A' },
+        fromType: 'Company',
+        to: { name: 'Main Warehouse' },
+        toType: 'Warehouse',
+        status: 'In Transit',
+        products: [
+          { productSku: 'IP15PRO', qty: 10, unitPrice: 850000 }
+        ]
+      },
+      s2: {
+        id: 's2',
+        date: Date.now(),
+        from: { name: 'Main Warehouse' },
+        fromType: 'Warehouse',
+        to: { name: 'Lagos Outlet' },
+        toType: 'Outlet',
+        status: 'Delivered',
+        products: [
+          { productSku: 'S24U', qty: 5, unitPrice: 780000 }
+        ]
+      }
+    };
+    return { ok: true, json: async () => shipmentDetails[id] };
+  }
+
+  return { ok: false, status: 404 };
+};
+
+async function renderShipments() {
+  const tbody = $('#shipmentTable tbody'); 
+  tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+
+  try {
+    const res = await fetch('/api/shipments');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const shipments = await res.json();
+
+    tbody.innerHTML = '';
+
+    shipments.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${niceDate(s.date)}</td>
+        <td>${s.productName}</td>
+        <td>${s.qty}</td>
+        <td>${s.warehouseName || s.outletName || '—'}</td>
+        <td>${formatNGN(s.unitPrice)}</td>
+        <td><span class="pill">${s.status}</span></td>
+           <td>
+    <button class="view-details" data-id="${s.id}">View</button>
+    <button class="cancel-shipment" data-id="${s.id}">Cancel</button>
+  </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    if (shipments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No shipments found</td></tr>';
+    }
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="error">Failed: ${err.message}</td></tr>`;
+  }
+}
+
+document.body.addEventListener('click', async (e) => {
+
+    
+    if (e.target.classList.contains('cancel-shipment')) {
+    const id = e.target.dataset.id;
+    if (!confirm('Are you sure you want to cancel this shipment?')) return;
+
+    try {
+      const res = await fetch(`/api/shipments/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      alert('Shipment cancelled');
+      renderShipments(); // refresh table
+    } catch (err) {
+      alert('Failed to cancel shipment: ' + err.message);
+    }
+  }
+  if (!e.target.classList.contains('view-details')) return;
+
+  const id = e.target.dataset.id;
+  try {
+    const res = await fetch(`/api/shipments/${id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const shipment = await res.json();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.style.display = 'flex';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <h4>Shipment Details</h4>
+      <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
+      <p><strong>From:</strong> ${shipment.from?.name} (${shipment.fromType})</p>
+      <p><strong>To:</strong> ${shipment.to?.name} (${shipment.toType})</p>
+      <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
+      
+      <h4 style="margin-top:16px;">Products</h4>
+      <table class="inner-table">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${shipment.products.map(p => `
+            <tr>
+              <td>${p.productSku}</td>
+              <td>${p.qty}</td>
+              <td>${formatNGN(p.unitPrice)}</td>
+              <td>${formatNGN(p.qty * p.unitPrice)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+
+      <div style="text-align:right;margin-top:14px;">
+        <button id="closeModal" class="btn secondary">Close</button>
+      </div>
+    `;
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    $('#closeModal').onclick = () => backdrop.remove();
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) backdrop.remove();
+    });
+
+  } catch (err) {
+    alert('Failed to load shipment details: ' + err.message);
+  }
+});
+
+renderShipments();
+</script>
+</body>
+</html>

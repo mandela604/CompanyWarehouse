@@ -1,0 +1,33 @@
+[
+  {
+    "id": "wh-lagos",
+    "name": "Lagos Central Warehouse",
+    "location": "Ikeja, Lagos",
+    "managerId": "acc-mgr-lagos",
+    "manager": "Chinedu Okeke",
+    "totalStock": 440,
+    "totalProducts": 2,
+    "totalRevenue": 0,
+    "totalShipments": 12,
+    "totalOutlets": 2,
+    "items": [
+      { "sku": "PRD-001", "name": "N95 Masks (Box)", "qty": 120, "unitPrice": 4500 },
+      { "sku": "PRD-002", "name": "Hand sanitizer 500ml", "qty": 320, "unitPrice": 2500 }
+    ]
+  },
+  {
+    "id": "wh-abuja",
+    "name": "Abuja Main",
+    "location": "Garki, Abuja",
+    "managerId": "acc-mgr-abuja",
+    "manager": "Hassan Musa",
+    "totalStock": 40,
+    "totalProducts": 1,
+    "totalRevenue": 0,
+    "totalShipments": 5,
+    "totalOutlets": 1,
+    "items": [
+      { "sku": "PRD-003", "name": "Laptop Charger", "qty": 40, "unitPrice": 15000 }
+    ]
+  }
+]

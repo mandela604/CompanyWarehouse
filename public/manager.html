@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Manager — WareAdmin</title>
+  <style>
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--glass:rgba(255,255,255,0.75);--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03))}
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40} .sidebar.open{left:0} .hamburger{display:block}}
+    main{padding:6px 0}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+    .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .card .value{font-size:24px;font-weight:700}
+    .panel{display:flex;gap:16px}
+    .panel-left{flex:2}
+    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
+    .table{background:var(--card);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;border:1px solid #e5e7eb}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px}
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);color:var(--blue);font-weight:600;display:inline-block}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:680px}
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    .form-row input,.form-row select{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb}
+    .section{display:none}
+    .section.active{display:block}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+  <button class="hamburger" id="hambBtn">Menu</button>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">M</div>
+        <div>
+          <h2>Warehouse Manager</h2>
+          <div class="small" style="color:var(--muted)" id="warehouseName">Loading...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="shipments">Incoming Shipments</a>
+        <a href="#" data-route="outlets">My Outlets</a>
+        <a href="#" data-route="inventory">Inventory</a>
+      <!-- <a href="#" data-route="sales">Sales Records</a>
+        <a href="#" data-route="reports">Reports</a> --> 
+      </div>
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="shipToOutletBtn">+ Ship to Outlet</button>
+        <button class="btn" id="createOutletBtn" style="display:none">+ Create Outlet</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search products, outlets...">
+        </div>
+        <div class="actions">
+          <div class="small muted" id="managerName">Manager</div>
+          <button class="btn secondary" onclick="location.href='/logout'">Logout</button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <section id="overviewSection" class="section active">
+        <div class="grid" id="managerCards"></div>
+        <div class="panel">
+          <div class="panel-left">
+            <div class="table">
+              <h3 style="margin:0 0 16px;padding:0 16px">Recent Incoming Shipments</h3>
+              <table id="recentShipments"><tbody></tbody></table>
+            </div>
+          </div>
+        <!--  <div class="panel-right">
+            <div class="card">
+              <h3>Pending Approval</h3>
+              <div class="value" id="pendingCount">0</div>
+            </div>
+            <div class="card">
+              <h3>Low Stock Items</h3>
+              <div class="value" id="lowStockCount">0</div>
+            </div>
+          </div> -->
+        </div>
+      </section>
+
+      <!-- SHIPMENTS -->
+      <section id="shipmentsSection" class="section">
+        <h2>Incoming Shipments</h2>
+        <div class="table">
+          <table id="shipmentsTable">
+            <thead><tr><th>Date</th><th>From</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- OUTLETS -->
+      <section id="outletsSection" class="section">
+        <h2>My Outlets</h2>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn" id="createOutletBtn2" style="display:none">+ Create Outlet</button>
+        </div>
+        <div class="inline-list" id="myOutletsList"></div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section id="inventorySection" class="section">
+        <h2>Warehouse Inventory</h2>
+        <div class="table">
+          <table id="inventoryTable">
+            <thead><tr><th>SKU</th><th>Name</th><th>In Stock</th><th>Unit Price</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SALES & REPORTS -->
+      <section id="salesSection" class="section">
+        <h2>Sales Records (All My Outlets)</h2>
+       <div class="filter-bar" style="padding:12px;display:flex;gap:8px;align-items:center">
+        <input type="date" id="whFilterStart">
+        <input type="date" id="whFilterEnd">
+        <button class="btn secondary" id="applyWhFilter">Apply</button>
+        <button class="btn secondary" id="clearWhFilter">Clear</button>
+        <div style="flex:1"></div>
+        <input id="globalSearch" placeholder="Search outlet / rep / product..." style="min-width:200px;padding:8px;border-radius:8px;border:1px solid #e6eefb">
+      </div>
+        <div class="table">
+          <table id="managerSalesTable">
+            <thead><tr><th>Date</th><th>Outlet</th><th>Rep</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+   <!--   <section id="reportsSection" class="section">
+        <h2>Reports</h2>
+        <div class="grid" id="managerReportCards"></div>
+      </section> -->
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+ 
+  <div id="toastContainer" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none; /* Allows clicks to pass through */
+"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script>
+
+    
+// Toast function
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const colors = { info: '#0b5ed7', success: '#10b981', error: '#b71c1c' };
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.background = colors[type] || colors.info;
+  toast.style.color = 'white';
+  toast.style.padding = '10px 16px';
+  toast.style.borderRadius = '8px';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.3s, transform 0.3s';
+  toast.style.transform = 'translateY(20px)';
+
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, duration);
+}
+
+
+
+
+
+
+  
+    let myWarehouse = null;
+
+    function $(s) { return document.querySelector(s); }
+    function $all(s) { return document.querySelectorAll(s); }
+    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
+    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(new Date(d)); }
+
+async function loadManagerData() {
+  try {
+    const userRes = await fetch('/api/auth/me');
+    if (!userRes.ok) throw new Error('Session expired');
+    const user = await userRes.json();
+    $('#managerName').textContent = user.name || 'Manager';
+
+    const whRes = await fetch('/api/warehouse/my');
+    if (!whRes.ok) throw new Error('Cannot load warehouse');
+    myWarehouse = await whRes.json();
+
+    $('#warehouseName').textContent = 
+      `${myWarehouse.name} • ${myWarehouse.location}`;
+
+    if (myWarehouse.canCreateOutlets) {
+      $all('#createOutletBtn, #createOutletBtn2').forEach(b => b.style.display = 'block');
+    }
+
+    refreshAll();
+  } catch (err) {
+    showToast('Failed to load dashboard. Please refresh or contact admin.', 'error');
+       console.error(err);
+    if (err.message.includes('Session')) location.href = '/login';
+  }
+}
+
+    function navigateTo(route) {
+      $all('.section').forEach(s => s.classList.remove('active'));
+      $(`#${route}Section`).classList.add('active');
+      $all('.nav a').forEach(a => a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
+    }
+
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      const route = a.dataset.route;
+      navigateTo(route);
+      if (route === 'overview') refreshAll();
+      if (route === 'shipments') renderShipments();
+      if (route === 'outlets') renderMyOutlets();
+      if (route === 'inventory') renderInventory();
+     // if (route === 'sales') renderManagerSales();
+    //  if (route === 'reports') renderManagerReports();
+    }));
+
+    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
+    $('#modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') closeModal(); };
+
+    function showModal(html) {
+      $('#modal').innerHTML = html;
+      $('#modalBackdrop').style.display = 'flex';
+    }
+    function closeModal() {
+      $('#modalBackdrop').style.display = 'none';
+      $('#modal').innerHTML = '';
+    }
+
+
+
+//OVERVIEW SECTION
+// //OVERVIEW SECTION
+//OVERVIEW SECTION
+    async function renderManagerOverview() {
+  const cards = $('#managerCards');
+  cards.innerHTML = '<div class="muted">Loading...</div>';
+
+  try {
+    const res = await fetch('/api/manager/overview');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();   
+
+    cards.innerHTML = `
+      <div class="card">
+        <h3>Total Stock</h3>
+        <div class="value">${data.totalStock || 0}</div>
+        <div class="small-note" style="color:var(--muted)">units</div>
+      </div>
+
+      <div class="card">
+        <h3>Total Outlets</h3>
+        <div class="value">${data.totalOutlets || 0}</div>
+      </div>
+
+      <div class="card">
+        <h3>Total Sales</h3>
+        <div class="value">${formatNGN(data.totalRevenue || 0)}</div>
+      </div>
+
+      <div class="card">
+        <h3>Pending Shipments</h3>
+        <div class="value">${data.pendingShipments || 0}</div>
+      </div>
+    `;
+
+    // recent shipments table
+    const tbody = $('#recentShipments tbody');
+    tbody.innerHTML = (data.recentShipments || []).slice(0, 6).map(s => `
+      <tr>
+        <td>${niceDate(s.date)}</td>
+        <td>${s.from}</td>
+        <td>${s.product}</td>
+        <td>${s.qty}</td>
+        <td><span class="pill">${s.status}</span></td>
+      </tr>
+    `).join('');
+
+    // right panel boxes
+   // $('#pendingCount').textContent = data.pendingCount || 0;
+   // $('#lowStockCount').textContent = data.lowStockCount || 0;
+
+  } catch (err) {
+    cards.innerHTML = `<div class="error">Failed: ${err.message}</div>`;
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+   
+  }
+}
+
+
+async function renderShipments() {
+  const tbody = $('#shipmentsTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  try {
+    const res = await fetch('/api/shipments/warehouse?limit=15');
+    const shipments = await res.json();
+
+    tbody.innerHTML = '';
+    if (shipments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No incoming shipments</td></tr>';
+      return;
+    }
+
+    shipments.forEach(s => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.fromName || 'Head Office'}</td>
+          <td>${s.productName}</td>
+          <td>${s.qty}</td>
+          <td><span class="pill">${s.status}</span></td>
+     <td>
+  ${s.status.toLowerCase() === 'in transit'
+    ? `<button class="btn tiny" data-id="${s.id}" data-action="approve">Approve</button>
+       <button class="btn tiny" data-id="${s.id}" data-action="reject">Reject</button>`
+    : s.status.toLowerCase() === 'delivered'
+      ? `<button class="btn tiny" disabled>Received</button>`
+      : '—'
+  }
+</td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load shipments</td></tr>';
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+
+$('#shipmentsTable').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.action === 'approve') approveShipment(id);
+  if (btn.dataset.action === 'reject') rejectShipment(id);
+});
+
+async function approveShipment(id) {
+  const res = await fetch(`/api/shipments/approve/${id}`, { method: 'PUT' });
+  const data = await res.json();
+  if (res.ok) renderShipments();
+  else     showToast( data?.message || 'Failed to approve. Please refresh.', 'error');
+}
+
+async function rejectShipment(id) {
+  const res = await fetch(`/api/shipments/reject/${id}`, { method: 'PUT' });
+  const data = await res.json();
+  if (res.ok) renderShipments();
+  else showToast( data?.message || 'Failed to reject. Please refresh.', 'error');
+}
+
+
+
+async function renderMyOutlets() {
+  const container = $('#myOutletsList');
+  container.innerHTML = '<div class="muted">Loading outlets...</div>';
+
+  try {
+    const res = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+    if (!res.ok) throw new Error('Failed');
+    const outlets = await res.json();
+
+    container.innerHTML = '';
+
+    if (outlets.length === 0) {
+      container.innerHTML = '<div class="muted">No outlets assigned to this warehouse</div>';
+      return;
+    }
+
+    outlets.forEach(o => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.style = 'padding:16px; border:1px solid #e5e7eb; border-radius:12px; background:white; margin-bottom:12px';
+
+      box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+          <h4 style="margin:0; font-size:15px">${o.name}</h4>
+          <div>
+           ${myWarehouse.canCreateOutlets 
+  ? `<button class="btn secondary edit-outlet-btn" style="font-size:10px; padding:3px 8px" data-id="${o.id}">Edit</button>`
+  : ''
+}
+          </div>
+        </div>
+
+        <p style="margin:4px 0; color:var(--muted); font-size:13px">${o.location || '—'}</p>
+        <p style="margin:4px 0; font-size:13px">
+          Rep: <strong>${o.repName || 'Not assigned'}</strong>
+        </p>
+        <p style="margin:4px 0; font-size:13px">
+          Phone: <strong>${o.phone || '—'}</strong>
+        </p>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:14px">
+          <div>
+            <strong>${o.totalStock || 0}</strong><br>
+            <small style="color:var(--muted)">In Stock</small>
+          </div>
+          <div>
+            <strong>${formatNGN(o.totalSales || 0)}</strong><br>
+            <small style="color:var(--muted)">Total Sales</small>
+          </div>
+          <button class="btn secondary view-sales-btn" style="font-size:11px;padding:5px 10px" data-id="${o.id}">View Sales</button>
+        </div>
+      `;
+
+      container.appendChild(box);
+    });
+
+  } catch (err) {
+    container.innerHTML = '<div class="error">Failed to load outlets</div>';
+    console.error(err);
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+$('#myOutletsList').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.classList.contains('edit-outlet-btn')) editOutlet(btn.dataset.id);
+  if (btn.classList.contains('view-sales-btn')) {
+    navigateTo('sales');
+    renderManagerSales(btn.dataset.id);
+  }
+});
+
+const ITEMS_PER_PAGE = 10;
+let inventoryPage = 1;
+let totalInventoryPages = 1;
+
+async function  renderInventory() {
+  const tbody = $('#inventoryTable tbody');
+  const paginationContainer = document.getElementById('inventoryPagination') || createInventoryPagination();
+
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+  try {
+    // paginated warehouse inventory
+    const res = await fetch(`/api/warehouse/inventory?page=${inventoryPage}&limit=${ITEMS_PER_PAGE}`);
+    const data = await res.json();
+
+    totalInventoryPages = data.totalPages || 1;
+
+    tbody.innerHTML = ''; 
+
+    if (!data.products || data.products.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No products in warehouse inventory</td></tr>';
+      renderInventoryPagination(); // still show pagination (maybe page 1/1)
+      return;
+    }
+
+    data.products.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.sku}</td>
+        <td>${p.productName || p.name}</td>
+        <td><strong>${p.qty}</strong></td>
+        <td>${formatNGN(p.unitPrice)}</td>
+        <td>
+  <button class="btn secondary ship-inventory-btn" style="font-size:11px;padding:4px 8px" 
+          data-id="${p.productId}">
+    Ship →
+  </button>
+</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    renderInventoryPagination();
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load inventory</td></tr>';
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+
+$('#inventoryTable').addEventListener('click', e => {
+  const btn = e.target.closest('.ship-inventory-btn');
+  if (!btn) return;
+  quickShipToOutlet(btn.dataset.id);
+});
+
+
+// Helper: pagination controls under the inventory table if not exists
+function createInventoryPagination() {
+  const pagination = document.createElement('div');
+  pagination.id = 'inventoryPagination';
+  pagination.style.cssText = 'padding:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px';
+
+  // Inserting right after the table
+  const tableWrapper = $('#inventoryTable').parentElement;
+  tableWrapper.parentElement.appendChild(pagination);
+
+  return pagination;
+}
+
+function renderInventoryPagination() {
+  const pagination = $('#inventoryPagination');
+  if (!pagination) return;
+
+  pagination.innerHTML = '';
+
+  // Prev button
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = inventoryPage === 1;
+  prevBtn.onclick = () => {
+    inventoryPage--;
+    renderInventory();
+  };
+  pagination.appendChild(prevBtn);
+
+  // Page numbers (smart range)
+  const startPage = Math.max(1, inventoryPage - 2);
+  const endPage = Math.min(totalInventoryPages, inventoryPage + 2);
+
+  if (startPage > 1) {
+    const first = document.createElement('button');
+    first.className = 'btn secondary';
+    first.textContent = '1';
+    first.onclick = () => { inventoryPage = 1; renderInventory(); };
+    pagination.appendChild(first);
+    if (startPage > 2) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === inventoryPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => {
+      inventoryPage = i;
+      renderInventory();
+    };
+    pagination.appendChild(btn);
+  }
+
+  if (endPage < totalInventoryPages) {
+    if (endPage < totalInventoryPages - 1) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+    const last = document.createElement('button');
+    last.className = 'btn secondary';
+    last.textContent = totalInventoryPages;
+    last.onclick = () => { inventoryPage = totalInventoryPages; renderInventory(); };
+    pagination.appendChild(last);
+  }
+
+  // Next button
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = inventoryPage === totalInventoryPages;
+  nextBtn.onclick = () => {
+    inventoryPage++;
+    renderInventory();
+  };
+  pagination.appendChild(nextBtn);
+}
+
+
+
+async function loadWarehouseSales(page = 1) {
+  const warehouseId = myWarehouse.id;
+  const tbody = $('#managerSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ warehouseId, page, limit: 20 });
+    if (salesFilter.start) q.set('startDate', salesFilter.start);
+    if (salesFilter.end) q.set('endDate', salesFilter.end);
+
+    const res = await fetch(`/api/warehouse/sales?${q.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No sales</td></tr>';
+    } else {
+      tbody.innerHTML = json.data.map(s => `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.outletName}</td>
+          <td>${s.repName || '-'}</td>
+          <td>${s.productName}</td>
+          <td>${s.qty}</td>
+          <td>${formatNGN(s.totalAmount)}</td>
+        </tr>
+      `).join('');
+    }
+
+    renderPag($('#salesPagination'), json.totalCount, page, n => loadWarehouseSales(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
+    console.error(err);
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+  }
+}
+
+// Initial call after warehouse data is loaded
+loadWarehouseSales(1);
+
+let salesFilter = {
+  start: null,
+  end: null
+};
+
+function applyWarehouseSalesFilter() {
+  salesFilter.start = $('#whFilterStart').value;
+  salesFilter.end = $('#whFilterEnd').value;
+  loadWarehouseSales(1);   // reload API results
+}
+
+function clearWarehouseSalesFilter() {
+  $('#whFilterStart').value = "";
+  $('#whFilterEnd').value = "";
+
+  salesFilter = { start: null, end: null };
+  loadWarehouseSales(1);
+}
+
+
+
+    // Ship to Outlet button
+    $('#shipToOutletBtn').onclick = async () => {
+      const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+      const outlets = await outletsRes.json();
+      const productRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
+      const products = await productRes.json();
+
+      showModal(`
+        <h4>Ship to Outlet</h4>
+        <div class="form-row"><select id="targetOutlet">${outlets.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
+        <div class="form-row"><select id="productId">${products.map(p=>`<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}</select></div>
+        <div class="form-row"><input id="qty" type="number" placeholder="Quantity" /></div>
+        <div style="text-align:right">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" id="doShip">Ship</button>
+        </div>
+      `);
+$('#doShip').onclick = async () => {
+  const outletId = $('#targetOutlet').value;
+  const productId = $('#productId').value;
+  const qty = Number($('#qty').value);
+  if (qty <= 0) return alert('Enter valid quantity');
+
+  const res = await fetch('/api/shipments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fromId: myWarehouse.id,
+      fromType: 'Warehouse',
+      toId: outletId,
+      toType: 'Outlet',
+      products: [{ productId, qty }]
+    })
+  });
+
+  if (res.ok) {
+    closeModal();
+    showToast('Shipped!', 'success');
+    renderInventory?.(); 
+  } else {
+    const err = await res.json();
+    showToast( err?.message || 'Failed to ship', 'error');
+  }
+};};
+
+
+
+
+
+async function quickShipToOutlet(productId) {
+  // Fetch fresh data 
+  const [outletsRes, productsRes] = await Promise.all([
+    fetch(`/api/outlets/warehouse/${myWarehouse.id}`),
+    fetch(`/api/products/warehouse/${myWarehouse.id}`)
+  ]);
+
+  const outlets = await outletsRes.json();
+  const products = await productsRes.json();
+
+  // Find the product name & current qty for display
+  const selectedProduct = products.find(p => p.id === productId) || { name: 'Unknown', qty: 0 };
+
+  showModal(`
+    <h4>Ship to Outlet</h4>
+    <div class="form-row">
+      <select id="targetOutlet">${outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <select id="productId">
+        ${products.map(p => `
+          <option value="${p.id}" ${p.id === productId ? 'selected' : ''}>
+            ${p.name} (${p.qty} left)
+          </option>
+        `).join('')}
+      </select>
+    </div>
+    <div class="form-row"><input id="qty" type="number" min="1" max="${selectedProduct.qty}" placeholder="Quantity (max ${selectedProduct.qty})" /></div>
+    <div style="text-align:right;margin-top:12px">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="doShip">Ship Now</button>
+    </div>
+  `);
+$('#doShip').onclick = async () => {
+  const btn = $('#doShip');
+  btn.disabled = true;
+
+  const outletId = $('#targetOutlet').value;
+  const qty = Number($('#qty').value);
+
+  if (!qty || qty <= 0 || qty > selectedProduct.qty) {
+    showToast('Enter a valid quantity', 'info');
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fromId: myWarehouse.id,
+        fromType: 'Warehouse',
+        toId: outletId,
+        toType: 'Outlet',
+        products: [{ productId, qty }]
+      })
+    });
+
+    if (res.ok) {
+      closeModal();
+      showToast('Shipped successfully!', 'success');
+      renderInventory();
+    } else {
+      const err = await res.json();
+      showToast(err.message || 'Failed to ship', 'error');
+    }
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+}
+
+
+async function start() {
+  await loadManagerData();
+  refreshAll();
+}
+
+start();
+
+  async function refreshAll() {
+  await renderRecentShipments();      
+  await renderManagerOverview();
+  await renderInventory();
+}
+  </script>
+</body>
+</html>

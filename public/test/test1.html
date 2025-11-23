@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Top Outlets</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background:#f5f5f5; }
+  h2 { margin-bottom: 10px; }
+  #topOutlets { display: flex; flex-direction: column; gap: 8px; }
+  .mini-item { display: flex; justify-content: space-between; padding: 8px 12px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);}
+  .muted { color: #666; font-size: 0.9em; }
+  .pill { background: #0b5ed7; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; }
+  .small { font-size: 0.8em; }
+</style>
+</head>
+<body>
+
+<h2>Top Outlets</h2>
+<div id="topOutlets"></div>
+
+<script>
+function $(selector) { return document.querySelector(selector); }
+
+function showToast(msg, type='info') {
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.padding = '10px 20px';
+  toast.style.background = type==='error' ? '#b71c1c' : '#0b5ed7';
+  toast.style.color = '#fff';
+  toast.style.borderRadius = '6px';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function formatNGN(n) {
+  return "₦" + Number(n).toLocaleString();
+}
+
+// MOCK fetch
+async function fetch(url) {
+  return {
+    ok: true,
+    json: async () => [
+      { name: 'Outlet A', location: 'Lagos', totalStock: 1500, revenue: 500000 },
+      { name: 'Outlet B', location: 'Abuja', totalStock: 1200, revenue: 400000 }
+    ]
+  };
+}
+
+async function renderTopOutlets() {
+  const el = $('#topOutlets');
+  el.innerHTML = '<div class="muted small">Loading...</div>';
+
+  try {
+    const sort = 'revenue'; // or 'revenue'
+    const res = await fetch(`/api/stats/top-outlets?sort=${sort}&limit=2`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    el.innerHTML = '';
+    data.forEach(o => {
+      const value = sort === 'revenue' ? formatNGN(o.revenue) : o.totalStock.toLocaleString();
+
+      const div = document.createElement('div');
+      div.className = 'mini-item';
+      div.innerHTML = `
+        <div>${o.name}<br><small class="muted">${o.location}</small></div>
+        <div class="pill">${value}</div>
+      `;
+      el.appendChild(div);
+    });
+
+    if (data.length === 0) el.innerHTML = '<div class="muted small">No outlets</div>';
+  } catch(err)  {
+    el.innerHTML = '<div class="muted small">Failed</div>';
+    showToast('server error: ' + (err?.message || 'Failed'), 'error');
+  }
+}
+
+// Run on load
+renderTopOutlets();
+</script>
+
+</body>
+</html>

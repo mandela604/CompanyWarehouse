@@ -1,0 +1,23 @@
+[
+  {
+    "sku": "PRD-001",
+    "name": "N95 Masks (Box)",
+    "qty": 120,
+    "warehouseId": "wh-lagos",
+    "unitPrice": 4500
+  },
+  {
+    "sku": "PRD-002",
+    "name": "Hand sanitizer 500ml",
+    "qty": 320,
+    "warehouseId": "wh-lagos",
+    "unitPrice": 2500
+  },
+  {
+    "sku": "PRD-003",
+    "name": "Laptop Charger",
+    "qty": 40,
+    "warehouseId": "wh-abuja",
+    "unitPrice": 15000
+  }
+]

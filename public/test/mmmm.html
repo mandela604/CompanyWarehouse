@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Manager — WareAdmin (Demo)</title>
+  <style>
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6c7280;--shadow:0 6px 18px rgba(11,94,215,0.08)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827;-webkit-font-smoothing:antialiased}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px;cursor:pointer}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03));font-weight:600}
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40;cursor:pointer}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40;padding:18px;border-radius:0} .sidebar.open{left:0} .hamburger{display:block}}
+    main{padding:6px 0}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer;font-size:13px}
+    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden;transition:all .25s}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+    .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .card .value{font-size:24px;font-weight:700;color:#111827}
+    .panel{display:flex;gap:16px;align-items:stretch}
+    .panel-left{flex:2}
+    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
+    .table{background:var(--card);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;border:1px solid #e5e7eb}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    .pill{padding:4px 10px;border-radius:999px;background:rgba(11,94,215,0.1);color:var(--blue);font-weight:600;font-size:11px}
+    .box{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden;flex:1 1 280px}
+    .box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .inline-list{display:flex;flex-wrap:wrap;gap:16px}
+    .section{display:none}
+    .section.active{display:block}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:16px;padding:24px;min-width:340px;max-width:500px;box-shadow:0 20px 40px rgba(0,0,0,0.15)}
+    .form-row{display:flex;gap:12px;margin-bottom:12px;flex-direction:column}
+    .form-row input,.form-row select{padding:10px;border-radius:10px;border:1px solid #e2e8f0;width:100%}
+  </style>
+</head>
+<body>
+
+  <button class="hamburger" id="hambBtn">Menu</button>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">M</div>
+        <div>
+          <h2>Warehouse Manager</h2>
+          <div class="small" style="color:var(--muted)" id="warehouseName"></div>
+        </div>
+      </div>
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="shipments">Incoming Shipments</a>
+        <a href="#" data-route="outlets">My Outlets</a>
+        <a href="#" data-route="inventory">Inventory</a>
+        <a href="#" data-route="sales">Sales Records</a>
+        <a href="#" data-route="reports">Reports</a>
+      </div>
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="shipToOutletBtn">+ Ship to Outlet</button>
+        <button class="btn" id="createOutletBtn">+ Create Outlet</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search anything...">
+        </div>
+        <div class="actions">
+          <div class="small muted">Chinedu Okonkwo</div>
+          <button class="btn secondary">Logout</button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <section id="overviewSection" class="section active">
+        <div class="grid" id="managerCards"></div>
+        <div class="panel">
+          <div class="panel-left">
+            <div class="table">
+              <h3 style="margin:0 0 16px;padding:0 16px;font-weight:600">Recent Incoming Shipments</h3>
+              <table id="recentShipments"><tbody></tbody></table>
+            </div>
+          </div>
+       <!--   <div class="panel-right">
+            <div class="card"><h3>Pending Approval</h3><div class="value" id="pendingCount">-</div></div>
+            <div class="card"><h3>Low Stock Items</h3><div class="value" id="lowStockCount">-</div></div>
+          </div> -->
+        </div>
+      </section>
+
+      <!-- SHIPMENTS -->
+      <section id="shipmentsSection" class="section">
+        <h2 style="margin-top:0">Incoming Shipments</h2>
+        <div class="table">
+          <table id="shipmentsTable">
+            <thead><tr><th>Date</th><th>From</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- OUTLETS -->
+      <section id="outletsSection" class="section">
+        <h2 style="margin-top:0">My Outlets</h2>
+        <div class="inline-list" id="myOutletsList"></div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section id="inventorySection" class="section">
+        <h2 style="margin-top:0">Warehouse Inventory</h2>
+        <div class="table">
+          <table id="inventoryTable">
+            <thead><tr><th>SKU</th><th>Product Name</th><th>In Stock</th><th>Price</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SALES -->
+      <section id="salesSection" class="section">
+        <h2 style="margin-top:0">Sales Records (All Outlets)</h2>
+       <div class="filter-bar" style="padding:12px;display:flex;gap:8px;align-items:center">
+  <input type="date" id="whFilterStart">
+  <input type="date" id="whFilterEnd">
+  <button class="btn secondary" id="applyWhFilter">Apply</button>
+  <button class="btn secondary" id="clearWhFilter">Clear</button>
+  <div style="flex:1"></div>
+  <input id="globalSearch" placeholder="Search outlet / rep / product..." style="min-width:200px;padding:8px;border-radius:8px;border:1px solid #e6eefb">
+</div>
+
+        <div class="table">
+          <table id="managerSalesTable">
+            <thead><tr><th>Date</th><th>Outlet</th><th>Rep</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="reportsSection" class="section">
+        <h2 style="margin-top:0">Reports</h2>
+        <div class="grid" id="managerReportCards"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <script>
+    // DEMO DATA ONLY
+    const DEMO = {
+      warehouse: { id: "wh1", name: "Ikeja Warehouse", location: "Lagos", canCreateOutlets: true },
+      outlets: [
+        { id: "o1", name: "Ogba Outlet", location: "Ogba, Lagos", repName: "Amaka", stock: 842, sales: 2840000 },
+        { id: "o2", name: "Surulere Shop", location: "Surulere", repName: "Tunde", stock: 567, sales: 1920000 },
+        { id: "o3", name: "Yaba Branch", location: "Yaba", repName: "Chioma", stock: 298, sales: 1560000 }
+      ],
+      shipments: [
+        { date: "2025-11-15", from: "Head Office", product: "Indomie Super Pack", qty: 200, status: "Pending Approval" },
+        { date: "2025-11-12", from: "Head Office", product: "Golden Penny Spaghetti", qty: 150, status: "Delivered" },
+        { date: "2025-11-10", from: "Head Office", product: "Dangote Sugar 50kg", qty: 80, status: "Delivered" }
+      ],
+      inventory: [
+        { sku: "IND-001", name: "Indomie Super Pack", qty: 1240, price: 8500 },
+        { sku: "GPS-002", name: "Golden Penny Spaghetti", qty: 890, price: 6200 },
+        { sku: "DSG-003", name: "Dangote Sugar 50kg", qty: 67, price: 48500 },
+        { sku: "RICE-004", name: "Mama Gold Rice 50kg", qty: 23, price: 58000 },
+        { sku: "OIL-005", name: "Power Oil 5L", qty: 156, price: 7200 }
+      ],
+      sales: [
+        { date: "2025-11-16", outlet: "Ogba Outlet", rep: "Amaka", product: "Indomie", qty: 48, amount: 408000 },
+        { date: "2025-11-16", outlet: "Surulere Shop", rep: "Tunde", product: "Spaghetti", qty: 30, amount: 186000 },
+        { date: "2025-11-15", outlet: "Yaba Branch", rep: "Chioma", product: "Sugar", qty: 12, amount: 582000 }
+      ]
+    };
+
+    function $(s) { return document.querySelector(s); }
+    function $all(s) { return document.querySelectorAll(s); }
+    function formatNGN(n) { return '₦' + Number(n).toLocaleString(); }
+    function niceDate(d) { return new Date(d).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
+
+    // Init
+    $('#warehouseName').textContent = DEMO.warehouse.name + " • " + DEMO.warehouse.location;
+    $('#createOutletBtn').style.display = 'block';
+
+    function navigateTo(route) {
+      $all('.section').forEach(s => s.classList.remove('active'));
+      $(`#${route}Section`).classList.add('active');
+      $all('.nav a').forEach(a => a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${route}"]`)?.classList.add('active');
+    }
+
+    // Navigation
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      const r = a.dataset.route;
+      navigateTo(r);
+      if (r === 'overview') renderOverview();
+      if (r === 'shipments') renderShipments();
+      if (r === 'outlets') renderOutlets();
+      if (r === 'inventory') renderInventory();
+      if (r === 'sales') renderSales();
+      if (r === 'reports') renderReports();
+    }));
+
+    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
+    $('#modalBackdrop').onclick = e => { if (e.target === $('#modalBackdrop')) closeModal(); };
+
+    function showModal(html) {
+      $('#modal').innerHTML = html;
+      $('#modalBackdrop').style.display = 'flex';
+    }
+    function closeModal() {
+      $('#modalBackdrop').style.display = 'none';
+    }
+
+    // Render functions
+    function renderOverview() {
+      const cards = $('#managerCards');
+      cards.innerHTML = `
+        <div class="card"><h3>Total Stock</h3><div class="value">3,676</div><div class="small-note" style="color:var(--muted)">units</div></div>
+        <div class="card"><h3>Total Outlets</h3><div class="value">3</div></div>
+        <div class="card"><h3>Monthly Sales</h3><div class="value">${formatNGN(6304000)}</div></div>
+        <div class="card"><h3>Pending Shipments</h3><div class="value">1</div></div>
+      `;
+
+      const tbody = $('#recentShipments tbody');
+      tbody.innerHTML = DEMO.shipments.slice(0,3).map(s => `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.from}</td>
+          <td>${s.product}</td>
+          <td>${s.qty}</td>
+          <td><span class="pill">${s.status}</span></td>
+        </tr>
+      `).join('');
+
+      $('#pendingCount').textContent = '1';
+      $('#lowStockCount').textContent = '2';
+    }
+
+    function renderShipments() {
+      $('#shipmentsTable tbody').innerHTML = DEMO.shipments.map(s => `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.from}</td>
+          <td>${s.product}</td>
+          <td>${s.qty}</td>
+          <td><span class="pill">${s.status}</span></td>
+         <td>
+  ${s.status === 'Pending Approval' 
+    ? `<button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="approveShipment('${s.product}')">Approve</button>
+       <button class="btn" style="font-size:11px;padding:4px 8px" onclick="rejectShipment('${s.product}')">Reject</button>`
+    : ''}
+</td>
+
+        </tr>
+      `).join('');
+    }
+
+
+    // Approve shipment
+function approveShipment(productName) {
+  const shipment = DEMO.shipments.find(s => s.product === productName);
+  if (!shipment) return alert('Shipment not found');
+  shipment.status = 'Approved';
+  alert(`${productName} approved!`);
+  renderShipments(); // update table
+}
+
+// Reject shipment
+function rejectShipment(productName) {
+  const shipment = DEMO.shipments.find(s => s.product === productName);
+  if (!shipment) return alert('Shipment not found');
+  shipment.status = 'Rejected';
+  alert(`${productName} rejected!`);
+  renderShipments(); // update table
+}
+
+
+    function renderOutlets() {
+      $('#myOutletsList').innerHTML = DEMO.outlets.map(o => `
+        <div class="box">
+          <h4 style="margin:0 0 8px;display:flex;justify-content:space-between;align-items:center">
+            <span>${o.name}</span>
+            <button class="btn secondary" style="font-size:10px;padding:2px 6px">View</button>
+          </h4>
+          <p style="margin:4px 0;color:var(--muted);font-size:13px">${o.location}</p>
+          <p style="margin:4px 0;font-size:13px">Rep: <strong>${o.repName}</strong></p>
+          <div style="display:flex;justify-content:space-between;margin-top:12px">
+            <div><strong>${o.stock}</strong><br><small style="color:var(--muted)">Stock</small></div>
+            <div><strong>${formatNGN(o.sales)}</strong><br><small style="color:var(--muted)">Sales</small></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderInventory() {
+      $('#inventoryTable tbody').innerHTML = DEMO.inventory.map(p => `
+        <tr>
+          <td><strong>${p.sku}</strong></td>
+          <td>${p.name}</td>
+          <td style="color:${p.qty < 50 ? 'var(--dark-red)' : '#111'}"><strong>${p.qty}</strong></td>
+          <td>${formatNGN(p.price)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSales() {
+      $('#managerSalesTable tbody').innerHTML = DEMO.sales.map(s => `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.outlet}</td>
+          <td>${s.rep}</td>
+          <td>${s.product}</td>
+          <td>${s.qty}</td>
+          <td>${formatNGN(s.amount)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderReports() {
+      $('#managerReportCards').innerHTML = `
+        <div class="card"><h3>Total Revenue</h3><div class="value">${formatNGN(18420000)}</div><div class="small-note" style="color:var(--muted)">This month</div></div>
+        <div class="card"><h3>Units Sold</h3><div class="value">2,847</div></div>
+        <div class="card"><h3>Top Product</h3><div class="value">Indomie</div></div>
+        <div class="card"><h3>Best Outlet</h3><div class="value">Ogba Outlet</div></div>
+      `;
+    }
+
+    // Ship to Outlet Demo Modal
+    $('#shipToOutletBtn').onclick = () => {
+      showModal(`
+        <h4>Ship to Outlet</h4>
+        <div class="form-row"><select><option>Ogba Outlet</option><option>Surulere Shop</option><option>Yaba Branch</option></select></div>
+        <div class="form-row"><select><option>Indomie Super Pack (1240 left)</option><option>Golden Penny Spaghetti (890 left)</option></select></div>
+        <div class="form-row"><input type="number" placeholder="Quantity"></div>
+        <div style="text-align:right;margin-top:16px">
+          <button class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn" onclick="alert('Shipped!');closeModal()">Ship</button>
+        </div>
+      `);
+    };
+
+
+    let warehouseSalesFilterState = { start: null, end: null };
+
+  function warehouseSalesFilter(data, searchText = "", start = null, end = null) {
+  return data.filter(s => {
+    const matchText =
+      s.outlet.toLowerCase().includes(searchText.toLowerCase()) ||
+      s.rep.toLowerCase().includes(searchText.toLowerCase()) ||
+      s.product.toLowerCase().includes(searchText.toLowerCase());
+
+    // date matching
+    const saleDate = new Date(s.date);
+    if (start && saleDate < new Date(start)) return false;
+    if (end && saleDate > new Date(end)) return false;
+
+    return matchText;
+  });
+}
+
+function renderSales() {
+  const tbody = $('#managerSalesTable tbody');
+
+  const text = $('#globalSearch').value?.trim() || "";
+  const { start, end } = warehouseSalesFilterState;
+
+  const filtered = warehouseSalesFilter(DEMO.sales, text, start, end);
+
+  tbody.innerHTML = filtered.map(s => `
+    <tr>
+      <td>${niceDate(s.date)}</td>
+      <td>${s.outlet}</td>
+      <td>${s.rep}</td>
+      <td>${s.product}</td>
+      <td>${s.qty}</td>
+      <td>${formatNGN(s.amount)}</td>
+    </tr>
+  `).join('');
+}
+
+
+function applyWarehouseSalesFilter() {
+  warehouseSalesFilterState.start = $('#whFilterStart').value;
+  warehouseSalesFilterState.end = $('#whFilterEnd').value;
+  renderSales();
+}
+
+
+function clearWarehouseSalesFilter() {
+  $('#whFilterStart').value = "";
+  $('#whFilterEnd').value = "";
+
+  warehouseSalesFilterState = { start: null, end: null };
+  renderSales();
+}
+
+
+$('#globalSearch').addEventListener("keyup", renderSales);
+
+$('#applyWhFilter').onclick = applyWarehouseSalesFilter;
+$('#clearWhFilter').onclick = clearWarehouseSalesFilter;
+$('#globalSearch').addEventListener('keyup', renderSales);
+
+// optional: render sales immediately if sales section is active on load
+if (document.querySelector('#salesSection').classList.contains('active')) renderSales();
+
+    // Start
+    renderOverview();
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Outlet Rep — WareAdmin</title>
+  <style>
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px;display:flex;flex-direction:column}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    .nav{flex:1}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03))}
+    .nav .user-info{margin:20px 0;color:var(--muted);font-size:14px}
+    .nav .logout-btn{width:100%;margin-top:10px}
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40;cursor:pointer}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40} .sidebar.open{left:0} .hamburger{display:block}}
+    main{padding:6px 0}
+    .topbar{display:none}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;border:1px solid #ddd;color:#333}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+    .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .card .value{font-size:24px;font-weight:700}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px}
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    .pagination{margin:20px 0;display:flex;gap:8px;justify-content:center;align-items:center}
+    .pagination button{padding:8px 12px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer}
+    .pagination button:disabled{background:#f0f0f0;color:#999;cursor:not-allowed}
+    .pagination button.active{background:var(--blue);color:white;border-color:var(--blue)}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:500px;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+    .form-row{margin:12px 0}
+    .form-row label{display:block;margin-bottom:6px;font-weight:600}
+    .form-row select,.form-row input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+    .success{background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin:12px 0;display:none}
+    .section{display:none}
+    .section.active{display:block}
+    .receive-btn{background:#10b981;color:white;padding:6px 12px;border:none;border-radius:8px;cursor:pointer;font-size:11px}
+  </style>
+</head>
+<body>
+
+  <button class="hamburger" id="hambBtn">☰ Menu</button>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">O</div>
+        <div>
+          <h2>Outlet Rep</h2>
+          <div class="small" style="color:var(--muted)">Ikeja Outlet • Lagos</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="inventory">My Inventory</a>
+        <a href="#" data-route="sales">Sales History</a>
+        <a href="#" data-route="shipments">Incoming Shipments</a>
+        <div class="user-info">Signed in as<br><strong>Chioma Okeke</strong></div>
+        <button class="btn secondary logout-btn">Logout</button>
+      </div>
+      <button class="btn" id="recordSaleBtn">+ Record Sale</button>
+    </aside>
+
+    <main>
+      <!-- OVERVIEW -->
+      <section id="overviewSection" class="section active">
+        <div class="grid">
+          <div class="card"><h3>Total Stock</h3><div class="value" id="totalStock">0</div><div style="color:var(--muted)">units</div></div>
+          <div class="card"><h3>Today's Sales</h3><div class="value" id="todaySales">₦0</div></div>
+          <div class="card"><h3>Total Revenue</h3><div class="value" id="totalRevenue">₦0</div></div>
+          <div class="card"><h3>Incoming Today</h3><div class="value" id="pendingShipments">0</div></div>
+        </div>
+        <div class="card"><h3>Quick Inventory</h3><table id="quickInventory"><tbody></tbody></table></div>
+        <div class="card"><h3>Recent Sales</h3><table id="recentSales"><tbody></tbody></table></div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section id="inventorySection" class="section">
+        <h2>My Inventory</h2>
+        <div class="card">
+          <table id="fullInventoryTable"><thead><tr><th>Product</th><th>SKU</th><th>In Stock</th><th>Price</th><th>Value</th></tr></thead><tbody></tbody></table>
+          <div class="pagination" id="inventoryPagination"></div>
+        </div>
+      </section>
+
+      <!-- SALES -->
+      <section id="salesSection" class="section">
+        <h2>Sales History</h2>
+        <div class="filter-bar">
+          <input type="date" id="filterStart"><input type="date" id="filterEnd">
+          <button class="btn secondary" onclick="applySalesFilter()">Apply</button>
+          <button class="btn secondary" onclick="clearSalesFilter()">Clear</button>
+        </div>
+        <div class="card">
+          <table id="fullSalesTable"><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead><tbody></tbody></table>
+          <div class="pagination" id="salesPagination"></div>
+        </div>
+      </section>
+
+      <!-- SHIPMENTS -->
+      <section id="shipmentsSection" class="section">
+        <h2>Incoming Shipments</h2>
+        <div class="card">
+          <table id="shipmentsTable">
+            <thead><tr><th>Date</th><th>From</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3>Record New Sale</h3>
+      <div id="successMsg" class="success">Sale recorded!</div>
+      <div class="form-row"><label>Product</label><select id="productSelect"></select></div>
+      <div class="form-row"><label>Quantity</label><input type="number" id="qtyInput" min="1"></div>
+      <div style="text-align:right;margin-top:20px">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmSale">Record Sale</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRODUCTS = [
+      {id:"p1",name:"Coke 50cl",sku:"CK50",qty:120,price:250},
+      {id:"p2",name:"Fanta 50cl",sku:"FT50",qty:80,price:250},
+      {id:"p3",name:"Eva Water",sku:"EVA1",qty:47,price:150},
+      {id:"p4",name:"Peak Milk Sachet",sku:"PK01",qty:200,price:100},
+      {id:"p5",name:"Indomie Superpack",sku:"IND1",qty:150,price:350},
+      {id:"p6",name:"Golden Morn 500g",sku:"GM50",qty:90,price:800},
+      {id:"p7",name:"Maltina 33cl",sku:"ML33",qty:110,price:300},
+      {id:"p8",name:"Heineken Can",sku:"HK33",qty:60,price:600},
+      {id:"p9",name:"Red Bull",sku:"RB25",qty:40,price:900},
+      {id:"p10",name:"Pringles Original",sku:"PR01",qty:70,price:1200},
+      {id:"p11",name:"Oreo Biscuit",sku:"ORO1",qty:85,price:400},
+      {id:"p12",name:"Dettol Soap",sku:"DT01",qty:130,price:250},
+      {id:"p13",name:"Close-Up Toothpaste",sku:"CL01",qty:95,price:450},
+      {id:"p14",name:"Always Ultra",sku:"AL01",qty:55,price:700},
+      {id:"p15",name:"Gulder Lager",sku:"GL75",qty:65,price:550},
+      {id:"p16",name:"Star Radler",sku:"SR33",qty:88,price:350},
+      {id:"p17",name:"Nutri-Yo Yogurt",sku:"NY50",qty:72,price:400},
+      {id:"p18",name:"Chivita 1L",sku:"CV1L",qty:45,price:850},
+      {id:"p19",name:"Hollandia Milk",sku:"HL45",qty:110,price:500},
+      {id:"p20",name:"Power Oil 1L",sku:"PO1L",qty:38,price:1800}
+    ];
+
+    let inventory = PRODUCTS.map(p => ({...p}));
+    let sales = [];
+    let shipments = [
+      {id:"s1",date:"2025-11-18",from:"Ikeja Warehouse",product:"Coke 50cl",qty:100,status:"In Transit"},
+      {id:"s2",date:"2025-11-17",from:"Ikeja Warehouse",product:"Eva Water",qty:200,status:"In Transit"},
+      {id:"s3",date:"2025-11-16",from:"Head Office",product:"Indomie Superpack",qty:50,status:"Delivered"},
+      {id:"s4",date:"2025-11-15",from:"Ikeja Warehouse",product:"Peak Milk Sachet",qty:300,status:"In Transit"},
+      {id:"s5",date:"2025-11-14",from:"Head Office",product:"Golden Morn 500g",qty:80,status:"Delivered"}
+    ];
+
+    const today = "2025-11-18";
+    // Generate 87 fake sales
+    for(let i = 0; i < 87; i++) {
+      const daysAgo = Math.floor(Math.random() * 18);
+      const d = new Date(); d.setDate(d.getDate() - daysAgo);
+      const date = d.toISOString().slice(0,10);
+      const p = inventory[Math.floor(Math.random() * inventory.length)];
+      const qty = Math.floor(Math.random() * 30) + 1;
+      if(p.qty >= qty) sales.push({date, product: p.name, qty, amount: qty * p.price});
+    }
+    sales.sort((a,b) => b.date.localeCompare(a.date));
+
+    const ITEMS_PER_PAGE = 10;
+    let curInv = 1, curSales = 1, salesFilter = {start: null, end: null};
+
+    function $(s) { return document.querySelector(s); }
+    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
+
+    function navigateTo(route) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      $(`#${route}Section`).classList.add('active');
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
+      if (route === 'inventory') renderInventory();
+      if (route === 'sales') renderSales();
+      if (route === 'shipments') renderShipments();
+    }
+
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      navigateTo(a.dataset.route);
+    }));
+    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
+
+    function renderOverview() {
+      const totalStock = inventory.reduce((s,p) => s + p.qty, 0);
+      const todayRev = sales.filter(s => s.date === today).reduce((s,x) => s + x.amount, 0);
+      const totalRev = sales.reduce((s,x) => s + x.amount, 0);
+      $('#totalStock').textContent = totalStock;
+      $('#todaySales').textContent = formatNGN(todayRev);
+      $('#totalRevenue').textContent = formatNGN(totalRev);
+      $('#pendingShipments').textContent = shipments.filter(s => s.status === "In Transit").length;
+
+      $('#quickInventory tbody').innerHTML = inventory.slice(0,6).map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.qty}</td><td>${formatNGN(p.price)}</td></tr>`).join('');
+      $('#recentSales tbody').innerHTML = sales.slice(0,5).map(s => `<tr><td>${s.date}</td><td>${s.product}</td><td>${s.qty}</td><td>${formatNGN(s.amount)}</td></tr>`).join('');
+    }
+
+    function renderInventory() {
+      const start = (curInv - 1) * ITEMS_PER_PAGE, end = start + ITEMS_PER_PAGE;
+      const page = inventory.slice(start, end);
+      $('#fullInventoryTable tbody').innerHTML = page.map(p => `
+        <tr>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.sku}</td>
+          <td>${p.qty}</td>
+          <td>${formatNGN(p.price)}</td>
+          <td>${formatNGN(p.qty * p.price)}</td>
+        </tr>
+      `).join('');
+      renderPag($('#inventoryPagination'), inventory.length, curInv, n => { curInv = n; renderInventory(); });
+    }
+
+    function renderSales() {
+      let f = sales;
+      if (salesFilter.start) f = f.filter(s => s.date >= salesFilter.start);
+      if (salesFilter.end) f = f.filter(s => s.date <= salesFilter.end);
+      const start = (curSales - 1) * ITEMS_PER_PAGE, end = start + ITEMS_PER_PAGE;
+      $('#fullSalesTable tbody').innerHTML = f.slice(start, end).map(s => `
+        <tr>
+          <td>${s.date}</td>
+          <td>${s.product}</td>
+          <td>${s.qty}</td>
+          <td>${formatNGN(s.amount)}</td>
+        </tr>
+      `).join('');
+      renderPag($('#salesPagination'), f.length, curSales, n => { curSales = n; renderSales(); });
+    }
+
+    function renderShipments() {
+      $('#shipmentsTable tbody').innerHTML = shipments.map(s => `
+        <tr>
+          <td>${s.date}</td>
+          <td>${s.from}</td>
+          <td>${s.product}</td>
+          <td>${s.qty}</td>
+          <td>${s.status}</td>
+          <td>${s.status === "In Transit" ? `<button class="receive-btn" data-id="${s.id}">Receive</button>` : '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    $('#shipmentsTable').addEventListener('click', e => {
+      const btn = e.target.closest('.receive-btn');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const shipment = shipments.find(s => s.id === id);
+      const product = inventory.find(p => p.name === shipment.product);
+      if (product) product.qty += shipment.qty;
+      shipment.status = "Delivered";
+      renderShipments();
+      renderOverview();
+      if (document.querySelector('#inventorySection').classList.contains('active')) renderInventory();
+    });
+
+    function renderPag(c, total, cur, cb) {
+      const pages = Math.ceil(total / ITEMS_PER_PAGE); c.innerHTML = '';
+      const prev = document.createElement('button'); prev.textContent = '← Prev'; prev.disabled = cur === 1; prev.onclick = () => cb(cur - 1); c.appendChild(prev);
+      for (let i = 1; i <= pages; i++) {
+        if (i === 1 || i === pages || Math.abs(i - cur) <= 2) {
+          const b = document.createElement('button'); b.textContent = i; b.className = i === cur ? 'active' : ''; b.onclick = () => cb(i); c.appendChild(b);
+        } else if (c.lastChild && c.lastChild.textContent !== '...') {
+          const d = document.createElement('span'); d.textContent = '...'; d.style.padding = '0 8px'; c.appendChild(d);
+        }
+      }
+      const next = document.createElement('button'); next.textContent = 'Next →'; next.disabled = cur === pages; next.onclick = () => cb(cur + 1); c.appendChild(next);
+    }
+
+    function applySalesFilter() { salesFilter.start = $('#filterStart').value; salesFilter.end = $('#filterEnd').value; curSales = 1; renderSales(); }
+    function clearSalesFilter() { $('#filterStart').value = ''; $('#filterEnd').value = ''; salesFilter = {start:null,end:null}; curSales = 1; renderSales(); }
+
+    $('#recordSaleBtn').onclick = () => {
+      $('#productSelect').innerHTML = inventory.filter(p => p.qty > 0).map(p => `<option value="${p.id}" data-qty="${p.qty}" data-price="${p.price}">${p.name} (${p.qty} left)</option>`).join('');
+      $('#successMsg').style.display = 'none'; $('#modalBackdrop').style.display = 'flex';
+    };
+
+    $('#confirmSale').onclick = () => {
+      const sel = $('#productSelect'), id = sel.value, qty = Number($('#qtyInput').value), max = Number(sel.selectedOptions[0].dataset.qty), price = Number(sel.selectedOptions[0].dataset.price);
+      if (qty > 0 && qty <= max) {
+        const p = inventory.find(x => x.id === id); p.qty -= qty;
+        sales.unshift({date: today, product: p.name, qty, amount: qty * price});
+        $('#successMsg').style.display = 'block';
+        setTimeout(() => { closeModal(); renderOverview(); renderInventory(); renderSales(); renderShipments(); }, 1200);
+      } else alert('Invalid quantity');
+    };
+
+    function closeModal() { $('#modalBackdrop').style.display = 'none'; }
+    $('#modalBackdrop').onclick = e => e.target.id === 'modalBackdrop' && closeModal();
+
+    renderOverview(); renderInventory(); renderSales(); renderShipments();
+  </script>
+</body>
+</html>

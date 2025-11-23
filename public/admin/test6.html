@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shipment Table Demo</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+  th { background: #0077cc; color: #fff; }
+  .pill { padding: 2px 6px; border-radius: 4px; background: #eee; }
+  .btn { padding: 4px 8px; border: none; cursor: pointer; border-radius: 4px; margin-right: 4px; }
+  .btn.secondary { background: #ccc; color: #000; }
+  .btn.cancel { background: #e74c3c; color: #fff; }
+  .modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4); display: flex; justify-content:center; align-items:center; z-index: 999;
+  }
+  .modal {
+    background: #fff; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px;
+    max-height: 90%; overflow-y: auto;
+  }
+  .inner-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .inner-table th, .inner-table td { border: 1px solid #ddd; padding: 6px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h2>Shipments</h2>
+<table id="shipmentTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Warehouse/Outlet</th>
+      <th>Unit Price</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Rows will be injected here -->
+  </tbody>
+</table>
+
+<script>
+  // Mock data
+  const shipmentsData = [
+    {
+      id: 's1',
+      date: '2025-11-21',
+      productName: 'Laptop',
+      qty: 5,
+      warehouseName: 'Main Warehouse',
+      unitPrice: 150000,
+      status: 'pending',
+      from: { name: 'Company A' },
+      fromType: 'Warehouse',
+      to: { name: 'Outlet B' },
+      toType: 'Outlet',
+      products: [
+        { productSku: 'LP001', qty: 2, unitPrice: 150000 },
+        { productSku: 'LP002', qty: 3, unitPrice: 150000 }
+      ]
+    },
+    {
+      id: 's2',
+      date: '2025-11-20',
+      productName: 'Phone',
+      qty: 10,
+      outletName: 'Outlet X',
+      unitPrice: 80000,
+      status: 'shipped',
+      from: { name: 'Company B' },
+      fromType: 'Warehouse',
+      to: { name: 'Outlet X' },
+      toType: 'Outlet',
+      products: [
+        { productSku: 'PH001', qty: 10, unitPrice: 80000 }
+      ]
+    }
+  ];
+
+  // Helpers
+  const $ = (selector) => document.querySelector(selector);
+  const niceDate = (d) => new Date(d).toLocaleDateString();
+  const formatNGN = (v) => '₦' + v.toLocaleString();
+
+  // Toast function
+  function showToast(msg, type='info') {
+    alert(`${type.toUpperCase()}: ${msg}`);
+  }
+
+  async function renderShipments() {
+    const tbody = $('#shipmentTable tbody');
+    tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+
+    try {
+      // Simulate fetch delay
+      await new Promise(r => setTimeout(r, 200));
+
+      tbody.innerHTML = '';
+      shipmentsData.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${niceDate(s.date)}</td>
+          <td>${s.productName}</td>
+          <td>${s.qty}</td>
+          <td>${s.warehouseName || s.outletName || '—'}</td>
+          <td>${formatNGN(s.unitPrice)}</td>
+          <td><span class="pill">${s.status}</span></td>
+          <td>
+            <button class="btn secondary view-details" data-id="${s.id}">View</button>
+            <button class="btn cancel cancel-shipment" data-id="${s.id}">Cancel</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="error">Failed: ${err.message}</td></tr>`;
+    }
+  }
+
+  renderShipments();
+
+  $('#shipmentTable').addEventListener('click', async (e) => {
+    if (e.target.classList.contains('cancel-shipment')) {
+      const id = e.target.dataset.id;
+      if (!confirm('Are you sure you want to cancel this shipment?')) return;
+
+      const shipment = shipmentsData.find(s => s.id === id);
+      if (shipment) shipment.status = 'cancelled';
+      showToast('Shipment cancelled', 'success');
+      renderShipments();
+    }
+
+    if (!e.target.classList.contains('view-details')) return;
+    const id = e.target.dataset.id;
+    const shipment = shipmentsData.find(s => s.id === id);
+    if (!shipment) return showToast('Shipment not found', 'error');
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <h4>Shipment Details</h4>
+      <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
+      <p><strong>From:</strong> ${shipment.from?.name} (${shipment.fromType})</p>
+      <p><strong>To:</strong> ${shipment.to?.name} (${shipment.toType})</p>
+      <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
+      <h4 style="margin-top:16px;">Products</h4>
+      <table class="inner-table">
+        <thead>
+          <tr>
+            <th>SKU</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${shipment.products.map(p => `
+            <tr>
+              <td>${p.productSku}</td>
+              <td>${p.qty}</td>
+              <td>${formatNGN(p.unitPrice)}</td>
+              <td>${formatNGN(p.qty * p.unitPrice)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="text-align:right;margin-top:14px;">
+        <button id="closeModal" class="btn secondary">Close</button>
+      </div>
+    `;
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    $('#closeModal').onclick = () => backdrop.remove();
+    backdrop.addEventListener('click', (evt) => { if(evt.target === backdrop) backdrop.remove(); });
+  });
+</script>
+
+</body>
+</html>

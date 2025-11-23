@@ -1,0 +1,310 @@
+const express = require('express');
+const { v4: uuidv4 } = require('uuid');
+const validator = require('validator');
+const { ensureAuth, ensureAdmin, canCreateOutlet } = require('../middlewares/auth');
+const Outlet = require('../models/Outlet');
+const outletService = require('../services/outletService');
+const warehouseService = require('../services/warehouseService');
+const companyService = require('../services/companyService');
+const OutletInventory = require('../models/OutletInventory');
+
+const router = express.Router();
+
+
+// ✅ CREATE OUTLET (Admin only)
+router.post('/outlets', canCreateOutlet, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    let { name, location, warehouseId, warehouseName, managerId, managerName, repId, repName, address, phone, status } = req.body;
+
+    if (!name || !location || !warehouseId || !warehouseName)
+      return res.status(400).json({ message: 'Missing required fields.' });
+
+    // Sanitize
+    name = validator.escape(name.trim());
+    location = validator.escape(location.trim());
+    warehouseName = validator.escape(warehouseName.trim());
+    address = address ? validator.escape(address.trim()) : '';
+    phone = phone ? validator.escape(phone.trim()) : '';
+    status = status ? validator.escape(status.trim()) : 'active';
+
+    const newOutlet = {
+      id: uuidv4(),
+      name,
+      warehouseId,
+      warehouseName,
+      managerId: managerId || null,
+      managerName: managerName || '',
+      repId: repId || null,
+      repName: repName || '',
+      location,
+      address,
+      phone,
+      status,
+      totalStock: 0,
+      totalProducts: 0,
+      totalSales: 0,
+      revenue: 0,
+      createdAt: new Date(),
+      lastUpdated: new Date()
+    };
+
+    // Perform all operations atomically
+    const savedOutlet = await outletService.create(newOutlet, { session });
+    await warehouseService.incrementTotalOutlets(warehouseId, session);
+    await companyService.incrementTotalOutlets(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({ message: 'Outlet created successfully.', outlet: savedOutlet });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// ✅ GET ALL OUTLETS (Admin only)
+router.get('/outlets', ensureAdmin, async (req, res) => {
+  try {
+    const outlets = await outletService.getAll();
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ✅ GET SINGLE OUTLET (Admin, Manager, or Rep)
+router.get('/outlets/:id', ensureAuth, async (req, res) => {
+  try {
+    const outlet = await outletService.getById(req.params.id);
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found.' });
+
+    const user = req.session.user;
+    if (
+      user.role !== 'admin' &&
+      user.id !== outlet.managerId &&
+      user.id !== outlet.repId
+    ) return res.status(403).json({ message: 'Access denied.' });
+
+    res.json(outlet);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+
+// GET top outlets by stock OR revenue (default: stock)
+router.get('/stats/top-outlets', ensureAdmin, async (req, res) => {
+  try {
+    const sortBy = req.query.sort === 'revenue' ? 'revenue' : 'totalStock'; 
+    const limit = parseInt(req.query.limit) || 2;
+
+    const top = await Outlet.find()
+      .sort({ [sortBy]: -1 })
+      .limit(limit)
+      .select('name totalStock revenue location')
+      .lean();
+
+    res.json(top);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// ✅ UPDATE OUTLET (Admin, Manager)
+router.put('/outlets/:id', ensureAuth, async (req, res) => {
+  try {
+    const outlet = await outletService.getById(req.params.id);
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found.' });
+
+    const user = req.session.user;
+    if (user.role !== 'admin' && user.id !== outlet.managerId)
+      return res.status(403).json({ message: 'Access denied.' });
+
+    const updates = req.body;
+    updates.lastUpdated = new Date();
+
+    const updatedOutlet = await outletService.update(req.params.id, updates);
+    res.json({ message: 'Outlet updated successfully.', outlet: updatedOutlet });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// ✅ DELETE OUTLET (Admin only)
+router.delete('/outlets/:id', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const outletId = req.params.id;
+
+    // Delete outlet
+    const deleted = await outletService.remove(outletId, session);
+    if (!deleted) throw new Error('Outlet not found.');
+
+    // Delete outlet inventory
+    await OutletInventory.deleteMany({ outletId }, { session });
+
+    // Update warehouse and company counts
+    await warehouseService.decrementTotalOutlets(deleted.warehouseId, session);
+    await companyService.decrementTotalOutlets(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Outlet deleted successfully.' });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ✅ GET OUTLETS BY WAREHOUSE
+router.get('/outlets/warehouse/:warehouseId', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+    const warehouseId = req.params.warehouseId;
+
+    // Allow admin OR manager of this warehouse
+    if (user.role !== 'admin') {
+      const warehouse = await warehouseService.getWarehouseById(warehouseId);
+      if (!warehouse || warehouse.managerId !== user.id) {
+        return res.status(403).json({ message: 'Access denied.' });
+      }
+    }
+
+    const outlets = await outletService.getByWarehouse(warehouseId);
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ✅ GET OUTLETS BY MANAGER
+router.get('/outlets/manager/:managerId', ensureAuth, async (req, res) => {
+  try {
+    const outlets = await outletService.getByManager(req.params.managerId);
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ✅ GET OUTLETS BY REP
+router.get('/outlets/rep/:repId', ensureAuth, async (req, res) => {
+  try {
+    const outlets = await outletService.getByRep(req.params.repId);
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+router.get('/outlet/overview', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+
+    if (user.role !== 'rep' && user.role !== 'admin')
+      return res.status(403).json({ message: 'Only outlet reps can access this' });
+
+    const data = await outletService.getOutletOverview(user.id);
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+
+router.get('/outlet/inventory', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+
+    // Only reps should access this route
+    if (user.role !== 'rep') {
+      return res.status(403).json({ message: 'Only outlet reps can access this' });
+    }
+
+    // Find the outlet assigned to this rep
+    const outlet = await Outlet.findOne({ repId: user.id }).lean();
+
+    if (!outlet) {
+      return res.status(404).json({ message: 'No outlet assigned to this rep' });
+    }
+
+    // Fetch full inventory for this rep’s outlet
+    const items = await OutletInventory.find({ outletId: outlet.id })
+      .sort({ productName: 1 })
+      .lean();
+
+    res.json({
+      outletId: outlet.id,
+      products: items,
+      count: items.length
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+// GET /api/outlet/sales
+router.get('/outlet/sales', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, startDate, endDate } = req.query;
+    const outletId = req.session.user?.outletId; // assuming outlet user has outletId in session
+    if (!outletId) return res.status(400).json({ message: 'Missing outletId' });
+
+    // 1️⃣ Filter sales by this outlet + optional date filter
+    const filter = { outletId };
+    if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
+    if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
+
+    // 2️⃣ Get paginated sales
+    const sales = await Sale.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean();
+
+    // 3️⃣ Enrich sales with product info
+    const enriched = await Promise.all(
+      sales.map(async (s) => {
+        const product = await Product.findOne({ id: s.productId });
+        return {
+          id: s.id,
+          date: s.createdAt.toISOString().slice(0, 10),
+          productName: product?.name || '—',
+          qty: s.qtySold,
+          totalAmount: s.totalAmount,
+        };
+      })
+    );
+
+    // 4️⃣ Count total for pagination
+    const totalCount = await Sale.countDocuments(filter);
+
+    res.json({ data: enriched, totalCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to load outlet sales', error: err.message });
+  }
+});
+
+
+
+module.exports = router;

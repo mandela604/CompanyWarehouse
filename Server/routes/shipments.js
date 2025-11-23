@@ -1,0 +1,343 @@
+const express = require('express');
+const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+const { ensureAuth, ensureManager } = require('../middlewares/auth');
+const Shipment = require('../models/Shipment');
+const Warehouse = require('../models/Warehouse');
+const Outlet = require('../models/Outlet');
+const Company = require('../models/Company');
+const Product = require('../models/Product');
+const WarehouseInventory = require('../models/WarehouseInventory');
+const OutletInventory = require('../models/OutletInventory');
+
+const router = express.Router();
+
+// CREATE SHIPMENT
+router.post('/shipments', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { fromId, toId, fromType, toType, products, senderId, senderPhone } = req.body;
+
+    if (!fromId || !toId || !fromType || !toType || !products?.length) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // 🔹 Fetch dynamic names safely
+    let fromName, toName;
+    if (fromType === 'Company') {
+      const company = await Company.findOne({ id: fromId }).session(session);
+      if (!company) throw new Error('Company not found');
+      fromName = company.name;
+    } else if (fromType === 'Warehouse') {
+      const warehouse = await Warehouse.findOne({ id: fromId }).session(session);
+      if (!warehouse) throw new Error('Warehouse not found');
+      fromName = warehouse.name;
+    }
+
+    if (toType === 'Warehouse') {
+      const warehouse = await Warehouse.findOne({ id: toId }).session(session);
+      if (!warehouse) throw new Error('Warehouse not found');
+      toName = warehouse.name;
+    } else if (toType === 'Outlet') {
+      const outlet = await Outlet.findOne({ id: toId }).session(session);
+      if (!outlet) throw new Error('Outlet not found');
+      toName = outlet.name;
+    }
+
+    // 🔹 Validate all product SKUs exist
+    for (const p of products) {
+      const exists = await Product.findOne({ id: p.productId  }).session(session);
+      if (!exists) throw new Error(`Product with id ${p.id} not found`);
+    }
+
+
+    // 🔹 Add unitPrice from product document
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      const prod = await Product.findOne({ id: p.productId }).session(session);
+      if (!prod) throw new Error(`Product with id ${p.productId} not found`);
+
+      // attach unitPrice to the shipment product
+      p.unitPrice = prod.unitPrice;
+    }
+
+    // 🔹 Create shipment
+    const shipment = new Shipment({
+      id: uuidv4(),
+      from: { id: fromId, name: fromName },
+      to: { id: toId, name: toName },
+      fromType,
+      toType,
+      products,
+      status: 'In Transit',
+      senderId,
+      senderPhone,
+      sentFrom: fromType
+    });
+
+    await shipment.save({ session });
+
+    // 🔹 Deduct stock from source and update totals
+    for (const p of products) {
+      if (fromType === 'Company') {
+        await Product.updateOne({ id: p.productId  }, { $inc: { qty: -p.qty } }, { session });
+        await Company.updateOne(
+          { id: fromId },
+          { $inc: { totalShipments: p.qty, totalStock: -p.qty, inTransit: p.qty }, $set: { lastUpdated: new Date() } },
+          { session }
+        );
+      } else if (fromType === 'Warehouse') {
+        await WarehouseInventory.updateOne(
+          { warehouseId: fromId, id: p.id },
+          { $inc: { qty: -p.qty, totalShipped: p.qty } },
+          { session }
+        );
+      }
+    }
+
+    await session.commitTransaction();
+    res.status(201).json({ message: 'Shipment created', shipment });
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(500).json({ message: 'Failed to create shipment', error: err.message });
+  } finally {
+    session.endSession();
+  }
+});
+
+
+
+// GET ONE SHIPMENTS 
+router.get('/shipments/:id', async (req, res) => {
+  try {
+    const shipment = await Shipment.findOne({ id: req.params.id });
+    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+    res.json(shipment);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch shipment', error: err.message });
+  }
+});
+
+
+// GET WAREHOUSE SHIPMENTS
+// GET WAREHOUSE SHIPMENTS
+// GET WAREHOUSE SHIPMENTS
+router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+    const limit = parseInt(req.query.limit) || 15;  // default 15
+
+    const warehouse = await Warehouse.findOne({ managerId: user.id });
+    if (!warehouse) return res.status(404).json({ message: 'No warehouse' });
+
+    const query = {
+      $or: [
+        { 'to.id': warehouse.id, toType: 'Warehouse' },
+        { 'from.id': warehouse.id, fromType: 'Warehouse' }
+      ]
+    };
+
+    const shipments = await Shipment.find(query)
+      .sort({ date: -1 })
+      .limit(limit);
+
+    const enriched = await Promise.all(shipments.map(async s => {
+      const product = await Product.findOne({ sku: s.products[0]?.productSku });
+      return {
+        id: s.id,
+        date: s.date,
+        direction: s.to.id === warehouse.id ? 'Incoming' : 'Outgoing',
+        fromName: s.from.name,
+        toName: s.to.name,
+        productName: product?.name || 'Items',
+        qty: s.products.reduce((s, p) => s + p.qty, 0),
+        status: s.status
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: 'Error' });
+  }
+});
+
+
+router.get('/shipments/outlet', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+
+    // get the outlet managed by this rep
+    const outlet = await Outlet.findOne({ repId: user.id });
+    if (!outlet) return res.status(404).json({ message: 'No outlet found' });
+
+    // pagination params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // fetch shipments sent to this outlet
+    const shipments = await Shipment.find({ 'to.id': outlet.id, toType: 'Outlet' })
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const enriched = await Promise.all(
+      shipments.map(async s => {
+        // fetch all product names by ID
+        const productIds = s.products.map(p => p.productId);
+        const products = await Product.find({ id: { $in: productIds } });
+        const productNames = products.map(p => p.name).join(', ');
+
+        const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+
+        return {
+          id: s.id,
+          date: s.date.toISOString().slice(0, 10),
+          direction: 'Incoming', // always incoming for outlet
+          fromName: s.from.name,
+          toName: s.to.name,
+          productNames,   // all product names in shipment
+          qty: totalQty,
+          status: s.status
+        };
+      })
+    );
+
+
+    const totalCount = await Shipment.countDocuments({ 'to.id': outlet.id, toType: 'Outlet' });
+
+    // return pagination info along with shipments
+    res.json({
+      page,
+      limit,
+      totalCount, 
+      shipments: enriched
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error loading shipments' });
+  }
+});
+
+
+
+// Approve shipment
+router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res) => {
+  try {
+    const shipment = await Shipment.findOne({ id: req.params.id });
+    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+
+    shipment.status = 'Received';
+    await shipment.save();
+
+    res.json({ message: 'Shipment approved', shipment });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Reject shipment
+router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) => {
+  try {
+    const shipment = await Shipment.findOne({ id: req.params.id });
+    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+
+    shipment.status = 'Rejected';
+    await shipment.save();
+
+    res.json({ message: 'Shipment rejected', shipment });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// UPDATE SHIPMENT STATUS
+router.put('/shipments/:id/status', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { status } = req.body;
+    const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
+    if (!shipment) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
+
+    shipment.status = status;
+    shipment.lastUpdated = new Date();
+    await shipment.save({ session });
+
+    // 🔹 Update stock at destination if received
+    if (status === 'Received') {
+      for (const p of shipment.products) {
+        if (shipment.toType === 'Warehouse') {
+          await WarehouseInventory.updateOne(
+            { warehouseId: shipment.to.id, productId: p.productId },
+            { $inc: { qty: p.qty, totalReceived: p.qty } },
+            { session }
+          );
+        } else if (shipment.toType === 'Outlet') {
+          await OutletInventory.updateOne(
+            { outletId: shipment.to.id, productId: p.productId },
+            { $inc: { qty: p.qty, totalReceived: p.qty } },
+            { session }
+          );
+        }
+
+
+         if (shipment.fromType === 'Company') {
+          await Company.updateOne(
+          { id: shipment.from.id },
+          { $inc: { inTransit: -p.qty } },
+          { session }
+        );
+      }
+      }
+    }
+
+    await session.commitTransaction();
+    res.json({ message: 'Shipment status updated', shipment });
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
+  } finally {
+    session.endSession();
+  }
+});
+
+
+
+// GET ALL SHIPMENTS 
+router.get('/shipments', async (req, res) => {
+  try {
+    const shipments = await Shipment.find().sort({ date: -1 });
+
+    const enriched = await Promise.all(
+      shipments.map(async (s) => {
+        const product = await Product.findOne({ sku: s.products[0]?.productSku });
+        return {
+          id: s.id,
+          date: s.date.toISOString().slice(0, 10),
+          productName: product?.name || '—',
+          qty: s.products[0]?.qty || 0,
+          unitPrice: s.products[0]?.unitPrice || 0,
+          warehouseName: s.to.name,
+          outletName: s.toType === 'Outlet' ? s.to.name : null,
+          status: s.status,
+          fromType: s.fromType,
+          toType: s.toType
+        };
+      })
+    );
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch shipments', error: err.message });
+  }
+});
+
+
+module.exports = router;

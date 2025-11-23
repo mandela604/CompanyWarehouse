@@ -1,0 +1,55 @@
+[
+  {
+    "id": "out-1",
+    "name": "Ikeja Outlet",
+    "warehouseId": "wh-lagos",
+    "warehouse": "Lagos Central Warehouse",
+    "repId": "acc-rep-ikeja",
+    "repName": "Aisha Bello",
+    "totalStock": 85,
+    "totalSales": 127500,
+    "location": "Ikeja, Lagos",
+    "phone": "+234 803 456 7890",
+    "managerId": "acc-mgr-lagos",
+    "manager": "Chinedu Okeke",
+    "items": [
+      { "sku": "PRD-001", "name": "N95 Masks", "qty": 50, "unitPrice": 4500 },
+      { "sku": "PRD-002", "name": "Sanitizer", "qty": 35, "unitPrice": 2500 }
+    ]
+  },
+  {
+    "id": "out-2",
+    "name": "Victoria Island Outlet",
+    "warehouseId": "wh-lagos",
+    "warehouse": "Lagos Central Warehouse",
+    "repId": "acc-rep-vi",
+    "repName": "Tunde Adebayo",
+    "totalStock": 120,
+    "totalSales": 2875000,
+    "location": "Victoria Island, Lagos",
+    "phone": "+234 802 123 4567",
+    "managerId": "acc-mgr-lagos",
+    "manager": "Chinedu Okeke",
+    "items": [
+      { "sku": "PRD-001", "name": "N95 Masks", "qty": 70, "unitPrice": 4500 },
+      { "sku": "PRD-003", "name": "Laptop Charger", "qty": 50, "unitPrice": 15000 }
+    ]
+  },
+  {
+    "id": "out-3",
+    "name": "Wuse Outlet",
+    "warehouseId": "wh-abuja",
+    "warehouse": "Abuja Main",
+    "repId": "acc-rep-wuse",
+    "repName": "Fatima Yusuf",
+    "totalStock": 40,
+    "totalSales": 600000,
+    "location": "Wuse Zone 5, Abuja",
+    "phone": "+234 809 876 5432",
+    "managerId": "acc-mgr-lagos",
+    "manager": "Hassan Musa",
+    "items": [
+      { "sku": "PRD-003", "name": "Laptop Charger", "qty": 40, "unitPrice": 15000 }
+    ]
+  }
+]

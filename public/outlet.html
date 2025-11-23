@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Outlet Rep — WareAdmin</title>
+  <style>
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px;display:flex;flex-direction:column}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    .nav{flex:1}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03))}
+    .nav .user-info{margin:20px 0;color:var(--muted);font-size:14px}
+    .nav .logout-btn{width:100%;margin-top:10px}
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40;cursor:pointer}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40} .sidebar.open{left:0} .hamburger{display:block}}
+    main{padding:6px 0}
+    .topbar{display:none} /* Hidden now — everything in sidebar */
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;border:1px solid #ddd;color:#333}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+    .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .card .value{font-size:24px;font-weight:700}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px}
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    .pagination{margin:20px 0;display:flex;gap:8px;justify-content:center;align-items:center}
+    .pagination button{padding:8px 12px;border:1px solid #ddd;background:white;border-radius:8px;cursor:pointer}
+    .pagination button:disabled{background:#f0f0f0;color:#999;cursor:not-allowed}
+    .pagination button.active{background:var(--blue);color:white;border-color:var(--blue)}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:500px;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+    .form-row{margin:12px 0}
+    .form-row label{display:block;margin-bottom:6px;font-weight:600}
+    .form-row select,.form-row input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd}
+    .success{background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin:12px 0;display:none}
+    .section{display:none}
+    .section.active{display:block}
+    .receive-btn{background:#10b981;color:white;padding:6px 12px;border:none;border-radius:8px;cursor:pointer;font-size:11px}
+  </style>
+</head>
+<body>
+
+  <button class="hamburger" id="hambBtn">☰ Menu</button>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">O</div>
+        <div>
+          <h2>Outlet Rep</h2>
+          <div class="small" style="color:var(--muted)">Ikeja Outlet • Lagos</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="inventory">My Inventory</a>
+        <a href="#" data-route="sales">Sales History</a>
+        <a href="#" data-route="shipments">Incoming Shipments</a>
+        <div class="user-info"></div>
+        <button class="btn secondary logout-btn">Logout</button>
+      </div>
+      <button class="btn" id="recordSaleBtn">+ Record Sale</button>
+    </aside>
+
+    <main>
+      <!-- OVERVIEW -->
+      <section id="overviewSection" class="section active">
+        <div class="grid">
+          <div class="card"><h3>Total Stock</h3><div class="value" id="totalStock">0</div><div style="color:var(--muted)">units</div></div>
+          <div class="card"><h3>Today's Sales</h3><div class="value" id="todaySales">₦0</div></div>
+          <div class="card"><h3>Total Revenue</h3><div class="value" id="totalRevenue">₦0</div></div>
+          <div class="card"><h3>Incoming Today</h3><div class="value" id="pendingShipments">0</div></div>
+        </div>
+        <div class="card"><h3>Quick Inventory</h3><table id="quickInventory"><tbody></tbody></table></div>
+        <div class="card"><h3>Recent Sales</h3><table id="recentSales"><tbody></tbody></table></div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section id="inventorySection" class="section">
+        <h2>My Inventory</h2>
+        <div class="card">
+          <table id="fullInventoryTable"><thead><tr><th>Product</th><th>SKU</th><th>In Stock</th><th>Price</th><th>Value</th></tr></thead><tbody></tbody></table>
+          <div class="pagination" id="inventoryPagination"></div>
+        </div>
+      </section>
+
+      <!-- SALES -->
+      <section id="salesSection" class="section">
+        <h2>Sales History</h2>
+        <div class="filter-bar">
+          <input type="date" id="filterStart"><input type="date" id="filterEnd">
+          <button class="btn secondary" onclick="applySalesFilter()">Apply</button>
+          <button class="btn secondary" onclick="clearSalesFilter()">Clear</button>
+        </div>
+        <div class="card">
+          <table id="fullSalesTable"><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead><tbody></tbody></table>
+          <div class="pagination" id="salesPagination"></div>
+        </div>
+      </section>
+
+      <!-- SHIPMENTS -->
+      <section id="shipmentsSection" class="section">
+        <h2>Incoming Shipments</h2>
+        <div class="card">
+          <table id="shipmentsTable">
+            <thead><tr><th>Date</th><th>From</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3>Record New Sale</h3>
+      <div id="successMsg" class="success">Sale recorded!</div>
+      <div class="form-row"><label>Product</label><select id="productSelect"></select></div>
+      <div class="form-row"><label>Quantity</label><input type="number" id="qtyInput" min="1"></div>
+      <div style="text-align:right;margin-top:20px">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmSale">Record Sale</button>
+      </div>
+    </div>
+  </div>
+
+ 
+  
+  <div id="toastContainer" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none; /* Allows clicks to pass through */
+"></div>
+
+
+
+
+
+
+
+  <script>
+
+async function loadUserInfo() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) throw new Error('Failed to get user');
+    const user = await res.json();
+    const userInfo = document.querySelector('.user-info');
+    userInfo.innerHTML = `Signed in as<br><strong>${user.name}</strong>`;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+loadUserInfo();
+
+
+document.querySelector('.logout-btn').onclick = async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+};
+
+
+// Toast function
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const colors = { info: '#0b5ed7', success: '#10b981', error: '#b71c1c' };
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.background = colors[type] || colors.info;
+  toast.style.color = 'white';
+  toast.style.padding = '10px 16px';
+  toast.style.borderRadius = '8px';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.3s, transform 0.3s';
+  toast.style.transform = 'translateY(20px)';
+
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, duration);
+}
+
+    const ITEMS_PER_PAGE = 10;
+    const SALES_PER_PAGE = 10;
+    let curInv = 1;
+    let curSales = 1;
+    let fullInventory = [];
+    let salesFilter = { start: null, end: null };
+
+    function $(s){return document.querySelector(s)}
+    function formatNGN(n){return '₦'+(n||0).toLocaleString()}
+
+
+    function niceDate(d) {
+    const date = new Date(d);
+    return date.toLocaleDateString(); // or format as needed
+  }
+
+    function navigateTo(r){
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      $(`#${r}Section`).classList.add('active');
+      document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${r}"]`).classList.add('active');
+      if(r==='inventory') renderOutletInventory();
+      if(r==='sales') renderSales();
+      if(r==='shipments') renderShipments();
+    }
+    document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
+    $('#hambBtn').onclick=()=>$('#sidebar').classList.toggle('open');
+
+
+
+
+  async function renderOutletOverview() {
+  const stockEl = $('#totalStock');
+  const todaySalesEl = $('#todaySales');
+  const totalRevenueEl = $('#totalRevenue');
+  const incomingEl = $('#pendingShipments');
+
+  // table bodies
+  const quickInvBody = $('#quickInventory tbody');
+  const recentSalesBody = $('#recentSales tbody');
+
+  // show loading
+  stockEl.textContent = '...';
+  todaySalesEl.textContent = '...';
+  totalRevenueEl.textContent = '...';
+  incomingEl.textContent = '...';
+
+  try {
+    const res = await fetch('/api/outlet/overview');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+  
+    // top cards
+    stockEl.textContent = data.outletStock || 0;
+    todaySalesEl.textContent = formatNGN(data.todaySales || 0);
+    totalRevenueEl.textContent = formatNGN(data.totalRevenue || 0);
+    incomingEl.textContent = data.incomingShipments || 0;
+
+    // quick inventory list
+    quickInvBody.innerHTML =
+      (data.quickInventory || [])
+        .slice(0,6)
+        .map(item => `
+          <tr>
+            <td><strong>${item.name}</strong></td>
+            <td>${item.qty}</td>
+            <td>${formatNGN(item.price)}</td>
+          </tr>
+        `).join('');
+
+    // recent sales
+    recentSalesBody.innerHTML =
+      (data.recentSales || [])
+        .slice(0,5)
+        .map(s => `
+          <tr>
+            <td>${s.date}</td>
+            <td>${s.product}</td>
+            <td>${s.qty}</td>
+            <td>${formatNGN(s.amount)}</td>
+          </tr>
+        `).join('');
+
+  } catch (err) {
+  stockEl.textContent = 'Error';
+  todaySalesEl.textContent = 'Error';
+  totalRevenueEl.textContent = 'Error';
+  incomingEl.textContent = 'Error';
+
+  console.error('Outlet overview error:', err);
+  showToast('Failed to load overview: ' + (err?.message || ''), 'error');
+}
+
+}
+
+
+async function renderOutletInventory(page = 1) {
+  curInv = page;
+  const tbody = $('#fullInventoryTable tbody');
+
+  try {
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    fullInventory = data.products || [];
+
+    const start = (curInv - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageItems = fullInventory.slice(start, end);
+
+    tbody.innerHTML = pageItems.map(p => `
+      <tr>
+        <td><strong>${p.productName}</strong></td>
+        <td>${p.sku}</td>
+        <td>${p.qty}</td>
+        <td>${formatNGN(p.price)}</td>
+        <td>${formatNGN(p.qty * p.price)}</td>
+      </tr>
+    `).join('');
+
+    renderPag($('#inventoryPagination'), fullInventory.length, curInv, n => renderOutletInventory(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load inventory</td></tr>';
+    console.error('Outlet inventory error:', err);
+     showToast('Failed to load inventory: ' + (err?.message || ''), 'error');
+
+  }
+}
+
+
+
+async function loadSales(page = 1) {
+  curSales = page;
+  const start = salesFilter.start || '';
+  const end = salesFilter.end || '';
+  const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
+  if (start) q.set('startDate', start);
+  if (end) q.set('endDate', end);
+
+  const tbody = $('#fullSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="muted">Loading...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/outlet/sales?${q.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No sales</td></tr>';
+    } else {
+      tbody.innerHTML = json.data.map(s => `
+        <tr>
+          <td>${s.date}</td>
+          <td>${s.productName}</td>
+          <td>${s.qty}</td>
+          <td>${formatNGN(s.totalAmount)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // render pagination UI using your existing renderPag
+    renderPag($('#salesPagination'), json.totalCount, curSales, n => loadSales(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="4">Failed to load sales</td></tr>';
+    console.error(err);
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+
+  }
+}
+
+// initial load
+loadSales(1);
+
+
+
+
+
+
+async function renderShipments(page = 1) {
+  const tbody = $('#shipmentsTable tbody');
+  tbody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
+
+  try {
+    const res = await fetch(`/api/shipments/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    const shipments = data.shipments || [];
+    const totalCount = data.totalCount || 0;
+
+    if (!shipments.length) {
+      tbody.innerHTML = `<tr><td colspan="6">No shipments yet</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = shipments.map(s => `
+      <tr>
+        <td>${niceDate(s.date)}</td>
+        <td>${s.fromName}</td>
+        <td>${s.productNames}</td>
+        <td>${s.qty}</td>
+        <td>${s.status}</td>
+        <td>
+          ${s.status === 'In Transit'
+            ? `<button class="btn tiny receive-btn" data-id="${s.id}">Receive</button>`
+            : '—'
+          }
+        </td>
+      </tr>
+    `).join('');
+
+    renderPag($('#shipmentsPagination'), totalCount, page, renderShipments);
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6">Failed to load shipments</td></tr>`;
+    console.error('Shipments error:', err);
+    showToast('Failed to load shipments: ' + (err?.message || ''), 'error');
+  }
+}
+
+$('#shipmentsTable').addEventListener('click', async e => {
+  const btn = e.target.closest('.receive-btn');
+  if (!btn) return;
+
+  btn.disabled = true; 
+  const id = btn.dataset.id;
+
+  try {
+    const res = await fetch(`/api/shipments/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Received' })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update status');
+
+    showToast('Shipment marked as received', 'success');
+    renderShipments();
+
+  } catch (err) {
+    console.error(err);
+     showToast(err?.message || 'An error occurred', 'error');
+  } finally {
+    btn.disabled = false; 
+  }
+});
+
+
+
+
+    function renderPag(c,total,cur,cb){
+      const pages=Math.ceil(total/ITEMS_PER_PAGE); c.innerHTML='';
+      const prev=document.createElement('button'); prev.textContent='← Prev'; prev.disabled=cur===1; prev.onclick=()=>cb(cur-1); c.appendChild(prev);
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-cur)<=2){
+          const b=document.createElement('button'); b.textContent=i; b.className=i===cur?'active':''; b.onclick=()=>cb(i); c.appendChild(b);
+        }else if(c.lastChild && c.lastChild.textContent!=='...'){
+          const d=document.createElement('span'); d.textContent='...'; d.style.padding='0 8px'; c.appendChild(d);
+        }
+      }
+      const next=document.createElement('button'); next.textContent='Next →'; next.disabled=cur===pages; next.onclick=()=>cb(cur+1); c.appendChild(next);
+    }
+
+  function applySalesFilter() {
+  salesFilter.start = $('#filterStart').value;
+  salesFilter.end = $('#filterEnd').value;
+  curSales = 1;
+  loadSales();
+}
+   
+
+
+function clearSalesFilter() {
+  $('#filterStart').value = '';
+  $('#filterEnd').value = '';
+  salesFilter = { start: null, end: null };
+  curSales = 1;
+  loadSales();
+}
+
+
+
+
+
+    let OUTLET_ID = null;
+
+// Open "Record Sale" modal
+$('#recordSaleBtn').onclick = async () => {
+  try {
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    OUTLET_ID = data.outletId;
+
+    const products = data.products || [];
+
+    const options = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option 
+          value="${p.productId}"
+          data-qty="${p.qty}"
+          data-price="${p.unitPrice}"
+        >
+          ${p.productName} (${p.qty} left)
+        </option>
+      `)
+      .join('');
+
+    $('#productSelect').innerHTML = options || `<option>No stock available</option>`;
+    $('#qtyInput').value = '';
+    $('#successMsg').style.display = 'none';
+    $('#modalBackdrop').style.display = 'flex';
+
+  } catch (err) {
+    console.error(err);
+      showToast(err?.message || 'An error occurred', 'error');
+  }
+};
+
+
+// Confirm sale
+$('#confirmSale').onclick = async () => {
+  const sel = $('#productSelect');
+  const qtyInput = $('#qtyInput');
+
+  // Basic safety checks
+  if (!sel || !sel.value) return alert('No product selected');
+  if (!qtyInput) return alert('Invalid form');
+
+  const productId = sel.value;
+  const qty = Number(qtyInput.value);
+  const max = Number(sel.selectedOptions[0]?.dataset.qty || 0);
+
+  if (!qty || qty <= 0) return alert('Enter a valid quantity');
+  if (qty > max) return alert(`Maximum allowed is ${max}`);
+
+
+  $('#confirmSale').disabled = true;
+
+  try {
+    const res = await fetch('/api/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID, productId, qtySold: qty })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+     showToast(err?.message || 'An error occurred', 'error');
+     return;
+    }
+
+    // Success updates
+    closeModal();
+    renderOutletOverview();
+    renderOutletInventory();
+    loadSales(1);
+
+  } catch (err) {
+    console.error(err);
+     showToast(err?.message || 'An error occurred', 'error');
+  } finally {
+    $('#confirmSale').disabled = false;
+  }
+};
+
+
+    function closeModal(){$('#modalBackdrop').style.display='none';}
+    $('#modalBackdrop').onclick=e=>e.target.id==='modalBackdrop'&&closeModal();
+
+
+
+
+    renderOutletOverview();
+ renderOutletInventory(); loadSales(); renderShipments();
+  </script>
+</body>
+</html>

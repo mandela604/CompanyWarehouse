@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Overview Cards Mock</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f9f9f9;
+  }
+
+  #overviewCards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    width: 200px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+
+  .card .value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .card .small-note {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .sales-summary .header {
+    margin-bottom: 12px;
+  }
+
+  .sales-summary .body div {
+    margin-bottom: 4px;
+  }
+
+  .muted {
+    color: #888;
+  }
+
+  .error {
+    color: red;
+  }
+
+</style>
+</head>
+<body>
+
+<h2>Overview Cards (Mock Data)</h2>
+<div id="overviewCards"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+function showToast(msg, type='info') {
+  console.log(`[${type.toUpperCase()}] ${msg}`);
+}
+
+function initSalesDatePicker() {
+  // mock function for demo
+}
+
+function renderSalesSummary() {
+  // mock function for demo
+}
+
+async function renderOverviewCards() {
+  const cards = $('#overviewCards');
+  cards.innerHTML = '<div class="muted">Loading...</div>';
+
+  try {
+    // 🔹 MOCK DATA instead of fetch
+    const company = {
+      totalShipments: 120,
+      inTransit: 35,
+      totalStock: 450,
+      totalUnitsSold: 310,
+      totalRevenue: 1250000
+    };
+
+    cards.innerHTML = '';
+
+    const items = [
+      { title: 'Products Sent', value: company.totalShipments, sub: 'Total shipments' },
+      { title: 'In Transit', value: company.inTransit || 0, sub: 'Awaiting manager approval' },
+      { title: 'Total Inventory', value: company.totalStock, sub: 'All warehouses (qty)' }
+    ];
+
+    items.forEach(it => {
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = `<h3>${it.title}</h3><div class="value">${it.value}</div><div class="small-note">${it.sub}</div>`;
+      cards.appendChild(c);
+    });
+
+    const salesCard = document.createElement('div');
+    salesCard.className = 'card sales-summary';
+    salesCard.id = 'salesSummaryCard';
+    salesCard.innerHTML = `
+      <div class="header">
+        <h3>Total Sales</h3>
+        <div id="salesDateDisplay" class="small muted">All time</div>
+      </div>
+      <div class="body">
+        <div><strong id="salesUnits">${company.totalUnitsSold || 0}</strong> units</div>
+        <div><strong id="salesRevenue">₦${Number(company.totalRevenue || 0).toLocaleString()}</strong></div>
+      </div>`;
+    cards.appendChild(salesCard);
+
+    initSalesDatePicker();
+    renderSalesSummary();
+
+  } catch (err) {
+    cards.innerHTML = `<div class="error">Failed: ${err.message}</div>`;
+    showToast('server error: ' + (err?.message || 'Failed'), 'error');
+  }
+}
+
+// Run the function to render cards
+renderOverviewCards();
+</script>
+
+</body>
+</html>

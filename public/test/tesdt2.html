@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Inventory Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f5f5f5; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { padding: 10px; border: 1px solid #ddd; }
+    th { background: #eee; }
+    .muted { text-align: center; color: #777; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; background: black; color: white; }
+    .btn.secondary { background: #ddd; color: black; }
+    #modalOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display:none; align-items:center; justify-content:center;
+    }
+    #modalBox {
+      background:white; padding:20px; width:300px; border-radius:8px;
+    }
+    .form-row { margin-top:10px; }
+    input, select { width:100%; padding:8px; }
+  </style>
+</head>
+
+<body>
+
+<h2>Warehouse Inventory — Demo Data</h2>
+
+<div class="table">
+  <table id="inventoryTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Name</th>
+        <th>Qty</th>
+        <th>Unit Price</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div id="modalOverlay">
+  <div id="modalBox"></div>
+</div>
+
+<script>
+/* -------------------- DEMO DATA -------------------- */
+
+const myWarehouse = { id: "warehouse-1" };
+
+function fakeInventoryAPI(page, limit) {
+  const list = [];
+  for (let i = 1; i <= 60; i++) {
+    list.push({
+      productId: "P" + i,
+      sku: "SKU" + i,
+      productName: "Product " + i,
+      qty: Math.floor(Math.random() * 200),
+      unitPrice: 500 + i * 20
+    });
+  }
+
+  const start = (page - 1) * limit;
+  return {
+    products: list.slice(start, start + limit),
+    totalPages: Math.ceil(list.length / limit),
+    currentPage: page
+  };
+}
+
+function fakeOutletsAPI() {
+  return [
+    { id: "O1", name: "Main Outlet" },
+    { id: "O2", name: "Second Outlet" }
+  ];
+}
+
+function fakeProductsAPI() {
+  return fakeInventoryAPI(1, 60).products;
+}
+
+/* -------------------- UTILITIES -------------------- */
+
+const $ = (sel) => document.querySelector(sel);
+function formatNGN(v) { return "₦" + Number(v).toLocaleString(); }
+
+function showModal(html) {
+  $("#modalBox").innerHTML = html;
+  $("#modalOverlay").style.display = "flex";
+}
+
+function closeModal() {
+  $("#modalOverlay").style.display = "none";
+}
+
+/* -------------------- YOUR EXACT CODE (with demo replacements) -------------------- */
+
+const ITEMS_PER_PAGE = 10;
+let inventoryPage = 1;
+let totalInventoryPages = 1;
+
+async function renderInventory() {
+  const tbody = $('#inventoryTable tbody');
+  const paginationContainer = document.getElementById('inventoryPagination') || createInventoryPagination();
+
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+  try {
+    // 🔥 Replace backend fetch with demo
+    const data = fakeInventoryAPI(inventoryPage, ITEMS_PER_PAGE);
+
+    totalInventoryPages = data.totalPages || 1;
+    tbody.innerHTML = '';
+
+    if (!data.products || data.products.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No products in warehouse inventory</td></tr>';
+      renderInventoryPagination();
+      return;
+    }
+
+    data.products.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.sku}</td>
+        <td>${p.productName}</td>
+        <td><strong>${p.qty}</strong></td>
+        <td>${formatNGN(p.unitPrice)}</td>
+        <td>
+          <button class="btn secondary" style="font-size:11px;padding:4px 8px" 
+                  onclick="quickShipToOutlet('${p.productId}')">
+            Ship →
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    renderInventoryPagination();
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load inventory</td></tr>';
+  }
+}
+
+function createInventoryPagination() {
+  const pagination = document.createElement('div');
+  pagination.id = 'inventoryPagination';
+  pagination.style.cssText = 'padding:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px';
+
+  const tableWrapper = $('#inventoryTable').parentElement;
+  tableWrapper.parentElement.appendChild(pagination);
+
+  return pagination;
+}
+
+function renderInventoryPagination() {
+  const pagination = $('#inventoryPagination');
+  if (!pagination) return;
+
+  pagination.innerHTML = '';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = inventoryPage === 1;
+  prevBtn.onclick = () => { inventoryPage--; renderInventory(); };
+  pagination.appendChild(prevBtn);
+
+  const startPage = Math.max(1, inventoryPage - 2);
+  const endPage = Math.min(totalInventoryPages, inventoryPage + 2);
+
+  if (startPage > 1) {
+    const first = document.createElement('button');
+    first.className = 'btn secondary';
+    first.textContent = '1';
+    first.onclick = () => { inventoryPage = 1; renderInventory(); };
+    pagination.appendChild(first);
+
+    if (startPage > 2) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === inventoryPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => { inventoryPage = i; renderInventory(); };
+    pagination.appendChild(btn);
+  }
+
+  if (endPage < totalInventoryPages) {
+    if (endPage < totalInventoryPages - 1) {
+      const dots = document.createElement('span');
+      dots.textContent = "...";
+      dots.style.padding = "0 8px";
+      pagination.appendChild(dots);
+    }
+
+    const last = document.createElement('button');
+    last.className = 'btn secondary';
+    last.textContent = totalInventoryPages;
+    last.onclick = () => { inventoryPage = totalInventoryPages; renderInventory(); };
+    pagination.appendChild(last);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = inventoryPage === totalInventoryPages;
+  nextBtn.onclick = () => { inventoryPage++; renderInventory(); };
+  pagination.appendChild(nextBtn);
+}
+
+/* ------------ quickShipToOutlet (with demo data replacement) ------------- */
+
+async function quickShipToOutlet(productId) {
+
+  const outlets = fakeOutletsAPI();
+  const products = fakeProductsAPI();
+
+  const selectedProduct = products.find(p => p.productId === productId) || { productName: "Unknown", qty: 0 };
+
+  showModal(`
+    <h4>Ship to Outlet</h4>
+    <div class="form-row">
+      <select id="targetOutlet">${outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join("")}</select>
+    </div>
+    <div class="form-row">
+      <select id="productId">
+        ${products.map(p => `
+          <option value="${p.productId}" ${p.productId === productId ? "selected" : ""}>
+            ${p.productName} (${p.qty} left)
+          </option>
+        `).join("")}
+      </select>
+    </div>
+    <div class="form-row">
+      <input id="qty" type="number" min="1" max="${selectedProduct.qty}" placeholder="Quantity (max ${selectedProduct.qty})">
+    </div>
+    <div style="text-align:right;margin-top:12px">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="doShip">Ship Now</button>
+    </div>
+  `);
+
+  $("#doShip").onclick = () => {
+    alert("Demo shipping complete!");
+    closeModal();
+    renderInventory();
+  };
+}
+
+/* ---------------- INIT ---------------- */
+renderInventory();
+
+</script>
+
+</body>
+</html>

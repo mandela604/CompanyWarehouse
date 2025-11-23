@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Products Mock</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #f0f0f0; }
+  .btn { padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; margin: 2px; }
+  .secondary { background: #888; color: white; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { color: red; }
+  #pagination { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h2>Products Table (Mock Data)</h2>
+<table id="productTable">
+  <thead>
+    <tr>
+      <th>SKU</th>
+      <th>Name</th>
+      <th>Qty</th>
+      <th>Company</th>
+      <th>Unit Price</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div id="pagination"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+function formatNGN(num) { return '₦' + Number(num).toLocaleString(); }
+function showToast(msg, type='info') { console.log(`[${type.toUpperCase()}] ${msg}`); }
+
+let currentPage = 1;
+const ITEMS_PER_PAGE = 5;
+
+// Mock product data
+const mockProducts = Array.from({length: 18}, (_, i) => ({
+  id: i+1,
+  sku: `SKU-${i+1}`,
+  name: `Product ${i+1}`,
+  qty: Math.floor(Math.random()*50)+1,
+  companyName: `Company ${((i%3)+1)}`,
+  unitPrice: Math.floor(Math.random()*5000)+500
+}));
+
+async function renderProducts() {
+  const tbody = $('#productTable tbody');
+  const pagination = $('#pagination');
+  tbody.innerHTML = '';
+  pagination.innerHTML = '';
+
+  try {
+    // Mock paginated data
+    const totalPages = Math.ceil(mockProducts.length / ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const data = mockProducts.slice(start, start + ITEMS_PER_PAGE);
+
+    data.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.sku}</td>
+        <td>${p.name}</td>
+        <td><strong>${p.qty}</strong></td>
+        <td>${p.companyName}</td>
+        <td>${formatNGN(p.unitPrice)}</td>
+        <td>
+          <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct(${p.id})">Edit</button>
+          <button class="btn" style="background:#b71c1c;color:white;font-size:11px;padding:4px 8px" onclick="deleteProduct(${p.id})">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+
+    // Pagination buttons
+    if(totalPages > 0){
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'btn secondary';
+      prevBtn.textContent = 'Prev';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => { currentPage--; renderProducts(); };
+      pagination.appendChild(prevBtn);
+
+      for(let i=1;i<=totalPages;i++){
+        const btn = document.createElement('button');
+        btn.className = i === currentPage ? 'btn' : 'btn secondary';
+        btn.textContent = i;
+        btn.onclick = () => { currentPage = i; renderProducts(); };
+        pagination.appendChild(btn);
+      }
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn secondary';
+      nextBtn.textContent = 'Next';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => { currentPage++; renderProducts(); };
+      pagination.appendChild(nextBtn);
+    }
+
+  } catch(err){
+    tbody.innerHTML = `<tr><td colspan="6" class="error">Failed: ${err.message}</td></tr>`;
+    showToast('server error: ' + (err?.message || 'Failed'), 'error');
+  }
+}
+
+// Mock edit & delete functions
+function editProduct(id) { alert('Edit product ' + id); }
+function deleteProduct(id) { 
+  if(confirm('Delete product ' + id + '?')){
+    const index = mockProducts.findIndex(p => p.id===id);
+    if(index>-1) mockProducts.splice(index,1);
+    renderProducts();
+  }
+}
+
+renderProducts();
+</script>
+
+</body>
+</html>

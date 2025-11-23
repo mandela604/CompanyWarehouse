@@ -1,0 +1,2118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warehouse Admin — Dashboard</title>
+  <style>
+    :root{
+      --blue:#0b5ed7;
+      --dark-red:#b71c1c;
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --glass: rgba(255,255,255,0.75);
+      --shadow: 0 6px 18px rgba(11,94,215,0.08);
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,var(--bg),#eef3fb);
+      color:#111827;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Layout */
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+
+    /* Sidebar */
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .brand h2{font-size:16px;margin:0}
+    .small{font-size:12px;color:var(--muted)}
+    .nav{margin-top:18px}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03));box-shadow:inset 0 0 0 1px rgba(11,94,215,0.03)}
+    .nav a:hover{background:#f1f5ff}
+
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40;padding:18px;border-radius:0} .sidebar.open{left:0} .hamburger{display:block}}
+
+    /* Main */
+    main{padding:6px 0}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .search{display:flex;gap:12px;align-items:center}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+
+    /* Overview cards */
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--dark-red));
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(11,94,215,0.15);
+      border-color: rgba(11,94,215,0.15);
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin: 4px 0;
+    }
+    .card .small-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    
+    /* Panel */
+    .panel{display:flex;gap:16px;align-items:stretch}
+    .panel-left{flex:2;display:flex;flex-direction:column}
+    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
+
+    /* Table */
+    .table {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      flex: 1;
+    }
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{
+      background:#f8fafc;color:var(--muted);font-weight:600;text-transform:uppercase;
+      letter-spacing:0.5px;padding:14px 12px;text-align:left;font-size:11px
+    }
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb;color:#111827}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    tr:last-child td{border-bottom:none}
+
+    /* Widgets */
+    .widget {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+      flex: 1;
+    }
+    .widget::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--dark-red));
+    }
+    .widget h4 {
+      margin: 0 0 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .widget h4::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    /* Mini list */
+    .mini-list{display:grid;gap:10px}
+    .mini-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px;border-radius:10px;background:linear-gradient(90deg,#fff,#fafcff)}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:680px}
+    .modal h4{margin:0 0 14px}
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    .form-row input,.form-row select,textarea{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb}
+
+    .muted{color:var(--muted)}
+    .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);font-weight:600;color:var(--blue);display:inline-block}
+
+    /* Warehouse / Outlet / Product cards */
+    .inline-list{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px}
+    .box{
+      background:var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      flex:1 1 220px;
+      border:1px solid #e5e7eb;
+      position:relative;
+      overflow:hidden;
+      transition:all 0.25s ease;
+    }
+    .box::before{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:4px;
+      background:linear-gradient(90deg,var(--blue),var(--dark-red));
+    }
+    .box:hover{
+      transform:translateY(-4px);
+      box-shadow:0 16px 32px rgba(11,94,215,0.15);
+      border-color:rgba(11,94,215,0.15);
+    }
+    .box h4{
+      margin:0 0 8px;
+      font-size:16px;
+      font-weight:700;
+      color:#111827;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .box h4::before{
+      content:'';
+      width:8px;height:8px;
+      border-radius:50%;
+      background:var(--blue);
+    }
+    .box .location{font-size:13px;color:var(--muted);margin:0 0 12px}
+    .box .stats{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .box .stock{font-weight:700;font-size:20px;color:var(--blue)}
+    .box .badge{background:rgba(11,94,215,0.1);color:var(--blue);padding:4px 10px;border-radius:999px;font-weight:600;font-size:12px}
+
+    .section{display:none}
+    .section.active{display:block}
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body>
+
+  <button class="hamburger" id="hambBtn" aria-label="menu">Menu</button>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">W</div>
+        <div>
+          <h2>WareAdmin</h2>
+          <div class="small">Inventory • Nigeria</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="warehouses">Warehouses</a>
+        <a href="#" data-route="outlets">Outlets</a>
+        <a href="#" data-route="products">Products / Inventory</a>
+        <a href="#" data-route="accounts">Accounts</a>
+        <a href="#" data-route="reports">Reports</a>
+        <a href="#" data-route="settings">Settings</a>
+        <a href="#" data-route="sales">Sales Records</a>
+        <a href="#" data-route="mySales" style="display:none" id="mySalesNav">My Sales</a>
+         
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="createWarehouseBtn">+ Create Warehouse</button>
+        <button class="btn" style="background:var(--dark-red)" id="createOutletBtn">+ Create Outlet</button>
+        <button class="btn" id="shipToWarehouseBtn">+ Ship to Warehouse</button>
+        <button class="btn" id="shipToOutletBtn" style="background:#d97706">+ Ship to Outlet</button>
+<button class="btn secondary" id="recordSaleBtn">+ Record Sale</button>
+      <!--  <button class="btn secondary" id="addProductBtn">+ Add Product</button> -->
+      </div>
+      </div>
+
+      
+
+     <!-- <div style="position:absolute;bottom:18px;left:18px;right:18px;font-size:12px;color:var(--muted)">
+        <div>Version · <strong>1.0</strong></div>
+        <div style="margin-top:6px">Support: support@wareadmin.local</div>
+      </div> -->
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search products, warehouses, outlets...">
+          <div class="small muted" id="currentWarehouse">Viewing: All Warehouses</div>
+        </div>
+        <div class="actions">
+          <div class="small muted">Admin</div>
+          <button class="btn secondary" id="exportBtn">Export</button>
+          <button class="btn" id="newReportBtn">New Report</button>
+          <button class="btn " id="exportBtn">Create Company</button>
+          <button class="btn" id="newReportBtn">Edit Company</button>
+        </div>
+      </div>
+
+      <!-- ==================== OVERVIEW ==================== -->
+      <section id="overviewSection" class="section active">
+        <div class="grid" id="overviewCards"></div>
+
+        <div class="panel">
+          <div class="panel-left">
+            <div class="table">
+              <h3 style="margin:0 0 16px;padding:0 16px">Recent Shipments</h3>
+              <table id="shipmentTable">
+                <thead>
+                  <tr><th>Date</th><th>Product</th><th>Qty</th><th>To</th><th>Price</th><th>Status</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside class="panel-right">
+            <div class="widget">
+              <h4>Top Warehouses</h4>
+              <div class="mini-list" id="quickStats"></div>
+            </div>
+            <div class="widget">
+              <h4>Top Outlets</h4>
+              <div class="mini-list" id="topOutlets"></div>
+            </div>
+          </aside>
+        </div>   
+      </section>
+
+      <!-- ==================== WAREHOUSES ==================== -->
+      <section id="warehousesSection" class="section">
+        <h2 style="margin-top:0">All Warehouses</h2>
+        <div class="inline-list" id="warehousesList"></div>
+      </section>
+
+      <!-- ==================== OUTLETS ==================== -->
+      <section id="outletsSection" class="section">
+        <h2 style="margin-top:0">All Outlets</h2>
+        <div class="inline-list" id="outletsList"></div>
+      </section>
+
+      <!-- ==================== PRODUCTS ==================== -->
+      <section id="productsSection" class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="margin:0">Products / Inventory</h2>
+  <button class="btn" id="addProductBtn">+ Add Product</button>
+</div><div class="table">
+          <table id="productTable">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>In Stock</th>
+                <th>Warehouse</th>
+                <th>Unit Price</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        <div id="pagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap">
+       </div>
+      </div>
+   </section>
+
+
+      <!-- ==================== ACCOUNTS ==================== -->
+<section id="accountsSection" class="section">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <h2 style="margin:0">Accounts</h2>
+    <button class="btn" id="addUserBtn">+ Add User</button>
+  </div>
+  <div class="table">
+    <table id="accountsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Role</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+
+<!-- ==================== REPORTS ==================== -->
+<section id="reportsSection" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+   
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="margin:0">Reports</h2>
+  <div style="display:flex;gap:8px;align-items:center">
+    <select id="reportFilter" class="btn secondary" style="padding:8px 12px;border-radius:10px;font-size:13px">
+      <option value="today">Today</option>
+      <option value="week">This Week</option>
+      <option value="month" selected>This Month</option>
+    </select>
+   
+  </div>
+</div>
+    <button class="btn" id="exportReportBtn">Export PDF</button>
+  </div>
+
+  <!-- Inside #reportsSection -->
+<div class="grid">
+  <div class="card"><h3>Total Revenue</h3><div class="value">—</div><div class="small-note">All time</div></div>
+  <div class="card"><h3>Total Stock</h3><div class="value">—</div><div class="small-note">All warehouses</div></div>
+  <div class="card"><h3>Units Sold</h3><div class="value">—</div><div class="small-note">This month</div></div>
+  <div class="card"><h3>Low Stock</h3><div class="value">—</div><div class="small-note">Items < 50 units</div></div>
+</div>
+
+  <div class="table" style="margin-top:20px">
+    <h3 style="margin:0 0 12px">Top Products</h3>
+    <table id="topProductsTable">
+      <thead><tr><th>SKU</th><th>Name</th><th>Sold</th><th>Revenue</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="reportPagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap"></div>
+  </div>
+</section>
+
+
+
+<!-- ==================== SALES RECORDS ==================== -->
+<section id="salesSection" class="section">
+  <h2 style="margin-top:0">All Sales Records</h2>
+  <div class="table">
+    <table id="salesTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Outlet</th>
+          <th>Rep (Recorder)</th>
+<th>Manager (Approver)</th>
+          <th>Status</th>
+          <th>Sent From</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== SALES VIEWER MODAL ==================== -->
+<div class="modal-backdrop" id="salesViewerBackdrop" style="display:none">
+  <div class="modal" style="min-width:800px;max-height:90vh;overflow:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h4 id="salesViewerTitle">Sales for Outlet</h4>
+      <button class="btn secondary" style="font-size:12px;padding:4px 8px" onclick="closeSalesViewer()">Close</button>
+    </div>
+
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <select id="salesDateFilter" class="btn secondary" style="padding:6px 10px;font-size:13px">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="week">This Week</option>
+        <option value="month" selected>This Month</option>
+      </select>
+    </div>
+
+    <div class="table">
+      <table id="salesViewerTable">
+       <thead>
+  <tr>
+    <th>Date</th>
+    <th>SKU</th>
+    <th>Product</th>
+    <th>Qty</th>
+    <th>Rep</th>
+    <th>Unit Price</th>
+    <th>Line Total</th>
+    <th>Status</th>
+  </tr>
+</thead>
+        <tbody></tbody>
+      </table>
+      <div id="salesViewerPagination" style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS ==================== -->
+<section id="settingsSection" class="section">
+  <h2 style="margin-top:0">Settings</h2>
+
+  <!-- System Config -->
+  <div class="widget">
+    <h4>System Configuration</h4>
+    <div class="form-row">
+      <label>Low Stock Threshold</label>
+      <input id="lowStockThreshold" type="number" value="50" style="flex:0 0 100px">
+      <button class="btn secondary" onclick="saveLowStockThreshold()">Save</button>
+    </div>
+
+
+      <div class="form-row" style="align-items:center;gap:12px;">
+  <label style="flex:0 0 200px;">Manager can create outlets</label>
+  <input type="checkbox" id="mgrOutletToggle">
+  <button class="btn secondary" onclick="saveMgrPerm('canCreateOutlet')">Save</button>
+</div>
+<div class="form-row" style="align-items:center;gap:12px;">
+  <label style="flex:0 0 200px;">Manager can create reps</label>
+  <input type="checkbox" id="mgrRepToggle">
+  <button class="btn secondary" onclick="saveMgrPerm('canCreateRep')">Save</button>
+</div>
+
+
+    <div class="form-row" style="display: none;">
+      <label>Default Warehouse</label>
+      <select id="defaultWarehouse"></select>
+      <button class="btn secondary" onclick="saveDefaultWarehouse()">Save</button>
+    </div>   
+
+  </div>
+
+  <!-- User List -->
+  <div class="widget">
+    <h4>Users</h4>
+    <div class="table">
+      <table id="settingsUsersTable">
+       <thead>
+  <tr>
+    <th>Name</th>
+    <th>Role</th>
+    <th>Email</th>
+    <th>Phone</th>
+    <th>Manages</th>
+  </tr>
+</thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Admin Profile -->
+  <div class="widget">
+    <h4>My Profile (Admin)</h4>
+    <div class="form-row"><input id="adminEmail" placeholder="Email" /></div>
+    <div class="form-row"><input id="adminPhone" placeholder="Phone" /></div>
+    <div class="form-row"><input id="adminPassword" type="password" placeholder="New Password (leave blank to keep)" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="saveAdminProfile()">Update Profile</button>
+    </div>
+  </div>
+</section>
+
+
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+
+
+
+
+
+  <script>
+    localStorage.removeItem('wareadmin_data');
+
+    const sample = {
+      warehouses: [
+        {id:'wh-lagos',name:'Lagos Central Warehouse',location:'Ikeja, Lagos'},
+        {id:'wh-abuja',name:'Abuja Main',location:'Garki, Abuja'}
+      ],
+      outlets: [
+        {id:'out-1',name:'Ikeja Outlet',warehouseId:'wh-lagos', repId: null},
+        {id:'out-2',name:'Victoria Island Outlet',warehouseId:'wh-lagos', repId: null},
+        {id:'out-3',name:'Wuse Outlet',warehouseId:'wh-abuja', repId: null}
+      ],
+      products: [
+        {sku:'PRD-001',name:'N95 Masks (Box)',qty:120,warehouseId:'wh-lagos',unitPrice:4500},
+        {sku:'PRD-002',name:'Hand sanitizer 500ml',qty:320,warehouseId:'wh-lagos',unitPrice:2500},
+        {sku:'PRD-003',name:'Laptop Charger',qty:40,warehouseId:'wh-abuja',unitPrice:15000}
+      ],
+      shipments: [],
+
+      accounts: [
+        {id:'acc-admin',name:'Super Admin',role:'admin',email:'admin@wareadmin.local', phone: '+234 800 000 0000'}
+      ]
+    };
+
+    function load(){ const raw=localStorage.getItem('wareadmin_data'); if(raw) return JSON.parse(raw); localStorage.setItem('wareadmin_data',JSON.stringify(sample)); return structuredClone(sample); }
+    let DB = load();
+
+
+    DB.managerPermissions = DB.managerPermissions || {
+    canCreateOutlet: false,
+    canCreateRep: false
+  };
+
+    // === USER SESSION ===
+// === USER SESSION ===
+// === USER SESSION ===
+const currentUser = { 
+  id: 'acc-1', 
+  role: 'admin',           // ← 'admin' | 'manager' | 'rep'
+  managesWarehouseId: 'wh-lagos',
+  managesOutletId: null      // ← Only for rep
+};
+
+/*const currentUser = { 
+  id: 'acc-rep1', 
+  role: 'rep',
+  managesWarehouseId: null,
+  managesOutletId: 'out-1',
+  phone: '+234 800 000 1111'
+}; */
+function isAdmin() { return currentUser.role === 'admin'; }
+function isManager() { return currentUser.role === 'manager'; }
+function isRep() { return currentUser.role === 'rep'; }  // ← CHANGED
+
+
+function managerCan(action) {
+  if (isAdmin()) return true;
+  if (!isManager()) return false;
+  return DB.managerPermissions[action] === true;
+}
+
+function canManageOutlet(outId) { return isAdmin() || isManager() || (isRep() && currentUser.managesOutletId === outId); }
+
+
+function $(s){return document.querySelector(s)}
+    function $all(s){return document.querySelectorAll(s)}
+
+    function formatNGN(n){ return '₦' + (n||0).toLocaleString(); }
+
+    function niceDate(d) {
+  return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(d);
+}
+    function warehouseName(id){ return (DB.warehouses.find(w=>w.id===id)||{}).name||'—'; }
+
+    function renderOverviewCards(){
+  const cards=$('#overviewCards'); cards.innerHTML='';
+  const totalInventory=DB.products.reduce((a,p)=>a+p.qty,0);
+  const outgoing=DB.shipments.filter(s=>s.status==='In transit').reduce((a,s)=>a+s.qty,0);
+  const productsSent=DB.shipments.length;
+
+  // ---- regular cards ----
+  const items=[
+    {title:'Products Sent',value:productsSent,sub:'Total shipments'},
+    {title:'Total Inventory',value:totalInventory,sub:'All warehouses (qty)'},
+    {title:'Outgoing',value:outgoing,sub:'In transit'}
+  ];
+  items.forEach(it=>{
+    const c=document.createElement('div'); c.className='card';
+    c.innerHTML=`<h3>${it.title}</h3><div class="value">${it.value}</div><div class="small-note">${it.sub}</div>`;
+    cards.appendChild(c);
+  });
+
+  // ---- SALES SUMMARY CARD ----
+  const salesCard=document.createElement('div');
+  salesCard.className='card sales-summary';
+  salesCard.id='salesSummaryCard';
+  salesCard.innerHTML=`
+    <div class="header">
+      <h3>Total Sales</h3>
+      <div id="salesDateDisplay" class="small muted">All time</div>
+    </div>
+    <div class="body">
+      <div><strong id="salesUnits">0</strong> units</div>
+      <div><strong id="salesRevenue">₦0</strong></div>
+    </div>`;
+  cards.appendChild(salesCard);
+
+  initSalesDatePicker();
+  renderSalesSummary();
+}
+
+    function renderShipments(){
+  const tbody=$('#shipmentTable tbody'); tbody.innerHTML='';
+
+ const allowedWhIds = getAllowedWarehouseIds();
+const filteredShipments = DB.shipments.filter(s => 
+  allowedWhIds.includes(s.warehouseId) && 
+  !s.status.includes('Sold') && !s.status.includes('Approved')
+);
+  filteredShipments.slice().reverse().slice(0,5).forEach(s=>{
+    const prod=DB.products.find(p=>p.sku===s.productSku)||{name:s.productSku};
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${s.date}</td><td>${prod.name}</td><td>${s.qty}</td><td>${warehouseName(s.warehouseId)}</td><td>${formatNGN(s.unitPrice)}</td><td><span class="pill">${s.status}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+ const ITEMS_PER_PAGE = 10;
+let currentPage = 1;
+
+
+function getAllowedWarehouseIds() {
+  if (isAdmin()) return DB.warehouses.map(w => w.id);
+  if (isManager()) return [currentUser.managesWarehouseId];
+  if (isRep()) {
+    const outlet = DB.outlets.find(o => o.id === currentUser.managesOutletId);
+    return outlet ? [outlet.warehouseId] : [];
+  }
+  return [];
+}
+
+
+function getAllowedSales() {
+  if (isAdmin()) {
+    return DB.shipments.filter(s => s.status.includes('Sold') || s.status.includes('Approved'));
+  }
+  if (isManager()) {
+    return DB.shipments.filter(s => {
+      const o = DB.outlets.find(x => x.id === s.outletId);
+      return o && o.warehouseId === currentUser.managesWarehouseId;
+    });
+  }
+  if (isRep()) {
+    return DB.shipments.filter(s => s.outletId === currentUser.managesOutletId && s.status === 'Sold');
+  }
+  return [];
+}
+
+
+function canManageWarehouse(whId) { 
+  return isAdmin() || (isManager() && currentUser.managesWarehouseId === whId); 
+}
+
+
+
+function renderProducts(){
+  const tbody = $('#productTable tbody');
+  const pagination = $('#pagination');
+  tbody.innerHTML = '';
+  pagination.innerHTML = '';
+
+  // === FILTER BY WAREHOUSE ===
+ const allowedWhIds = getAllowedWarehouseIds();
+const filteredProducts = DB.products.filter(p => allowedWhIds.includes(p.warehouseId));
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  const pageItems = filteredProducts.slice(start, end);
+
+  // === RENDER ROWS ===
+  pageItems.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.sku}</td>
+      <td>${p.name}</td>
+      <td><strong>${p.qty}</strong></td>
+      <td>${warehouseName(p.warehouseId)}</td>
+      <td>${formatNGN(p.unitPrice)}</td>
+      <td>
+        ${canManageWarehouse(p.warehouseId) ? `
+          <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct('${p.sku}')">Edit</button>
+          <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteProduct('${p.sku}')">Delete</button>
+        ` : '<span class="muted">—</span>'}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // === PAGINATION ===
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = 'Prev';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => { currentPage--; renderProducts(); };
+  pagination.appendChild(prevBtn);
+
+  const maxVisible = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+  if (endPage - startPage + 1 < maxVisible) startPage = Math.max(1, endPage - maxVisible + 1);
+
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === currentPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => { currentPage = i; renderProducts(); };
+    pagination.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => { currentPage++; renderProducts(); };
+  pagination.appendChild(nextBtn);
+
+  if (totalPages > 1) {
+    const info = document.createElement('div');
+    info.style.cssText = 'align-self:center; margin-left:12px; color:var(--muted); font-size:13px';
+    info.textContent = `Page ${currentPage} of ${totalPages} (${filteredProducts.length} products)`;
+    pagination.appendChild(info);
+  }
+}
+
+
+    function renderQuickStats(){
+      const el=$('#quickStats'); el.innerHTML='';
+      const byWarehouse=DB.warehouses.map(w=>{ const inv=DB.products.filter(p=>p.warehouseId===w.id).reduce((a,p)=>a+p.qty,0); return {name:w.name,inv}; })
+        .sort((a,b)=>b.inv-a.inv);
+      byWarehouse.forEach(b=>{
+        const div=document.createElement('div'); div.className='mini-item';
+        div.innerHTML=`<div>${b.name}</div><div><strong>${b.inv}</strong></div>`;
+        el.appendChild(div);
+      });
+    }
+
+    function renderTopOutlets(){
+      const el=$('#topOutlets'); el.innerHTML='';
+      const counts=DB.outlets.reduce((acc,o)=>{acc[o.warehouseId]=(acc[o.warehouseId]||0)+1;return acc;},{});
+      const list=Object.entries(counts).map(([wid,c])=>({name:warehouseName(wid),count:c})).sort((a,b)=>b.count-a.count);
+      list.forEach(l=>{
+        const div=document.createElement('div'); div.className='mini-item';
+        div.innerHTML=`<div>${l.name}</div><div class="pill">${l.count}</div>`;
+        el.appendChild(div);
+      });
+    }
+
+function renderWarehouses(){
+  const container=$('#warehousesList'); container.innerHTML='';
+
+  const allowedWhIds = getAllowedWarehouseIds();
+  const warehousesToShow = DB.warehouses.filter(w => allowedWhIds.includes(w.id));
+
+  warehousesToShow.forEach(w => {
+    const stock = DB.products.filter(p => p.warehouseId === w.id).reduce((a,p) => a + p.qty, 0);
+    const outletCount = DB.outlets.filter(o => o.warehouseId === w.id).length;
+    const managerName = w.managerId ? DB.accounts.find(a => a.id === w.managerId)?.name || '—' : '—';
+
+    const box = document.createElement('div'); 
+    box.className = 'box';
+    box.innerHTML = `
+      <h4 style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px">
+        <span>${w.name}</span>
+        ${isAdmin() ? `
+  <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editWarehouse('${w.id}')">Edit</button>
+  <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="deleteWarehouse('${w.id}')">Delete</button>
+` : ''}
+      </h4>
+      <p class="location">Location: ${w.location}</p>
+      <p class="small muted" style="margin:4px 0">Manager: <strong>${managerName}</strong></p>
+      <p class="small muted" style="margin:4px 0">Outlets: <strong>${outletCount}</strong></p>
+      <div class="stats" style="display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <div class="stock">${stock}</div>
+    <div class="badge">In Stock</div>
+  </div>
+  <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="showSalesFor('${w.id}', 'warehouse')">View Sales</button>
+</div>
+    `;
+    container.appendChild(box);
+  });
+}
+
+
+function renderOutlets(){
+  const container = $('#outletsList'); 
+  container.innerHTML = '';
+
+  const allowedWhIds = getAllowedWarehouseIds();
+  const outletsToShow = DB.outlets.filter(o => allowedWhIds.includes(o.warehouseId));
+
+  outletsToShow.forEach(o => {
+    const warehouse = DB.warehouses.find(w => w.id === o.warehouseId) || {};
+    const repName = o.repId ? DB.accounts.find(a => a.id === o.repId)?.name || '—' : '—';
+    const stock = DB.products.filter(p => p.warehouseId === o.warehouseId).reduce((a,p) => a + p.qty, 0);
+
+    const box = document.createElement('div'); 
+    box.className = 'box';
+    box.innerHTML = `
+      <h4 style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px">
+        <span>${o.name}</span>
+      ${isAdmin() ? `
+  <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editOutlet('${o.id}')">Edit</button>
+  <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="deleteOutlet('${o.id}')">Delete</button>
+` : (isManager() && o.warehouseId === currentUser.managesWarehouseId) ? `
+  <button class="btn secondary" style="font-size:10px; padding:2px 6px" onclick="editOutlet('${o.id}')">Edit</button>
+` : ''} </h4>
+
+      <p class="location">Warehouse: ${warehouse.name || '—'}</p>
+      <p class="small muted" style="margin:4px 0">Rep: <strong>${repName}</strong></p>
+      <div class="stats" style="display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <div class="stock">${stock}</div>
+    <div class="badge">Available</div>
+  </div>
+  <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="showSalesFor('${o.id}', 'outlet')">View Sales</button>
+</div>
+    `;
+    container.appendChild(box);
+  });
+}
+
+function editOutlet(id) {
+  const outlet = DB.outlets.find(o => o.id === id);
+  const canEditRep = isAdmin() || managerCan('canCreateRep');
+
+  showModal(`
+    <h4>Edit Outlet</h4>
+    <div class="form-row"><input id="editOutName" value="${outlet.name}" placeholder="Outlet name" /></div>
+    <div class="form-row">
+      <select id="editOutWh">
+        ${DB.warehouses.map(w => `<option value="${w.id}" ${w.id === outlet.warehouseId ? 'selected' : ''}>${w.name}</option>`).join('')}
+      </select>
+    </div>
+    ${canEditRep ? `
+      <div class="form-row">
+        <label style="font-size:13px;color:var(--muted)">Outlet Rep</label>
+        <select id="editOutRep">
+          <option value="">No rep</option>
+          ${DB.accounts.filter(a => a.role === 'rep').map(a => `<option value="${a.id}" ${a.id === outlet.repId ? 'selected' : ''}>${a.name}</option>`).join('')}
+        </select>
+      </div>
+    ` : ''}
+
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEditOut">Save</button>
+    </div>
+  `);
+
+  $('#saveEditOut').onclick = () => {
+    const newName = $('#editOutName').value.trim();
+    if (!newName) return alert('Outlet name required');
+
+    outlet.name = newName;
+    outlet.warehouseId = $('#editOutWh').value;
+    if (canEditRep && $('#editOutRep')) outlet.repId = $('#editOutRep').value || null;
+
+    persist(); closeModal(); renderOutlets();
+  };
+}
+
+
+function deleteWarehouse(id) {
+  if (!isAdmin()) return alert('Only Admin can delete warehouses');
+  if (!confirm('Delete warehouse and all its data (products, outlets, shipments)? This cannot be undone.')) return;
+  DB.warehouses = DB.warehouses.filter(w => w.id !== id);
+  DB.outlets = DB.outlets.filter(o => o.warehouseId !== id);
+  DB.products = DB.products.filter(p => p.warehouseId !== id);
+  DB.shipments = DB.shipments.filter(s => s.warehouseId === id || (s.outletId && DB.outlets.find(o => o.id === s.outletId)?.warehouseId === id));
+  persist();
+  renderWarehouses();
+  renderOutlets();
+  renderProducts();
+  refreshAll();
+}
+
+function deleteOutlet(id) {
+  if (!isAdmin()) return alert('Only Admin can delete outlets');
+  if (!confirm('Delete this outlet?')) return;
+  DB.outlets = DB.outlets.filter(o => o.id !== id);
+  DB.shipments = DB.shipments.filter(s => s.outletId !== id);
+  persist();
+  renderOutlets();
+  refreshAll();
+}
+
+
+    function renderAccounts(){
+  const tbody = $('#accountsTable tbody');
+  tbody.innerHTML = '';
+
+  const usersToShow = isAdmin() 
+    ? DB.accounts 
+    : DB.accounts.filter(a => a.role === 'rep');
+
+  usersToShow.forEach(acc => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${acc.name}</strong></td>
+      <td><span class="pill">${acc.role}</span></td>
+     <td>${acc.email || '—'}</td>
+<td>${acc.phone || '—'}</td>
+      <td><span class="pill" style="background:rgba(34,197,94,0.1);color:#166534">Active</span></td>
+      <td>
+       ${isAdmin() ? `
+  <button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editUser('${acc.id}')">Edit</button>
+  <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteUser('${acc.id}')">Delete</button>
+` : (isManager() && acc.role === 'rep') ? `
+  <button class="btn" style="font-size:11px;padding:4px 8px" onclick="editUser('${acc.id}')">Edit</button>
+` : ''}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
+const REPORT_ITEMS_PER_PAGE = 5;
+let reportPage = 1;
+
+function renderReports() {
+  const filter = $('#reportFilter').value;
+  const now = new Date();
+  let startDate = new Date(now.getFullYear(), now.getMonth(), 1); // default: month
+  if (filter === 'today') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'week') { const d = now.getDay(); startDate = new Date(now); startDate.setDate(now.getDate() - d); }
+
+  const isInRange = (d) => new Date(d) >= startDate;
+
+  let relevantShipments = DB.shipments.filter(s => 
+    s.status === 'Sold' && isInRange(s.date)
+  );
+
+  // Filter by role
+  if (isManager()) {
+    const outletIds = DB.outlets
+      .filter(o => o.warehouseId === currentUser.managesWarehouseId)
+      .map(o => o.id);
+    relevantShipments = relevantShipments.filter(s => outletIds.includes(s.outletId));
+  } else if (isRep()) {
+    relevantShipments = relevantShipments.filter(s => s.outletId === currentUser.managesOutletId);
+  }
+
+  const revenue = relevantShipments.reduce((a, s) => a + s.qty * s.unitPrice, 0);
+  const unitsSold = relevantShipments.reduce((a, s) => a + s.qty, 0);
+
+  // Update cards
+  $('#reportsSection .grid').children[0].querySelector('.value').textContent = formatNGN(revenue);
+  $('#reportsSection .grid').children[2].querySelector('.value').textContent = unitsSold.toLocaleString();
+
+  // Top Products with Pagination
+  const topProducts = DB.products
+    .map(p => {
+      const sold = relevantShipments
+        .filter(s => s.productSku === p.sku)
+        .reduce((a, s) => a + s.qty, 0);
+      return { ...p, sold, revenue: sold * p.unitPrice };
+    })
+    .filter(p => p.sold > 0)
+    .sort((a, b) => b.revenue - a.revenue);
+
+  const start = (reportPage - 1) * REPORT_ITEMS_PER_PAGE;
+  const end = start + REPORT_ITEMS_PER_PAGE;
+  const pageItems = topProducts.slice(start, end);
+
+  const tbody = $('#topProductsTable tbody');
+  tbody.innerHTML = '';
+  pageItems.forEach(p => {
+    const sale = relevantShipments.find(s => s.productSku === p.sku);
+    const rep = sale?.senderId ? DB.accounts.find(a => a.id === sale.senderId)?.name || '—' : '—';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.sku}</td>
+      <td>${p.name}</td>
+      <td><strong>${p.sold}</strong></td>
+      <td>${formatNGN(p.revenue)}</td>
+      <td><small class="muted">${rep}</small></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Pagination
+  const pagination = $('#reportPagination');
+  pagination.innerHTML = '';
+  const totalPages = Math.ceil(topProducts.length / REPORT_ITEMS_PER_PAGE);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = 'Prev';
+  prevBtn.disabled = reportPage === 1;
+  prevBtn.onclick = () => { reportPage--; renderReports(); };
+  pagination.appendChild(prevBtn);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === reportPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => { reportPage = i; renderReports(); };
+    pagination.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next';
+  nextBtn.disabled = reportPage === totalPages;
+  nextBtn.onclick = () => { reportPage++; renderReports(); };
+  pagination.appendChild(nextBtn);
+}
+
+// Re-render on filter change
+$('#reportFilter').addEventListener('change', () => { reportPage = 1; renderReports(); });
+
+
+function renderSales() {
+  const tbody = $('#salesTable tbody');
+  tbody.innerHTML = '';
+
+  const sales = getAllowedSales();
+  sales.forEach(s => {
+    const prod = DB.products.find(p => p.sku === s.productSku) || { name: s.productSku };
+    const outlet = DB.outlets.find(o => o.id === s.outletId) || { name: '—' };
+    // Rep = who recorded the sale (always)
+const rep = s.senderId ? DB.accounts.find(a => a.id === s.senderId) : null;
+
+// Manager = who approved (only if status is 'Manager Approved')
+let manager = null;
+if (s.status === 'Manager Approved') {
+  const approvedBy = DB.shipments.find(x => x.id === s.id && x.sentFrom === 'Manager')?.senderId;
+  manager = approvedBy ? DB.accounts.find(a => a.id === approvedBy) : null;
+} else {
+  // Fallback: warehouse manager
+  const warehouse = DB.warehouses.find(w => w.id === s.warehouseId);
+  manager = warehouse?.managerId ? DB.accounts.find(a => a.id === warehouse.managerId) : null;
+}
+
+    const canEdit = isManager() && s.status === 'Sold';
+    const canApprove = isManager() && s.status === 'Sold';
+    const canDelete = isManager() && s.status !== 'Admin Approved';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.date}</td>
+      <td>${prod.name}</td>
+      <td><strong>${s.qty}</strong></td>
+      <td>${outlet.name || '—'}</td>
+      <td>${rep?.name || '—'}</td>
+<td>${s.status === 'Manager Approved' ? (manager?.name || '—') : '—'}</td>
+      <td><span class="pill">${s.status}</span></td>
+      <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
+      <td>
+        ${canEdit ? `<button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editSale('${s.id}')">Edit</button>` : ''}
+        ${canApprove ? `<button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="approveSale('${s.id}')">Send to Admin</button>` : ''}
+        ${canDelete ? `<button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteSale('${s.id}')">Delete</button>` : ''}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
+function renderMySales() {
+  // Reuse renderSales but filter to rep's outlet
+  const original = getAllowedSales;
+  window.getAllowedSales = () => DB.shipments.filter(s => 
+    s.outletId === currentUser.managesOutletId && s.status === 'Sold'
+  );
+  renderSales();
+  window.getAllowedSales = original; // restore
+}
+
+
+let salesViewerPage = 1;
+const SALES_VIEWER_PER_PAGE = 8;
+
+function showSalesFor(targetId, type) {
+  const title = type === 'outlet' 
+    ? DB.outlets.find(o => o.id === targetId)?.name || 'Outlet'
+    : DB.warehouses.find(w => w.id === targetId)?.name || 'Warehouse';
+
+  $('#salesViewerTitle').textContent = `Sales for ${title}`;
+  $('#salesViewerBackdrop').style.display = 'flex';
+  salesViewerPage = 1;
+  renderSalesViewer(targetId, type);
+}
+
+function renderSalesViewer(targetId, type) {
+  const filter = $('#salesDateFilter').value;
+  const now = new Date();
+  let startDate = null;
+  if (filter === 'today') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'week') { const d = now.getDay(); startDate = new Date(now); startDate.setDate(now.getDate() - d); }
+  if (filter === 'month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let sales = DB.shipments.filter(s => 
+    s.status.includes('Sold') || s.status.includes('Approved')
+  );
+
+  // Filter by outlet or warehouse
+  if (type === 'outlet') {
+    sales = sales.filter(s => s.outletId === targetId);
+  } else {
+    const outletIds = DB.outlets.filter(o => o.warehouseId === targetId).map(o => o.id);
+    sales = sales.filter(s => outletIds.includes(s.outletId));
+  }
+
+  // Date filter
+  if (startDate) {
+    sales = sales.filter(s => new Date(s.date) >= startDate);
+  }
+
+  const start = (salesViewerPage - 1) * SALES_VIEWER_PER_PAGE;
+  const end = start + SALES_VIEWER_PER_PAGE;
+  const pageItems = sales.slice(start, end);
+
+  const tbody = $('#salesViewerTable tbody');
+  tbody.innerHTML = '';
+  let totalRevenue = 0;
+
+  pageItems.forEach(s => {
+  const prod = DB.products.find(p=>p.sku===s.productSku) || {name:s.productSku, unitPrice:0};
+  const rep  = s.senderId ? DB.accounts.find(a=>a.id===s.senderId)?.name || '—' : '—';
+  const line = s.qty * prod.unitPrice;
+  totalRevenue += line;
+
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td>${s.date}</td>
+    <td>${prod.sku}</td>
+    <td>${prod.name}</td>
+    <td><strong>${s.qty}</strong></td>
+    <td>${rep}</td>
+    <td>${formatNGN(prod.unitPrice)}</td>
+    <td>${formatNGN(line)}</td>
+    <td><span class="pill">${s.status}</span></td>
+  `;
+  tbody.appendChild(tr);
+});
+
+  // Summary
+  const summary = document.createElement('div');
+  summary.style.cssText = 'margin:12px 0;font-size:13px;color:var(--muted)';
+  summary.innerHTML = `<strong>${sales.length}</strong> sales • Total: <strong>${formatNGN(totalRevenue)}</strong>`;
+  $('#salesViewerTable').after(summary);
+
+  // Pagination
+  const pagination = $('#salesViewerPagination');
+  pagination.innerHTML = '';
+  const totalPages = Math.ceil(sales.length / SALES_VIEWER_PER_PAGE);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = 'Prev';
+  prevBtn.disabled = salesViewerPage === 1;
+  prevBtn.onclick = () => { salesViewerPage--; renderSalesViewer(targetId, type); };
+  pagination.appendChild(prevBtn);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === salesViewerPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => { salesViewerPage = i; renderSalesViewer(targetId, type); };
+    pagination.appendChild(btn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next';
+  nextBtn.disabled = salesViewerPage === totalPages;
+  nextBtn.onclick = () => { salesViewerPage++; renderSalesViewer(targetId, type); };
+  pagination.appendChild(nextBtn);
+}
+
+function closeSalesViewer() {
+  $('#salesViewerBackdrop').style.display = 'none';
+}
+
+// Re-render on filter change
+$('#salesDateFilter').addEventListener('change', () => {
+  const modal = $('#salesViewerBackdrop');
+  if (modal.style.display === 'flex') {
+    const title = $('#salesViewerTitle').textContent;
+    const isOutlet = title.includes('Outlet');
+    const id = isOutlet 
+      ? DB.outlets.find(o => o.name === title.replace('Sales for ', ''))?.id
+      : DB.warehouses.find(w => w.name === title.replace('Sales for ', ''))?.id;
+    if (id) renderSalesViewer(id, isOutlet ? 'outlet' : 'warehouse');
+  }
+});
+
+
+function approveSale(id) {
+  if (!isManager()) return alert('Only Manager can approve');
+  const sale = DB.shipments.find(s => s.id === id);
+  if (!sale || sale.status !== 'Sold') return;
+
+  sale.status = 'Manager Approved';
+sale.sentFrom = 'Manager';
+sale.senderId = currentUser.id;  // This is the approver
+sale.senderPhone = currentUser.phone || DB.accounts.find(a => a.id === currentUser.id)?.phone || '—';
+
+  persist();
+  renderSales();
+}
+
+function editSale(id) {
+  const sale = DB.shipments.find(s => s.id === id);
+  const prod = DB.products.find(p => p.sku === sale.productSku);
+  const outlets = DB.outlets.filter(o => o.warehouseId === currentUser.managesWarehouseId);
+
+  showModal(`
+    <h4>Edit Sale</h4>
+    <div class="form-row">
+      <select id="editSku">
+        ${DB.products.filter(p => p.warehouseId === sale.warehouseId).map(p => 
+          `<option value="${p.sku}" ${p.sku === sale.productSku ? 'selected' : ''}>${p.name}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="form-row"><input id="editQty" type="number" value="${sale.qty}" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="saveEditSale('${id}')">Save</button>
+    </div>
+  `);
+}
+
+function saveEditSale(id) {
+  const sale = DB.shipments.find(s => s.id === id);
+  const newSku = $('#editSku').value;
+  const newQty = Number($('#editQty').value);
+
+  const oldProd = DB.products.find(p => p.sku === sale.productSku);
+  const newProd = DB.products.find(p => p.sku === newSku);
+
+  // Restore old stock
+  oldProd.qty += sale.qty;
+  // Deduct new
+  if (newProd.qty < newQty) return alert('Not enough stock');
+  newProd.qty -= newQty;
+
+  sale.productSku = newSku;
+  sale.qty = newQty;
+  sale.unitPrice = newProd.unitPrice;
+
+  persist();
+  closeModal();
+  renderSales();
+}
+
+function deleteSale(id) {
+  if (!confirm('Delete this sale?')) return;
+  const sale = DB.shipments.find(s => s.id === id);
+  const prod = DB.products.find(p => p.sku === sale.productSku);
+  prod.qty += sale.qty; // restore stock
+  DB.shipments = DB.shipments.filter(s => s.id !== id);
+  persist();
+  renderSales();
+}
+
+
+
+// Re-render when filter changes
+$('#reportFilter').addEventListener('change', renderReports);
+
+$('#exportReportBtn').addEventListener('click', () => {
+  alert('PDF export coming soon!');
+});
+
+function editUser(id){
+  const user = DB.accounts.find(a => a.id === id);
+  const isMgr = isManager();
+
+  showModal(`
+    <h4>Edit User</h4>
+    <div class="form-row"><input id="editName" value="${user.name}" /></div>
+    <div class="form-row"><input id="editEmail" value="${user.email}" /></div>
+    <div class="form-row">
+      <select id="editRole">
+        ${isMgr ? '<option value="rep">rep</option>' : `
+          <option ${user.role==='admin'?'selected':''}>admin</option>
+          <option ${user.role==='manager'?'selected':''}>manager</option>
+          <option ${user.role==='rep'?'selected':''}>rep</option>
+        `}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEdit">Save</button>
+    </div>
+  `);
+  $('#saveEdit').onclick = () => {
+    user.name = $('#editName').value;
+    user.email = $('#editEmail').value;
+    user.role = $('#editRole').value;
+    persist(); closeModal(); renderAccounts();
+  };
+}
+
+function deleteUser(id){
+  if(confirm('Delete this user?')) {
+    DB.accounts = DB.accounts.filter(a => a.id !== id);
+    persist(); renderAccounts();
+  }
+}
+
+
+let salesPicker = null;
+function initSalesDatePicker(){
+  const input = document.createElement('input');
+  input.type='text';
+  input.placeholder='Pick range';
+  input.style.cssText='padding:4px 8px;border-radius:6px;border:1px solid #e6eefb;font-size:12px;width:100%';
+  $('#salesDateDisplay').appendChild(input);
+
+  salesPicker = flatpickr(input,{
+    mode:'range',
+    dateFormat:'Y-m-d',
+    onChange: dates => {
+      if(dates.length===2){
+        const [f,t]=dates;
+        $('#salesDateDisplay').dataset.from=f.toISOString().slice(0,10);
+        $('#salesDateDisplay').dataset.to=t.toISOString().slice(0,10);
+        $('#salesDateDisplay').textContent=`${niceDate(f)} – ${niceDate(t)}`;
+      }else{
+        delete $('#salesDateDisplay').dataset.from;
+        delete $('#salesDateDisplay').dataset.to;
+        $('#salesDateDisplay').textContent='All time';
+      }
+      renderSalesSummary();
+    }
+  });
+}
+
+
+function renderSalesSummary(){
+  const from = $('#salesDateDisplay').dataset.from;
+  const to   = $('#salesDateDisplay').dataset.to;
+
+  const sales = getAllowedSales().filter(s=>{
+    if(!from) return true;
+    return s.date >= from && (!to || s.date <= to);
+  });
+
+  const units = sales.reduce((a,s)=>a+s.qty,0);
+  const revenue = sales.reduce((a,s)=>a+s.qty*s.unitPrice,0);
+
+  $('#salesUnits').textContent = units.toLocaleString();
+  $('#salesRevenue').textContent = formatNGN(revenue);
+}
+
+
+$('#addUserBtn').addEventListener('click', () => {
+  const canCreateRep = isAdmin() || managerCan('canCreateRep');
+
+  showModal(`
+    <h4>Add User</h4>
+    <div class="form-row"><input id="newName" placeholder="Full name" /></div>
+    <div class="form-row"><input id="newEmail" type="email" placeholder="Email" /></div>
+    <div class="form-row"><input id="newPhone" placeholder="Phone (e.g. +234 800 000 0000)" /></div>
+    <div class="form-row">
+      <select id="newRole">
+        ${isAdmin() ? `
+          <option value="admin">admin</option>
+          <option value="manager">manager</option>
+        ` : ''}
+        ${canCreateRep ? `<option value="rep">rep</option>` : ''}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveNew">Create</button>
+    </div>
+  `);
+
+  $('#saveNew').onclick = () => {
+    const name = $('#newName').value.trim();
+    const email = $('#newEmail').value.trim();
+    const phone = $('#newPhone').value.trim();
+    const role = $('#newRole').value;
+
+    if (!name || !email) return alert('Name and email required');
+    if (role === 'rep' && !canCreateRep) return alert('Not allowed to create reps');
+
+    const id = 'acc-' + Date.now();
+    DB.accounts.push({ id, name, email, role, phone: phone || null });
+    persist();
+    closeModal();
+    renderAccounts();
+  };
+});
+
+
+    function persist(){ localStorage.setItem('wareadmin_data',JSON.stringify(DB)); }
+
+    function adjustStock(sku){
+      const p=DB.products.find(x=>x.sku===sku);
+      showModal(`<h4>Adjust Stock — ${p.name}</h4>
+        <div class="form-row"><input id="adjQty" type="number" placeholder="Change in qty (use negative to reduce)" /></div>
+        <div style="text-align:right"><button class="btn secondary" onclick="closeModal()">Cancel</button> <button class="btn" id="saveAdj">Save</button></div>`);
+      $('#saveAdj').onclick=()=>{ const delta=Number($('#adjQty').value)||0; p.qty+=delta; persist(); closeModal(); refreshAll(); };
+    }
+
+    function showModal(html){ $('#modal').innerHTML=html; $('#modalBackdrop').style.display='flex'; }
+    function closeModal(){ $('#modalBackdrop').style.display='none'; $('#modal').innerHTML=''; }
+
+    $('#createWarehouseBtn').addEventListener('click', () => {
+  // Build manager dropdown
+  const managerOptions = DB.accounts
+    .map(acc => `<option value="${acc.id}">${acc.name} (${acc.role})</option>`)
+    .join('');
+
+  showModal(`
+    <h4>Create Warehouse</h4>
+    <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
+    <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
+    <div class="form-row">
+      <select id="whManager">
+        <option value="">No manager</option>
+        ${managerOptions}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveWh">Create</button>
+    </div>
+  `);
+
+  $('#saveWh').onclick = () => {
+    const name = $('#whName').value.trim();
+    const location = $('#whLocation').value.trim();
+    const managerId = $('#whManager').value || null;
+
+    if (!name || !location) {
+      alert('Please fill in name and location');
+      return;
+    }
+
+    const id = 'wh-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+    const newWarehouse = { id, name, location, managerId };
+
+    DB.warehouses.push(newWarehouse);
+    persist();        // Saves to localStorage
+    closeModal();
+    refreshAll();     // Updates UI
+  };
+});
+
+ $('#createOutletBtn').addEventListener('click', () => {
+  if (!isAdmin() && !managerCan('canCreateOutlet')) return alert('Manager not allowed to create outlets');
+
+  let allowedWhIds = [];
+  if (isAdmin()) {
+    allowedWhIds = DB.warehouses.map(w => w.id);
+  } else {
+    allowedWhIds = [currentUser.managesWarehouseId];
+  }
+
+  showModal(`
+    <h4>Create Outlet</h4>
+    <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
+    <div class="form-row">
+      <select id="outWh">
+        ${DB.warehouses
+          .filter(w => allowedWhIds.includes(w.id))
+          .map(w => `<option value="${w.id}">${w.name}</option>`)
+          .join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <select id="outRep">
+        <option value="">No rep</option>
+        ${DB.accounts
+          .filter(a => a.role === 'rep')
+          .map(a => `<option value="${a.id}">${a.name}</option>`)
+          .join('')}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveOut">Create</button>
+    </div>
+  `);
+  $('#saveOut').onclick = () => {
+    const name = $('#outName').value.trim();
+    const warehouseId = $('#outWh').value;
+    const repId = $('#outRep').value || null;
+    if (!name || !warehouseId) return alert('Name and warehouse required');
+    DB.outlets.push({ id: 'out-' + Date.now(), name, warehouseId, repId });
+    persist();
+    closeModal();
+    renderOutlets();
+  };
+});
+
+    $('#addProductBtn').addEventListener('click',()=>{ 
+  if (!isAdmin()) return alert('Only Admin can add products');
+      showModal(`<h4>Add Product / Inventory</h4>
+        <div class="form-row"><input id="sku" placeholder="SKU (eg PRD-001)" /></div>
+        <div class="form-row"><input id="pname" placeholder="Product name" /></div>
+        <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
+        <div class="form-row"><input id="pprice" type="number" placeholder="Unit price (NGN)" /></div>
+        <div class="form-row"><select id="pwh">${DB.warehouses.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select></div>
+        <div style="text-align:right"><button class="btn secondary" onclick="closeModal()">Cancel</button> <button class="btn" id="saveProd">Save</button></div>`);
+      $('#saveProd').onclick=()=>{ DB.products.push({sku:$('#sku').value,name:$('#pname').value,qty:Number($('#pqty').value),unitPrice:Number($('#pprice').value),warehouseId:$('#pwh').value});
+        DB.shipments.push({date:new Date().toISOString().slice(0,10),productSku:$('#sku').value,qty:Number($('#pqty').value),warehouseId:$('#pwh').value,unitPrice:Number($('#pprice').value),status:'Received'});
+        persist(); 
+  closeModal(); 
+  resetProductPage();
+      };
+    });
+
+
+    $('#shipToOutletBtn').addEventListener('click', () => {
+  if (!isManager()) return;
+
+  const outlets = DB.outlets.filter(o => o.warehouseId === currentUser.managesWarehouseId);
+  if (outlets.length === 0) return alert('No outlets under your warehouse');
+
+  showModal(`
+    <h4>Ship to Outlet</h4>
+    <div class="form-row">
+      <select id="targetOutlet">
+        ${outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><input id="sku" placeholder="SKU" /></div>
+    <div class="form-row"><input id="qty" type="number" placeholder="Quantity" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveShipOut">Ship</button>
+    </div>
+  `);
+
+  $('#saveShipOut').onclick = () => {
+    const outletId = $('#targetOutlet').value;
+    const sku = $('#sku').value.trim();
+    const qty = Number($('#qty').value);
+    if (!sku || qty <= 0) return alert('Invalid input');
+
+    const product = DB.products.find(p => p.sku === sku && p.warehouseId === currentUser.managesWarehouseId);
+    if (!product || product.qty < qty) return alert('Not enough stock');
+
+    product.qty -= qty;
+    DB.shipments.push({
+      date: new Date().toISOString().slice(0,10),
+      productSku: sku,
+      qty,
+      warehouseId: currentUser.managesWarehouseId,
+      outletId,
+      unitPrice: product.unitPrice,
+      status: 'Dispatched'
+    });
+
+    persist();
+    closeModal();
+    refreshAll();
+  };
+});
+
+$('#recordSaleBtn').addEventListener('click', () => {
+  if (!isRep()) return;
+
+  const outlet = DB.outlets.find(o => o.id === currentUser.managesOutletId);
+  const products = DB.products.filter(p => p.warehouseId === outlet.warehouseId);
+
+  showModal(`
+    <h4>Record Sale – ${outlet.name}</h4>
+    <div class="form-row">
+      <select id="saleSku">
+        ${products.map(p => `<option value="${p.sku}">${p.name} (${p.qty} left)</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><input id="saleQty" type="number" placeholder="Qty sold" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveSale">Record</button>
+    </div>
+  `);
+
+  $('#saveSale').onclick = () => {
+    const sku = $('#saleSku').value;
+    const qty = Number($('#saleQty').value);
+    const product = products.find(p => p.sku === sku);
+    if (qty > product.qty) return alert('Not enough stock');
+
+    product.qty -= qty;
+   DB.shipments.push({
+  id: 'sale-' + Date.now(),
+  date: new Date().toISOString().slice(0,10),
+  productSku: sku,
+  qty,
+  warehouseId: outlet.warehouseId,
+  outletId: currentUser.managesOutletId,
+  unitPrice: product.unitPrice,
+  status: 'Sold',
+  sentFrom: 'Rep',
+  senderId: currentUser.id,
+  senderPhone: currentUser.phone || DB.accounts.find(a => a.id === currentUser.id)?.phone || '—'
+});
+
+    persist();
+    closeModal();
+    refreshAll();
+    renderSalesSummary();
+  };
+});
+
+
+    // SPA Navigation
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+
+      const route = a.dataset.route;
+      $('#currentWarehouse').textContent = route.charAt(0).toUpperCase() + route.slice(1);
+
+      $all('.section').forEach(s => s.classList.remove('active'));
+
+      if (route === 'overview') {
+        $('#overviewSection').classList.add('active');
+        refreshAll();
+      } else if (route === 'warehouses') {
+        $('#warehousesSection').classList.add('active');
+        renderWarehouses();
+      } else if (route === 'outlets') {
+        $('#outletsSection').classList.add('active');
+        renderOutlets();
+      } else if (route === 'products') {
+        $('#productsSection').classList.add('active');
+        renderProducts();
+      }
+
+      else if (route === 'accounts') {  // ← HERE
+  $('#accountsSection').classList.add('active');
+  renderAccounts();
+}
+
+else if (route === 'reports') {
+  $('#reportsSection').classList.add('active');
+  renderReports();
+}
+else if (route === 'sales') {
+  $('#salesSection').classList.add('active');
+  renderSales();
+} else if (route === 'mySales') {
+  $('#salesSection').classList.add('active');
+  renderMySales();
+}
+else if (route === 'settings') {
+  $('#settingsSection').classList.add('active');
+  renderSettings(); // Render dynamic content
+}
+   }));
+
+    $('#hambBtn').addEventListener('click',()=>{ document.getElementById('sidebar').classList.toggle('open'); });
+
+
+
+function updateUIVisibility() {
+  const showNav = (route) => {
+    const el = document.querySelector(`.nav a[data-route="${route}"]`);
+    if (!el) return;
+
+    const hide = 
+      (route === 'warehouses' && !isAdmin()) ||
+      (route === 'accounts' && !(isAdmin() || isManager())) ||
+      (route === 'settings' && !isAdmin());
+
+    el.style.display = hide ? 'none' : 'flex';
+  };
+
+  ['overview','warehouses','outlets','products','accounts','reports','settings'].forEach(showNav);
+
+  const mgrOutlet = isAdmin() || managerCan('canCreateOutlet');
+const mgrRep    = isAdmin() || managerCan('canCreateRep');
+
+
+  // Buttons
+  $('#createWarehouseBtn').style.display = isAdmin() ? 'block' : 'none';
+ $('#createOutletBtn').style.display = mgrOutlet ? 'block' : 'none';
+$('#addUserBtn').style.display      = mgrRep    ? 'block' : 'none';
+$('#addProductBtn').style.display   = isAdmin() ? 'block' : 'none';
+ $('#shipToWarehouseBtn').style.display = isAdmin() ? 'block' : 'none';
+  $('#shipToOutletBtn').style.display = isManager() ? 'block' : 'none';
+  $('#recordSaleBtn').style.display = isRep() ? 'block' : 'none';
+$('#mySalesNav').style.display = isRep() ? 'flex' : 'none';
+
+
+  // === STYLE BUTTONS BLUE ===
+  if (isManager()) {
+    ['#createOutletBtn', '#shipToOutletBtn', '#addProductBtn', '#addUserBtn'].forEach(id => {
+      const b = $(id);
+      if (b) b.className = 'btn';
+    });
+  }
+  if (isRep()) {
+    const b = $('#recordSaleBtn');
+    if (b) b.className = 'btn';
+  }
+
+  // Topbar
+  let viewing = '';
+  if (isAdmin()) viewing = 'All Warehouses';
+  else if (isManager()) viewing = warehouseName(currentUser.managesWarehouseId);
+  else if (isRep()) {
+    const outlet = DB.outlets.find(o => o.id === currentUser.managesOutletId);
+    viewing = outlet ? outlet.name : 'My Outlet';
+  }
+  $('#currentWarehouse').textContent = `Viewing: ${viewing}`;
+}
+
+
+
+
+    $('#modalBackdrop').addEventListener('click',e=>{ if(e.target.id==='modalBackdrop') closeModal(); });
+
+    $('#globalSearch').addEventListener('input',e=>{
+      const q=e.target.value.toLowerCase();
+      $('#productTable tbody').querySelectorAll('tr').forEach(tr=>{ tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none'; });
+    });
+
+    $('#exportBtn').addEventListener('click',()=>{
+      const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
+      const csv='SKU,Name,Qty,Warehouse,UnitPrice\n'+rows;
+      const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='products.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+
+    function editWarehouse(id) {
+  const w = DB.warehouses.find(x => x.id === id);
+  const managerOptions = DB.accounts
+    .map(a => `<option value="${a.id}" ${a.id === w.managerId ? 'selected' : ''}>${a.name} (${a.role})</option>`)
+    .join('');
+
+  showModal(`
+    <h4>Edit Warehouse</h4>
+    <div class="form-row"><input id="editName" value="${w.name}" /></div>
+    <div class="form-row"><input id="editLoc" value="${w.location}" /></div>
+    <div class="form-row">
+      <select id="editMgr">
+        <option value="">No manager</option>
+        ${managerOptions}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEditWh">Save</button>
+    </div>
+  `);
+
+  $('#saveEditWh').onclick = () => {
+    const newName = $('#editName').value.trim();
+    const newLoc = $('#editLoc').value.trim();
+    if (!newName || !newLoc) return alert('Name & location required');
+
+    w.name = newName;
+    w.location = newLoc;
+    w.managerId = $('#editMgr').value || null;
+
+    persist();
+    closeModal();
+    renderWarehouses(); // Update only this section
+  };
+}
+
+
+function editProduct(sku){
+  const p = DB.products.find(x => x.sku === sku);
+  if (!p) return;
+
+  showModal(`
+    <h4>Edit Product – ${p.sku}</h4>
+    <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
+    <div class="form-row"><input id="editPQty" type="number" value="${p.qty}" placeholder="Quantity" /></div>
+    <div class="form-row"><input id="editPPrice" type="number" value="${p.unitPrice}" placeholder="Unit price (NGN)" /></div>
+    <div class="form-row">
+      <select id="editPWh">
+        ${DB.warehouses.map(w => `<option value="${w.id}" ${w.id===p.warehouseId?'selected':''}>${w.name}</option>`).join('')}
+      </select>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveEditProd">Save</button>
+    </div>
+  `);
+
+  $('#saveEditProd').onclick = () => {
+    const newName = $('#editPName').value.trim();
+    const newQty = Number($('#editPQty').value);
+    const newPrice = Number($('#editPPrice').value);
+    const newWh = $('#editPWh').value;
+
+    if (!newName || isNaN(newQty) || isNaN(newPrice) || newQty < 0 || newPrice < 0) {
+      alert('Please fill all fields correctly');
+      return;
+    }
+
+    p.name = newName;
+    p.qty = newQty;
+    p.unitPrice = newPrice;
+    p.warehouseId = newWh;
+
+    persist();
+    closeModal();
+    renderProducts();   // Only refresh products table
+  };
+}
+
+
+function saveLowStockThreshold() {
+  const thresh = Number($('#lowStockThreshold').value);
+  if (thresh > 0) {
+    localStorage.setItem('lowStockThresh', thresh);
+    alert('Low stock threshold saved!');
+    renderReports(); // Update low stock card
+  } else alert('Threshold must be positive');
+}
+
+function saveDefaultWarehouse() {
+  const wh = $('#defaultWarehouse').value;
+  localStorage.setItem('defaultWh', wh);
+  $('#currentWarehouse').textContent = warehouseName(wh); // Update topbar
+  alert('Default warehouse saved!');
+}
+
+function saveReportPref() {
+  const filter = $('#defaultReportFilter').value;
+  localStorage.setItem('defaultReport', filter);
+  alert('Report preference saved!');
+  renderReports();
+}
+
+function showRoleModal() {
+  showModal(`
+    <h4>Edit User Roles</h4>
+    <p class="small muted">Global permissions: Admin (full), Manager (ops), Viewer (read-only)</p>
+    <div class="form-row">
+      <select id="globalRole">
+        <option>Admin</option><option>Manager</option><option>Viewer</option>
+      </select>
+      <button class="btn" onclick="saveGlobalRole()">Apply Globally</button>
+    </div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+  $('#globalRole').value = 'admin'; // Default
+}
+
+function saveGlobalRole() {
+  // Simple global role (expand for per-user)
+  DB.accounts.forEach(acc => acc.role = $('#globalRole').value);
+  persist();
+  closeModal();
+  renderAccounts();
+}
+
+function showIntegrationModal() {
+  showModal(`
+    <h4>API Integration</h4>
+    <div class="form-row"><input id="apiKey" placeholder="API Key (e.g., Shopify)" /></div>
+    <div class="form-row"><input id="apiUrl" placeholder="Endpoint URL" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="saveIntegration()">Connect</button>
+    </div>
+  `);
+}
+
+function saveIntegration() {
+  const key = $('#apiKey').value.trim();
+  const url = $('#apiUrl').value.trim();
+  if (key && url) {
+    localStorage.setItem('apiKey', key);
+    localStorage.setItem('apiUrl', url);
+    alert('Integration saved! (Mock - real connect via backend)');
+    closeModal();
+  } else alert('Enter key and URL');
+}
+
+function deleteProduct(sku) {
+  const product = DB.products.find(p => p.sku === sku);
+  if (!product) return;
+
+  if (confirm(`Delete product "${product.name}" (SKU: ${sku})? This cannot be undone.`)) {
+    // Remove from products
+    DB.products = DB.products.filter(p => p.sku !== sku);
+
+    // Optional: Remove related shipments (recommended for clean data)
+    DB.shipments = DB.shipments.filter(s => s.productSku !== sku);
+
+    persist();
+   resetProductPage();// Refresh table
+    refreshAll();     // Update overview cards, stats, etc.
+  }
+}
+
+
+function renderSettings() {
+  // Default Warehouse
+  $('#defaultWarehouse').innerHTML = DB.warehouses.map(w => 
+    `<option value="${w.id}" ${w.id === (localStorage.getItem('defaultWh') || 'wh-lagos') ? 'selected' : ''}>${w.name}</option>`
+  ).join('');
+  $('#lowStockThreshold').value = localStorage.getItem('lowStockThresh') || 50;
+
+  $('#mgrOutletToggle').checked = !!DB.managerPermissions.canCreateOutlet;
+$('#mgrRepToggle').checked    = !!DB.managerPermissions.canCreateRep;
+
+  // Render Users
+  const tbody = $('#settingsUsersTable tbody');
+  tbody.innerHTML = '';
+  DB.accounts.forEach(acc => {
+  const manages = [];
+  if (acc.role === 'manager' || acc.role === 'admin') {
+    DB.warehouses.forEach(w => { if (w.managerId === acc.id) manages.push(w.name); });
+    DB.outlets.forEach(o => { if (o.managerId === acc.id) manages.push(o.name); });
+  }
+  const managesText = manages.length ? manages.join(', ') : '—';
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><strong>${acc.name}</strong></td>
+    <td><span class="pill">${acc.role}</span></td>
+    <td>${acc.email || '—'}</td>
+    <td>${acc.phone || '—'}</td>
+    <td><small class="muted">${managesText}</small></td>
+  `;
+  tbody.appendChild(tr);
+});
+
+  // Load Admin Profile
+  const admin = DB.accounts.find(a => a.role === 'admin') || DB.accounts[0];
+  $('#adminEmail').value = admin.email || '';
+  $('#adminPhone').value = admin.phone || '';
+}
+
+
+function saveMgrPerm(flag) {
+  const checkbox = $(`#mgr${flag === 'canCreateOutlet' ? 'Outlet' : 'Rep'}Toggle`);
+  DB.managerPermissions[flag] = checkbox.checked;
+  persist();
+  alert('Permission updated');
+  updateUIVisibility();
+}
+
+
+function saveAdminProfile() {
+  const admin = DB.accounts.find(a => a.role === 'admin') || DB.accounts[0];
+  const email = $('#adminEmail').value.trim();
+  const phone = $('#adminPhone').value.trim();
+  const pass = $('#adminPassword').value;
+
+  if (!email) return alert('Email is required');
+
+  admin.email = email;
+  admin.phone = phone;
+  if (pass) admin.password = pass; // Plaintext for demo (use hash in real app)
+
+  persist();
+  alert('Profile updated!');
+  renderSettings();
+}
+
+
+// Ship from Company to Warehouse
+$('#shipToWarehouseBtn').addEventListener('click', () => {
+  showModal(`
+    <h4>Ship Stock to Warehouse</h4>
+    <div class="form-row">
+      <select id="targetWh">${DB.warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}</select>
+    </div>
+    <div class="form-row"><input id="sku" placeholder="SKU (e.g. PRD-001)" /></div>
+    <div class="form-row"><input id="pname" placeholder="Product name" /></div>
+    <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
+    <div class="form-row"><input id="pprice" type="number" placeholder="Unit price (NGN)" /></div>
+    <div style="text-align:right">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="saveShip">Ship & Receive</button>
+    </div>
+  `);
+
+  $('#saveShip').onclick = () => {
+    const warehouseId = $('#targetWh').value;
+    const sku = $('#sku').value.trim();
+    const name = $('#pname').value.trim();
+    const qty = Number($('#pqty').value);
+    const unitPrice = Number($('#pprice').value);
+
+    if (!sku || !name || qty <= 0 || unitPrice <= 0) {
+      return alert('Fill all fields correctly');
+    }
+
+    // Add or update product
+    let product = DB.products.find(p => p.sku === sku);
+    if (product) {
+      if (product.warehouseId !== warehouseId) {
+        return alert('SKU already exists in another warehouse');
+      }
+      product.qty += qty;
+    } else {
+      product = { sku, name, qty, unitPrice, warehouseId };
+      DB.products.push(product);
+    }
+
+    // Log shipment (from Company)
+    DB.shipments.push({
+      date: new Date().toISOString().slice(0,10),
+      productSku: sku,
+      qty,
+      warehouseId,  // destination
+      unitPrice,
+      status: 'Received',
+      from: 'Company'  // optional label
+    });
+
+    persist();
+    closeModal();
+    refreshAll();
+    alert(`Shipped ${qty} × ${name} to ${warehouseName(warehouseId)}`);
+  };
+});
+
+
+    function refreshAll(){ 
+      renderOverviewCards(); 
+      renderShipments(); 
+      renderProducts(); 
+      renderQuickStats(); 
+      renderTopOutlets(); 
+      if (document.querySelector('#reportsSection').classList.contains('active')) {
+  reportPage = 1;
+  renderReports();}
+      if (document.querySelector('#salesSection').classList.contains('active')) {
+  renderSales();}
+  if (document.querySelector('#warehousesSection').classList.contains('active')) renderWarehouses();
+if (document.querySelector('#outletsSection').classList.contains('active')) renderOutlets();
+      updateUIVisibility();
+    }
+
+    refreshAll();
+renderSalesSummary();
+updateUIVisibility();
+    
+    function resetProductPage() {
+  currentPage = 1;
+  renderProducts();
+}
+    window.DB=DB; window.refreshAll=refreshAll; window.closeModal=closeModal; window.showModal=showModal;
+  </script>
+</body>
+</html>
