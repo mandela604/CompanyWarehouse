@@ -42,6 +42,11 @@
     </div>
     <div class="error" id="login-error"></div>
     <button type="submit" class="btn">Login</button>
+    <p style="text-align:center; margin-top:16px;">
+  Don't have an account?
+  <a href="/register.html" style="color:#0b5ed7; font-weight:600;">Register</a>
+</p>
+
   </form>
 </div>
 
@@ -57,9 +62,8 @@
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if(res.ok){
-      window.location.href = '/dashboard';
-    } else {
+    if (data.redirect) return window.location.href = data.redirect;
+    else {
       const errorDiv = document.getElementById('login-error');
       errorDiv.style.display = 'block';
       errorDiv.innerText = data.message || 'Login failed';

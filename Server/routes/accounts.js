@@ -65,11 +65,11 @@ router.post('/register', async (req, res) => {
     
     switch (savedUser.role) {
       case 'admin':
-        return res.redirect('/admin.html');
+        return res.json({redirect: '/admin.html'});
       case 'manager':
-        return res.redirect('/warehouse.html');
+        return res.json({redirect: '/warehouse.html'});
       case 'rep':
-        return res.redirect('/outlet.html');
+        return res.json({redirect: '/outlet.html'});
       default:
         return res.status(403).send('Access denied'); 
     }
@@ -104,17 +104,17 @@ router.post('/login', async (req, res) => {
 
     switch (user.role) {
       case 'admin':
-        return res.redirect('/admin.html');
+        return res.json({ redirect: '/admin.html' });
       case 'manager':
-        return res.redirect('/warehouse.html');
+        return res.json({redirect: '/warehouse.html'});
       case 'rep':
-        return res.redirect('/outlet.html');
+        return res.json({redirect: '/outlet.html'});
       default:
         return res.status(403).send('Access denied'); 
     }
 
     
-  } catch (serr) {
+  } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

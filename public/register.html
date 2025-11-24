@@ -60,6 +60,8 @@
   </form>
 </div>
 
+
+
 <script>
   document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -79,12 +81,9 @@
     });
 
     const data = await res.json();
-    const errorDiv = document.getElementById('register-error');
-
-    if(res.ok){
-      // redirect according to role handled by backend
-      window.location.href = '/dashboard';
-    } else {
+    if (data.redirect) {window.location.href = data.redirect;}
+    else {
+      const errorDiv = document.getElementById('register-error');
       errorDiv.style.display = 'block';
       errorDiv.innerText = data.message || 'Registration failed';
     }
