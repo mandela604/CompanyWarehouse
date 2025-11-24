@@ -42,7 +42,8 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com",
         "https://kit.fontawesome.com",
         "https://cdn.jsdelivr.net" // <-- add this
-      ]
+      ],
+      scriptSrcAttr: ["'unsafe-hashes'"]
     }
   }
 }));

@@ -939,7 +939,7 @@ async function renderQuickStats() {
     if (!res.ok) throw new Error(`Failed to fetch shipments: ${res.status}`);
     const shipments = await res.json();
 
-    const pending = shipments.filter(s => s.status === 'In Transit');
+    const pending = shipments.data.filter(s => s.status === 'In Transit');
 
     if (pending.length === 0) {
       list.innerHTML = '<div class="mini-item muted">No pending shipments</div>';
