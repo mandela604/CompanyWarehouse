@@ -43,8 +43,7 @@ app.use(helmet({
         "https://kit.fontawesome.com",
         "https://cdn.jsdelivr.net" // <-- add this
       ],
-      scriptSrcAttr: ["'unsafe-hashes'"]
-    }
+ scriptSrcAttr: ["'unsafe-inline'", "'unsafe-hashes'"]     }
   }
 }));
 
