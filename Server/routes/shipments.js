@@ -333,7 +333,8 @@ router.get('/shipments', async (req, res) => {
       })
     );
 
-    res.json(enriched);
+    res.json({ totalShipments: enriched.length, data: enriched });
+
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch shipments', error: err.message });
   }

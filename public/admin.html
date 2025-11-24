@@ -771,7 +771,7 @@ async function renderShipments() {
 
     tbody.innerHTML = '';
 
-    shipments.forEach(s => {
+    shipments.data.forEach(s => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${niceDate(s.date)}</td>
