@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const { ensureAuth } = require('../middlewares/auth');
 const outletService = require('../services/inventoryService');
+const Warehouse = require('../models/Warehouse');
 const companyService = require('../services/companyService');
 const Sale = require('../models/Sale');
 const Product = require('../models/Product');
