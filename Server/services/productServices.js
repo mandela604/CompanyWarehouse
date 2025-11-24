@@ -43,11 +43,18 @@ async function getProductsByCompany(companyId) {
   return await Product.find({ companyId }).sort({ createdAt: -1 });
 }
 
+
+async function getProductBySKU(sku) {
+  return await Product.findOne({ sku });
+}
+
+
 module.exports = {
   createProduct,
   getAllProducts,
   getProductById,
   updateProductById,
   removeProductById,
-  getProductsByCompany
+  getProductsByCompany,
+  getProductBySKU
 };
