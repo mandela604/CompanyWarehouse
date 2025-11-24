@@ -44,10 +44,11 @@
       <label for="reg-phone">Phone</label>
       <input type="text" id="reg-phone" name="phone">
     </div>
-    <div class="form-row">
-      <label for="reg-password">Password</label>
-      <input type="password" id="reg-password" name="password" required>
-    </div>
+    <div class="form-row" style="position:relative;">
+  <label for="reg-password">Password</label>
+  <input type="password" id="reg-password" name="password" required>
+  <span id="togglePassword" style="position:absolute;right:10px;top:36px;cursor:pointer;font-size:16px;color:#6b7280;">👁️</span>
+</div>
  <!--   <div class="form-row">
       <label for="reg-role">Role</label>
       <select id="reg-role" name="role">
@@ -63,6 +64,17 @@
 
 
 <script>
+  // Toggle password visibility
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('reg-password');
+
+  togglePassword.addEventListener('click', () => {
+    const type = passwordInput.type === 'password' ? 'text' : 'password';
+    passwordInput.type = type;
+    togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
+  });
+
+  // Form submit
   document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -70,25 +82,33 @@
       name: document.getElementById('reg-name').value,
       email: document.getElementById('reg-email').value,
       phone: document.getElementById('reg-phone').value,
-      password: document.getElementById('reg-password').value,
-      role: document.getElementById('reg-role').value
+      password: passwordInput.value
     };
 
-    const res = await fetch('/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
+    try {
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
 
-    const data = await res.json();
-    if (data.redirect) {window.location.href = data.redirect;}
-    else {
+      const data = await res.json();
+      if (data.redirect) {
+        window.location.href = data.redirect;
+      } else {
+        const errorDiv = document.getElementById('register-error');
+        errorDiv.style.display = 'block';
+        errorDiv.innerText = data.message || 'Registration failed';
+      }
+    } catch (err) {
       const errorDiv = document.getElementById('register-error');
       errorDiv.style.display = 'block';
-      errorDiv.innerText = data.message || 'Registration failed';
+      errorDiv.innerText = 'Server error';
+      console.error(err);
     }
   });
 </script>
+
 
 </body>
 </html>
