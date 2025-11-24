@@ -10,9 +10,10 @@ const router = express.Router();
 
 /// 🟢 CREATE PRODUCT (Admin only)
 /// 🟢 CREATE PRODUCT (Admin only)
-router.post('/products', ensureAdmin, async (req, res) => {
+router.post('/products', async (req, res) => {
+    console.log('>>> /products body:', req.body);
+  
   try {
-     console.log(">>> /products request body:", req.body);
     let { sku, name, qty, companyId, companyName, unitPrice, status } = req.body;
 
     // Validate required fields
