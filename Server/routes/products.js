@@ -10,7 +10,7 @@ const router = express.Router();
 
 /// 🟢 CREATE PRODUCT (Admin only)
 /// 🟢 CREATE PRODUCT (Admin only)
-router.post('/products',  async (req, res) => {
+router.post('/products', ensureAdmin, async (req, res) => {
     console.log('>>> /products body:', req.body);
   
   try {
@@ -23,7 +23,7 @@ router.post('/products',  async (req, res) => {
     // Sanitize inputs
     name = validator.escape(name.trim());
     companyName = validator.escape(companyName.trim());
-    status = status ? validator.escape(status.trim()) : 'active';
+    status = status ? validator.escape(status.trim()) : 'inStock';
     sku = sku ? validator.escape(sku.trim()) : uuidv4();
 
     // Validate numeric fields
@@ -36,7 +36,10 @@ router.post('/products',  async (req, res) => {
     const existingProduct = await productService.getProductBySKU(sku);
     if (existingProduct) return res.status(400).json({ message: 'SKU already exists.' });
 
+    const id = uuidv4();
+
     const newProduct = {
+      id,
       sku,
       name,
       qty,
