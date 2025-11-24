@@ -767,6 +767,7 @@ async function renderShipments() {
     const res = await fetch('/api/shipments');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const shipments = await res.json();
+    console.log('Shipments:', shipments);
 
     tbody.innerHTML = '';
 
