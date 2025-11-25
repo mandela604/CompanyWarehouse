@@ -1460,7 +1460,8 @@ async function renderSalesSummary() {
 //ADD PRODUCT FUNCTION
 //ADD PRODUCT FUNCTION
  $('#addProductBtn').addEventListener('click', () => {
-  showModal(`<h4>Add Product / Inventory</h4>
+  showModal(`
+    <h4>Add Product / Inventory</h4>
     <div class="form-row"><input id="sku" placeholder="SKU (eg PRD-001)" /></div>
     <div class="form-row"><input id="pname" placeholder="Product name" /></div>
     <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
@@ -1468,26 +1469,29 @@ async function renderSalesSummary() {
     <div style="text-align:right">
       <button class="btn secondary" onclick="closeModal()">Cancel</button>
       <button class="btn" id="saveProd">Save</button>
-    </div>`
-  );
+    </div>
+  `);
 
-  $('#saveProd').onclick = async () => {
-     $('#saveProd').disabled = true;
-    const sku = $('#sku').value.trim();
-    const name = $('#pname').value.trim();
-    const qty = Number($('#pqty').value);
-    const unitPrice = Number($('#pprice').value);
+  const saveBtn = document.getElementById('saveProd'); // get after modal
+  if (!saveBtn) return;
+
+  saveBtn.onclick = async () => {
+    saveBtn.disabled = true;
+
+    const sku = document.getElementById('sku').value.trim();
+    const name = document.getElementById('pname').value.trim();
+    const qty = Number(document.getElementById('pqty').value);
+    const unitPrice = Number(document.getElementById('pprice').value);
 
     if (!sku || !name || qty <= 0 || unitPrice <= 0) {
-      return showToast('Fill all fields correctly', 'info');
+      showToast('Fill all fields correctly', 'info');
+      saveBtn.disabled = false;
+      return;
     }
 
     try {
-
-      // Fetch the company first
       const companyRes = await fetch('/api/company');
       const company = await companyRes.json();
-
 
       const res = await fetch('/api/products', {
         method: 'POST',
@@ -1497,22 +1501,21 @@ async function renderSalesSummary() {
           name,
           qty,
           unitPrice,
-          companyId: company.id,   
-          companyName: company.name   
+          companyId: company.id,
+          companyName: company.name
         })
       });
 
       const data = await res.json();
-        $('#saveProd').disabled = false;
       if (!res.ok) return showToast(data.message || 'Failed to create product', 'error');
 
       closeModal();
       showToast('Product created successfully', 'success');
     } catch (err) {
       console.error(err);
-      showToast('Server error: ' + (err?.message), 'error');
-    } finally{
-        $('#saveProd').disabled = false;
+      showToast('Server error: ' + err?.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
     }
   };
 });
