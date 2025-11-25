@@ -24,6 +24,10 @@ router.post('/shipments', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    console.log('fromId, toId, products:', fromId, toId, products);
+console.log('fromType:', fromType, 'toType:', toType);
+
+
     // 🔹 Fetch dynamic names safely
     let fromName, toName;
     if (fromType === 'Company') {
@@ -49,7 +53,7 @@ router.post('/shipments', async (req, res) => {
     // 🔹 Validate all product SKUs exist
     for (const p of products) {
       const exists = await Product.findOne({ id: p.productId  }).session(session);
-      if (!exists) throw new Error(`Product with id ${p.id} not found`);
+      if (!exists) throw new Error(`Product with id ${p.productId} not found`);
     }
 
 
@@ -90,7 +94,7 @@ router.post('/shipments', async (req, res) => {
         );
       } else if (fromType === 'Warehouse') {
         await WarehouseInventory.updateOne(
-          { warehouseId: fromId, id: p.id },
+          { warehouseId: fromId, id: p.productId },
           { $inc: { qty: -p.qty, totalShipped: p.qty } },
           { session }
         );
@@ -101,6 +105,7 @@ router.post('/shipments', async (req, res) => {
     res.status(201).json({ message: 'Shipment created', shipment });
   } catch (err) {
     await session.abortTransaction();
+    console.error('Shipment creation failed:', err);
     res.status(500).json({ message: 'Failed to create shipment', error: err.message });
   } finally {
     session.endSession();
