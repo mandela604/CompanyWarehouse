@@ -209,6 +209,24 @@ router.get('/products/company/:companyId', ensureAdmin, async (req, res) => {
 });
 
 
+// 🔵 GET PRODUCTS IN COMPANY STOCK (for shipping)
+router.get('/products/company', ensureAuth, async (req, res) => {
+  try {
+    const company = await Company.findOne(); // single company
+    if (!company) return res.status(404).json({ message: 'Company not found.' });
+
+    // only return products with qty > 0
+    const products = (company.products || []).filter(p => p.qty > 0);
+
+    res.json(products);
+  } catch (err) {
+    console.error('Fetch company products error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+
 // 🟢 GET OUTLET INVENTORY (Rep or Manager)
 router.get('/outlet/:outletId/inventory', ensureAuth, async (req, res) => {
   try {
