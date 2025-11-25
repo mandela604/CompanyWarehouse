@@ -1,6 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
+const mongoose = require('mongoose');
 const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 const productService = require('../services/productServices');
 const Product = require('../models/Product');
