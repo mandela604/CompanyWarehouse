@@ -13,7 +13,7 @@ const router = express.Router();
 /// 🟢 CREATE PRODUCT (Admin only)
 /// 🟢 CREATE PRODUCT (Admin only)
 router.post('/products', ensureAdmin, async (req, res) => {
-    console.log('>>> /products body:', req.body);
+
   
   try {
     let { sku, name, qty, companyId, companyName, unitPrice, status } = req.body;
