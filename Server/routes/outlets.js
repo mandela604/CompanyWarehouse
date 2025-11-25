@@ -13,6 +13,8 @@ const router = express.Router();
 
 // ✅ CREATE OUTLET (Admin only)
 router.post('/outlets', canCreateOutlet, async (req, res) => {
+  console.log(req.body);
+
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -60,6 +62,7 @@ router.post('/outlets', canCreateOutlet, async (req, res) => {
 
     res.status(201).json({ message: 'Outlet created successfully.', outlet: savedOutlet });
   } catch (err) {
+    console.error(err);
     await session.abortTransaction();
     session.endSession();
     res.status(500).json({ message: 'Server error', error: err.message });
