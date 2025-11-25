@@ -65,6 +65,8 @@ console.log('fromType:', fromType, 'toType:', toType);
 
       // attach unitPrice to the shipment product
       p.unitPrice = prod.unitPrice;
+      p.productSku = prod.sku;   
+      p.name = prod.name;
     }
 
     // 🔹 Create shipment

@@ -7,6 +7,7 @@ const shipmentSchema = new mongoose.Schema({
     {
       productId: { type: String, required: true },
       productSku: { type: String, required: true },
+          name: { type: String, required: true },   
       qty: { type: Number, required: true, default: 0 },
       unitPrice: { type: Number, required: true, default: 0 }
     }
