@@ -199,18 +199,18 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
 
 
 // 🟠 GET PRODUCTS BY COMPANY (Admin only)
-router.get('/products/company/:companyId', ensureAdmin, async (req, res) => {
+/* router.get('/products/company/:companyId', ensureAdmin, async (req, res) => {
   try {
     const products = await productService.getProductsByCompany(req.params.companyId);
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-});
+});  */
 
 
 // 🔵 GET PRODUCTS IN COMPANY STOCK (for shipping)
-router.get('/products/company', ensureAdmin, async (req, res) => {
+router.get('/products/company', ensureAuth, async (req, res) => {
  console.log('hit /products/company')
   try {
     const company = await Company.findOne(); // single company

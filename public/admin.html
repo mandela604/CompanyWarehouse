@@ -1607,7 +1607,7 @@ $('#shipToWarehouseBtn').addEventListener('click', async () => {
     const products = Array.isArray(resData) ? resData : (resData.products || []);
     console.log('Fetched products from backend:', products);
 
-   // await checkAuth();
+    await checkAuth();
 
     // Show modal
     showModal(`
