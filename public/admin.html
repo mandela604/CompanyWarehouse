@@ -806,13 +806,13 @@ async function renderShipments() {
     const shipments = await res.json();
     console.log('Shipments:', shipments);
     console.log(shipments.data[0]);
-    
+
     tbody.innerHTML = '';
 
     shipments.data.forEach(s => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${niceDate(s.date)}</td>
+        <td>${niceDate(new Date(s.date))}</td>
         <td>${s.productName}</td>
         <td>${s.qty}</td>
         <td>${s.warehouseName || s.outletName || '—'}</td>
