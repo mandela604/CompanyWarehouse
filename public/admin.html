@@ -1665,7 +1665,7 @@ const companyId = company.id;
 
       <div class="form-row">
         <select id="productId">
-          ${products.map(p => `<option value="${p.productId}">${p.name} (${p.qty} left)</option>`).join('')}
+          ${products.map(p => `<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}
         </select>
       </div>
 
