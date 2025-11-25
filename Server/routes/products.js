@@ -211,6 +211,7 @@ router.get('/products/company/:companyId', ensureAdmin, async (req, res) => {
 
 // 🔵 GET PRODUCTS IN COMPANY STOCK (for shipping)
 router.get('/products/company', ensureAuth, async (req, res) => {
+ console.log('hit /products/company')
   try {
     const company = await Company.findOne(); // single company
     if (!company) return res.status(404).json({ message: 'Company not found.' });

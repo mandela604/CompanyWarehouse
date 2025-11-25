@@ -1605,6 +1605,7 @@ $('#shipToWarehouseBtn').addEventListener('click', async () => {
     const resProducts = await fetch('/api/products/company');
     const resData = await resProducts.json();
     const products = Array.isArray(resData) ? resData : (resData.products || []);
+    console.log('Fetched products from backend:', products);
 
     await checkAuth();
 
@@ -2355,12 +2356,12 @@ async function deleteUser(id) {
 
     function resetProductPage() { currentPage = 1; renderProducts(); }
 
- //   refreshAll();
-//renderSalesSummary();
-//renderOverviewCards();  
+refreshAll();
+renderSalesSummary();
+renderOverviewCards();  
 
 
-navigateTo('overview');
+//navigateTo('overview');
   </script>
 </body>
 </html>
