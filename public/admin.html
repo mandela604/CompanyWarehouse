@@ -1790,7 +1790,7 @@ $('#shipmentTable').addEventListener('click', async (e) => {
   if (route === 'overview')    { $('#overviewSection').classList.add('active'); refreshAll(); }
   else if (route === 'warehouses') { $('#warehousesSection').classList.add('active'); renderWarehouses(); }
   else if (route === 'outlets')    { $('#outletsSection').classList.add('active'); renderOutlets(); }
-  else if (route === 'products')   { $('#productsSection').classList.add('active'); renderProducts(); }
+  else if (route === 'products')   { $('#productsSection').classList.add('active'); currentPage = 1; renderProducts(); }
   else if (route === 'accounts')   { $('#accountsSection').classList.add('active'); renderAccounts(); }
   else if (route === 'reports')    { $('#reportsSection').classList.add('active'); renderReports(); }
   else if (route === 'sales')      { $('#salesSection').classList.add('active'); renderSales(); }
@@ -2308,11 +2308,11 @@ async function deleteUser(id) {
 
     function refreshAll(){ 
       renderOverviewCards(); 
-      renderShipments(); 
-      renderProducts(); 
+      renderShipments();  
       renderQuickStats(); 
       renderTopOutlets(); 
       renderPending();
+      if (document.querySelector('#productsSection').classList.contains('active')) { renderProducts(); }
       if (document.querySelector('#reportsSection').classList.contains('active')) { reportPage = 1; renderReports(); }
       if (document.querySelector('#salesSection').classList.contains('active')) { renderSales(); }
       if (document.querySelector('#warehousesSection').classList.contains('active')) renderWarehouses();
