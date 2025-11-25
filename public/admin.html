@@ -1777,38 +1777,72 @@ $('#shipmentTable').addEventListener('click', async (e) => {
 
 
 
-   document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
-  e.preventDefault();
+  // Add this near the top of your <script>, after your other global variables
+let isRenderingProducts = false;
 
-  // Clear old active states
-  document.querySelectorAll('.nav a').forEach(x => x.classList.remove('active'));
-  a.classList.add('active');
+// REPLACE your entire current nav click handler with this one:
+document.querySelectorAll('.nav a').forEach(a => {
+  a.addEventListener('click', async e => {
+    e.preventDefault();
 
-  const route = a.dataset.route;
-  $all('.section').forEach(s => s.classList.remove('active'));
+    const route = a.dataset.route;
 
-  if (route === 'overview')    { $('#overviewSection').classList.add('active'); refreshAll(); }
-  else if (route === 'warehouses') { $('#warehousesSection').classList.add('active'); renderWarehouses(); }
-  else if (route === 'outlets')    { $('#outletsSection').classList.add('active'); renderOutlets(); }
-  else if (route === 'products')   { $('#productsSection').classList.add('active'); currentPage = 1; renderProducts(); }
-  else if (route === 'accounts')   { $('#accountsSection').classList.add('active'); renderAccounts(); }
-  else if (route === 'reports')    { $('#reportsSection').classList.add('active'); renderReports(); }
-  else if (route === 'sales')      { $('#salesSection').classList.add('active'); renderSales(); }
-  else if (route === 'settings')   { $('#settingsSection').classList.add('active'); renderSettings(); }
-}));
+    // === Remove old active states ===
+    $all('.nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    $all('.section').forEach(s => s.classList.remove('active'));
 
+    // === Route handling ===
+    if (route === 'overview') {
+      $('#overviewSection').classList.add('active');
+      refreshAll();
+    }
+    else if (route === 'warehouses') {
+      $('#warehousesSection').classList.add('active');
+      renderWarehouses();
+    }
+    else if (route === 'outlets') {
+      $('#outletsSection').classList.add('active');
+      renderOutlets();
+    }
+    else if (route === 'products') {
+      $('#productsSection').classList.add('active');
 
+      // ← PREVENT DUPLICATE RENDERS WHEN CLICKING FAST
+      if (isRenderingProducts) return;
+      isRenderingProducts = true;
+      currentPage = 1;
 
+      // Show loading right away
+      const tbody = $('#productTable tbody');
+      const pagination = $('#pagination');
+      tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+      pagination.innerHTML = '';
 
-    $('#hambBtn').addEventListener('click',()=>{ document.getElementById('sidebar').classList.toggle('open'); });
-
-    $('#modalBackdrop').addEventListener('click',e=>{ if(e.target.id==='modalBackdrop') closeModal(); });
-
-    $('#globalSearch').addEventListener('input',e=>{
-      const q=e.target.value.toLowerCase();
-      $('#productTable tbody').querySelectorAll('tr').forEach(tr=>{ tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none'; });
-    });
-
+      try {
+        await renderProducts();   // your existing function (already clears & fills)
+      } finally {
+        isRenderingProducts = false;
+      }
+    }
+    else if (route === 'accounts') {
+      $('#accountsSection').classList.add('active');
+      renderAccounts();
+    }
+    else if (route === 'reports') {
+      $('#reportsSection').classList.add('active');
+      renderReports?.();   // safe call in case renderReports is not defined yet
+    }
+    else if (route === 'sales') {
+      $('#salesSection').classList.add('active');
+      renderSales();
+    }
+    else if (route === 'settings') {
+      $('#settingsSection').classList.add('active');
+      renderSettings();
+    }
+  });
+});
 
   /*  $('#exportBtn').addEventListener('click',()=>{
       const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
@@ -2320,9 +2354,12 @@ async function deleteUser(id) {
 
     function resetProductPage() { currentPage = 1; renderProducts(); }
 
-    refreshAll();
-renderSalesSummary();
-renderOverviewCards();  
+ //   refreshAll();
+//renderSalesSummary();
+//renderOverviewCards();  
+
+
+navigateTo('overview');
   </script>
 </body>
 </html>
