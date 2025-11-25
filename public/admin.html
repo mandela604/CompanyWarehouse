@@ -1643,10 +1643,10 @@ $('#shipToWarehouseBtn').addEventListener('click', async () => {
     // Get company data
     const resCompany = await fetch('/api/company');
     const company = await resCompany.json();
+const companyId = company.id; 
 
     // Get products in company stock
-    const resProducts = await fetch('/api/products/company');
-      console.log('Fetched products from backend:', resProducts);
+  const resProducts = await fetch(`/api/products/company/${companyId}`);    console.log('Fetched products from backend:', resProducts);
     const resData = await resProducts.json();
     const products = Array.isArray(resData) ? resData : (resData.products || []);
     console.log('Fetched products from backend:', products);
