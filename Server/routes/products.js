@@ -210,7 +210,7 @@ router.get('/products/company/:companyId', ensureAdmin, async (req, res) => {
 
 
 // 🔵 GET PRODUCTS IN COMPANY STOCK (for shipping)
-router.get('/products/company', ensureAuth, async (req, res) => {
+router.get('/products/company', ensureAdmin, async (req, res) => {
  console.log('hit /products/company')
   try {
     const company = await Company.findOne(); // single company
