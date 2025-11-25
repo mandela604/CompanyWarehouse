@@ -805,7 +805,8 @@ async function renderShipments() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const shipments = await res.json();
     console.log('Shipments:', shipments);
-
+    console.log(shipments.data[0]);
+    
     tbody.innerHTML = '';
 
     shipments.data.forEach(s => {
