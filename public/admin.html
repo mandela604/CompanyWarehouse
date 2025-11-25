@@ -1679,9 +1679,12 @@ const companyId = company.id;
       </div>
     `);
 
-    $('#saveShipWh').onclick = async () => {
 
-      $('#saveShipWh').disabled = true;
+    const saveBtn = document.getElementById('saveShipWh');
+if (!saveBtn) return console.error('Save button not found');
+
+   saveBtn.onclick = async () => {
+       saveBtn.disabled = true;
 
       const whId = $('#targetWh').value;
       const productId = $('#productId').value;
@@ -1720,7 +1723,7 @@ const companyId = company.id;
         console.error(err);
         showToast('Error creating shipment', 'error');
       } finally {
-        $('#saveShipWh').disabled = false;
+        saveBtn.disabled = false;
       }
     };
 
