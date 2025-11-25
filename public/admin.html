@@ -731,8 +731,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     function formatNGN(n){ return '₦' + (n||0).toLocaleString(); }
-    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(d); }
-  
+ function niceDate(d) {
+  d = new Date(d);
+  return isNaN(d) ? '' : new Intl.DateTimeFormat('en-GB', {
+    day:'numeric',
+    month:'short',
+    year:'numeric'
+  }).format(d);
+}
+
 
     function navigateTo(route) {
       $all('.section').forEach(s => s.classList.remove('active'));
@@ -1776,7 +1783,7 @@ $('#shipmentTable').addEventListener('click', async (e) => {
     modal.className = 'modal';
     modal.innerHTML = `
       <h4>Shipment Details</h4>
-      <p><strong>Date:</strong> ${niceDate(new Date(shipment.date))}</p>
+      <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
       <p><strong>From:</strong> ${shipment.from?.name} (${shipment.fromType})</p>
       <p><strong>To:</strong> ${shipment.to?.name} (${shipment.toType})</p>
       <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
