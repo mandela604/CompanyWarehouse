@@ -178,7 +178,7 @@ router.get('/sales/summary', ensureAuth, async (req, res) => {
 
     // Optional warehouse filter (aggregate from its outlets)
     if (warehouseId) {
-      const outlets = await outletService.getByWarehouseId(warehouseId);
+      const outlets = await outletService.getByWarehouse(warehouseId);
       const outletIds = outlets.map(o => o.id);
       filter.outletId = { $in: outletIds };
     }
@@ -226,7 +226,7 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
     // 🔹 If viewing warehouse sales (aggregate from all its outlets)
     else if (type === 'warehouse') {
       warehouse = await Warehouse.findOne({ id });
-      const outlets = await outletService.getByWarehouseId(id);
+      const outlets = await outletService.getByWarehouse(id);
       const outletIds = outlets.map(o => o.id);
       filter.outletId = { $in: outletIds };
     }
