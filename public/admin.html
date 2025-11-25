@@ -1776,7 +1776,7 @@ $('#shipmentTable').addEventListener('click', async (e) => {
     modal.className = 'modal';
     modal.innerHTML = `
       <h4>Shipment Details</h4>
-      <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
+      <p><strong>Date:</strong> ${niceDate(new Date(shipment.date))}</p>
       <p><strong>From:</strong> ${shipment.from?.name} (${shipment.fromType})</p>
       <p><strong>To:</strong> ${shipment.to?.name} (${shipment.toType})</p>
       <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
