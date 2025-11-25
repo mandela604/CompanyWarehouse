@@ -215,7 +215,8 @@ router.get('/products/company', ensureAuth, async (req, res) => {
   try {
     const company = await Company.findOne(); // single company
     if (!company) return res.status(404).json({ message: 'Company not found.' });
-
+    console.log('Company products from DB:', company.products);
+    
     // only return products with qty > 0
     const products = (company.products || []).filter(p => p.qty > 0);
 
