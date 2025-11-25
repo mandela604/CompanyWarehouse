@@ -1603,7 +1603,8 @@ $('#shipToWarehouseBtn').addEventListener('click', async () => {
 
     // Get products in company stock
     const resProducts = await fetch('/api/products/company');
-    const products = await resProducts.json();
+    const resData = await resProducts.json();
+    const products = Array.isArray(resData) ? resData : (resData.products || []);
 
     await checkAuth();
 
