@@ -7,6 +7,15 @@ const companySchema = new mongoose.Schema({
   address: { type: String },
   adminId: { type: String, required: true },
   adminName: { type: String, required: true },
+  products: [
+  {
+    productId: { type: String, required: true },
+    productSku: { type: String, required: true },
+    name: { type: String, required: true },
+    unitPrice: { type: Number, default: 0 },
+    qty: { type: Number, default: 0 }
+  }
+],
   totalStock: { type: Number, default: 0 },
   totalProducts: { type: Number, default: 0 },
   totalUnitsSold: { type: Number, default: 0 },

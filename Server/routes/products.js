@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 const productService = require('../services/productServices');
 const Product = require('../models/Product');
+const Company = require('../models/Company');
 
 
 const router = express.Router();
@@ -54,6 +55,27 @@ router.post('/products', ensureAdmin, async (req, res) => {
 
     const saved = await productService.createProduct(newProduct);
     res.status(201).json({ message: 'Product created successfully.', product: saved });
+
+   await Company.findOneAndUpdate(
+  {},
+  {
+    $push: {
+      products: {
+        productId: newProduct.id,
+        productSku: newProduct.sku,
+        name: newProduct.name,
+        unitPrice: newProduct.unitPrice,
+        qty: newProduct.qty
+      }
+    },
+    $inc: {
+      totalProducts: 1,
+      totalStock: newProduct.qty 
+    },
+    $set: { lastUpdated: new Date() }
+  }
+);
+
 
   } catch (err) {
     console.error('Create product error:', err);
