@@ -177,12 +177,27 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
   session.startTransaction();
 
   try {
-    const deleted = await productService.removeProductById(req.params.id, session);
-    if (!deleted) {
+    // Find product
+    const product = await productService.getProductById(req.params.id, session);
+    if (!product) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ message: 'Product not found.' });
     }
+
+    // Delete product
+    await productService.removeProductById(req.params.id, session);
+
+    // Update company
+    await Company.updateOne(
+      { id: product.companyId },
+      {
+        $pull: { products: { productId: product.id } },
+        $inc: { totalProducts: -1, totalStock: -product.qty },
+        $set: { lastUpdated: new Date() }
+      },
+      { session }
+    );
 
     await session.commitTransaction();
     session.endSession();
@@ -194,6 +209,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 
