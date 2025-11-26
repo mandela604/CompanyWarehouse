@@ -685,7 +685,7 @@ async function loadWarehouseSales(page = 1) {
 }
 
 // Initial call after warehouse data is loaded
-await loadWarehouseSales(1);
+//await loadWarehouseSales(1);
 
 
 let salesFilter = {
@@ -835,13 +835,14 @@ $('#doShip').onclick = async () => {
 
 async function start() {
   await loadManagerData();
-  refreshAll();
+ await refreshAll();
 }
 
 start();
 
   async function refreshAll() {
-  await renderRecentShipments();      
+  if (myWarehouse) await loadWarehouseSales(1);
+ // await renderRecentShipments();      
   await renderManagerOverview();
   await renderInventory();
 }
