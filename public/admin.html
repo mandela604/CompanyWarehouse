@@ -1611,7 +1611,7 @@ $('#addUserBtn').addEventListener('click', async () => {
       return showToast('Name, email, and password(at least 6 characters), are required', 'error'); }
 
       try {
-        const res = await fetch('/register', {
+        const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, phone, role, password })
