@@ -54,16 +54,20 @@ router.post('/shipments', async (req, res) => {
 
 
     // 🔹 Add unitPrice from product document
-    for (let i = 0; i < products.length; i++) {
-      const p = products[i];
-      const prod = await Product.findOne({ id: p.productId }).session(session);
-      if (!prod) throw new Error(`Product with id ${p.productId} not found`);
+   for (const p of products) {
+  const prod = await Product.findOne({ id: p.productId }).session(session);
+  if (!prod) throw new Error(`Product with id ${p.productId} not found`);
 
-      // attach unitPrice to the shipment product
-      p.unitPrice = prod.unitPrice;
-      p.productSku = prod.sku;   
-      p.name = prod.name;
-    }
+  if (p.qty > prod.qty) {
+    throw new Error(`Cannot ship ${p.qty} units of ${prod.name}. Only ${prod.qty} in stock.`);
+  }
+
+  // attach unitPrice, sku, name
+  p.unitPrice = prod.unitPrice;
+  p.productSku = prod.sku;
+  p.name = prod.name;
+}
+
 
     // 🔹 Create shipment
     const shipment = new Shipment({
@@ -400,7 +404,7 @@ router.put('/shipments/:id/status', async (req, res) => {
         } else if (shipment.fromType === 'Warehouse') {
           await WarehouseInventory.updateOne(
             { warehouseId: shipment.from.id, productId: p.productId },
-            { $inc: { inTransit: -p.qty } }, // return units to warehouse stock
+            { $inc: { inTransit: -p.qty } },
             { session }
           );
         }
