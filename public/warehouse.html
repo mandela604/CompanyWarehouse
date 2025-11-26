@@ -267,11 +267,15 @@ async function loadManagerData() {
 }
 
     function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
-      $(`#${route}Section`).classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
-    }
+  $all('.section').forEach(s => s.classList.remove('active'));
+  const section = $(`#${route}Section`);
+  if (section) section.classList.add('active');
+
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+  if (navLink) navLink.classList.add('active');
+}
+
 
     document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
       e.preventDefault();
@@ -681,7 +685,8 @@ async function loadWarehouseSales(page = 1) {
 }
 
 // Initial call after warehouse data is loaded
-loadWarehouseSales(1);
+await loadWarehouseSales(1);
+
 
 let salesFilter = {
   start: null,
