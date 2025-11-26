@@ -171,13 +171,13 @@ router.put('/products/:id', ensureAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-const company = await Company.findOne({ id: oldProduct.companyId }).session(session);
+/*const company = await Company.findOne({ id: oldProduct.companyId }).session(session);
 
 if (company.inTransit > 0) {
   await session.abortTransaction();
   session.endSession();
   return res.status(400).json({ message: 'Cannot update any product while there are items in transit.' });
-}
+} */
 
 
 
