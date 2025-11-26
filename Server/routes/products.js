@@ -223,9 +223,8 @@ if (company.inTransit > 0) {
 router.delete('/products/:id', ensureAdmin, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
-    // Find product
+    // 1️⃣ Fetch product
     const product = await productService.getProductById(req.params.id, session);
     if (!product) {
       await session.abortTransaction();
@@ -233,10 +232,32 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-    // Delete product
+    // 2️⃣ Fetch company
+    const company = await Company.findOne({ id: product.companyId }).session(session);
+    if (!company) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Company not found.' });
+    }
+
+    // 3️⃣ Prevent deletion if it would cause negative total stock
+    if (product.qty > company.totalStock) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot delete product: would cause negative total stock.' });
+    }
+
+    // 4️⃣ Prevent deletion if company has items in transit
+    if (company.inTransit > 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cannot delete product while items are in transit.' });
+    }
+
+    // 5️⃣ Delete product
     await productService.removeProductById(req.params.id, session);
 
-    // Update company
+    // 6️⃣ Update company totals
     await Company.updateOne(
       { id: product.companyId },
       {
@@ -247,6 +268,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       { session }
     );
 
+    // 7️⃣ Commit transaction
     await session.commitTransaction();
     session.endSession();
 
@@ -254,9 +276,11 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
+    console.error('Delete product error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 
