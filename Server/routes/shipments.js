@@ -367,6 +367,7 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
 
 
 // UPDATE SHIPMENT STATUS
+// UPDATE SHIPMENT STATUS
 router.put('/shipments/:id/status', async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -382,31 +383,27 @@ router.put('/shipments/:id/status', async (req, res) => {
     shipment.lastUpdated = new Date();
     await shipment.save({ session });
 
-    // 🔹 Update stock at destination if received
-    if (status === 'Received') {
+    // 🔹 Handle stock adjustments for cancelled shipments
+    if (status === 'Cancelled') {
       for (const p of shipment.products) {
-        if (shipment.toType === 'Warehouse') {
-          await WarehouseInventory.updateOne(
-            { warehouseId: shipment.to.id, productId: p.productId },
-            { $inc: { qty: p.qty, totalReceived: p.qty } },
+        if (shipment.fromType === 'Company') {
+          await Company.updateOne(
+            { id: shipment.from.id },
+            { $inc: { inTransit: -p.qty } },
             { session }
           );
-        } else if (shipment.toType === 'Outlet') {
-          await OutletInventory.updateOne(
-            { outletId: shipment.to.id, productId: p.productId },
-            { $inc: { qty: p.qty, totalReceived: p.qty } },
+          await Product.updateOne(
+            { id: p.productId },
+            { $inc: { qty: p.qty } }, // return units to company stock
+            { session }
+          );
+        } else if (shipment.fromType === 'Warehouse') {
+          await WarehouseInventory.updateOne(
+            { warehouseId: shipment.from.id, productId: p.productId },
+            { $inc: { inTransit: -p.qty } }, // return units to warehouse stock
             { session }
           );
         }
-
-
-         if (shipment.fromType === 'Company') {
-          await Company.updateOne(
-          { id: shipment.from.id },
-          { $inc: { inTransit: -p.qty } },
-          { session }
-        );
-      }
       }
     }
 
