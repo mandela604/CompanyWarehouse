@@ -251,8 +251,14 @@ router.get('/warehouse/sales', async (req, res) => {
     const { warehouseId, page = 1, limit = 20, startDate, endDate } = req.query;
     if (!warehouseId) return res.status(400).json({ message: 'Missing warehouseId' });
 
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+
     // 1️⃣ Get outlets under this warehouse
     const outlets = await Outlet.find({ warehouseId }).lean();
+    console.log('WarehouseId:', warehouseId, 'Page:', pageNum, 'Limit:', limitNum); // ✅ here
+    console.log('Found outlets:', outlets.length); // ✅ here
+
     const outletIds = outlets.map(o => o.id);
 
     // 2️⃣ Filter sales by outlets + optional date filter
@@ -263,9 +269,11 @@ router.get('/warehouse/sales', async (req, res) => {
     // 3️⃣ Get paginated sales
     const sales = await Sale.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
       .lean();
+
+    console.log('Sales fetched:', sales.length); // ✅ here
 
     // 4️⃣ Enrich sales with outlet, product, and rep info
     const enriched = await Promise.all(
@@ -276,7 +284,7 @@ router.get('/warehouse/sales', async (req, res) => {
 
         return {
           id: s.id,
-          date: s.createdAt.toISOString().slice(0, 10),
+          date: s.createdAt ? s.createdAt.toISOString().slice(0, 10) : '—', // safe
           outletName: outlet?.name || '—',
           productName: product?.name || '—',
           repName: seller?.name || '—',
@@ -286,7 +294,6 @@ router.get('/warehouse/sales', async (req, res) => {
       })
     );
 
-    // 5️⃣ Count total for pagination
     const totalCount = await Sale.countDocuments(filter);
 
     res.json({ data: enriched, totalCount });
