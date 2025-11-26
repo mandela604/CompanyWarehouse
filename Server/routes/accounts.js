@@ -122,12 +122,14 @@ router.post('/login', async (req, res) => {
 
 
 // LOGOUT
-router.get('/logout', (req, res) => {
+// LOGOUT (POST)
+router.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid');
-    res.redirect('/login');  
+    res.json({ redirect: '/login.html' });
   });
 });
+
 
 
 // GET ALL ACCOUNTS (admin only)
