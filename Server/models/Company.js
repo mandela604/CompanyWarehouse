@@ -13,7 +13,8 @@ const companySchema = new mongoose.Schema({
     productSku: { type: String, required: true },
     name: { type: String, required: true },
     unitPrice: { type: Number, default: 0 },
-    qty: { type: Number, default: 0 }
+    qty: { type: Number, default: 0 },
+    inTransit: { type: Number, default: 0 }
   }
 ],
   totalStock: { type: Number, default: 0 },

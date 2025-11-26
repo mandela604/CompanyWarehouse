@@ -19,10 +19,11 @@ async function getProductById(id) {
   return await Product.findOne({ id }); // Use your UUID field
 }
 
-async function updateProductById(id, updates) {
+async function updateProductById(id, updates, session) {
   updates.lastUpdated = new Date();
-  return await Product.findOneAndUpdate({ id }, updates, { new: true });
+  return await Product.findOneAndUpdate({ id }, updates, { new: true, session });
 }
+
 
 async function removeProductById(id, session) {
   const deleted = await Product.findOneAndDelete({ id }, { session });

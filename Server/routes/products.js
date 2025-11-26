@@ -152,20 +152,68 @@ router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
 
 // 🟣 UPDATE PRODUCT (Admin only)
 router.put('/products/:id', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const updates = req.body;
 
     if (typeof updates.qty !== 'number' || updates.qty < 0) {
-  return res.status(400).json({ message: 'Quantity must be a non-negative number.' });
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Quantity must be a non-negative number.' });
     }
-    const updated = await productService.updateProductById(req.params.id, updates);
 
-    if (!updated) return res.status(404).json({ message: 'Product not found.' });
+    // 1️⃣ Fetch current product
+    const oldProduct = await productService.getProductById(req.params.id, session);
+    if (!oldProduct) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Product not found.' });
+    }
+
+const company = await Company.findOne({ id: oldProduct.companyId }).session(session);
+
+if (company.inTransit > 0) {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({ message: 'Cannot update any product while there are items in transit.' });
+}
+
+
+
+    // 2️⃣ Update product
+    const updated = await productService.updateProductById(req.params.id, updates, session);
+
+    // 3️⃣ Calculate quantity difference
+    const qtyDiff = updates.qty - oldProduct.qty;
+
+    // 4️⃣ Update company totals and product snapshot
+    await Company.updateOne(
+      { id: oldProduct.companyId },
+      {
+        $inc: { totalStock: qtyDiff },
+        $set: {
+          'products.$[p].qty': updates.qty,
+          'products.$[p].name': updates.name || oldProduct.name,
+          'products.$[p].unitPrice': updates.unitPrice || oldProduct.unitPrice,
+          lastUpdated: new Date()
+        }
+      },
+      { arrayFilters: [{ 'p.productId': oldProduct.id }], session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({ message: 'Product updated successfully.', product: updated });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Update product error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 
