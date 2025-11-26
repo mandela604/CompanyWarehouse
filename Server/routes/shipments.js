@@ -124,9 +124,14 @@ router.put('/shipments/:id/status', async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    console.log('Request body:', req.body);           // log what frontend sent
+    console.log('Request params:', req.params);       // log shipment ID
+
     const { status } = req.body;
     const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
+
     if (!shipment) {
+      console.error('Shipment not found with ID:', req.params.id);
       await session.abortTransaction();
       return res.status(404).json({ message: 'Shipment not found' });
     }
@@ -139,6 +144,7 @@ router.put('/shipments/:id/status', async (req, res) => {
     if (status === 'Cancelled') {
       for (const p of shipment.products) {
         if (shipment.fromType === 'Company') {
+          console.log('Updating company stock for product', p.productId);
           await Company.updateOne(
             { id: shipment.from.id },
             { $inc: { inTransit: -p.qty } },
@@ -146,10 +152,11 @@ router.put('/shipments/:id/status', async (req, res) => {
           );
           await Product.updateOne(
             { id: p.productId },
-            { $inc: { qty: p.qty } }, // return units to company stock
+            { $inc: { qty: p.qty } },
             { session }
           );
         } else if (shipment.fromType === 'Warehouse') {
+          console.log('Updating warehouse stock for product', p.productId);
           await WarehouseInventory.updateOne(
             { warehouseId: shipment.from.id, productId: p.productId },
             { $inc: { inTransit: -p.qty } },
@@ -160,14 +167,17 @@ router.put('/shipments/:id/status', async (req, res) => {
     }
 
     await session.commitTransaction();
+    console.log('Shipment cancelled successfully:', shipment.id);
     res.json({ message: 'Shipment status updated', shipment });
   } catch (err) {
     await session.abortTransaction();
-    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
+    console.error('Error cancelling shipment:', err);    // <-- full stack trace
+    res.status(500).json({ message: 'Failed to update shipment', error: err.message, stack: err.stack });
   } finally {
     session.endSession();
   }
 });
+
 
 
 
