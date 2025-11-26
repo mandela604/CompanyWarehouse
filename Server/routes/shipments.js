@@ -118,6 +118,59 @@ router.post('/shipments', async (req, res) => {
 
 
 
+// UPDATE SHIPMENT STATUS
+// UPDATE SHIPMENT STATUS
+router.put('/shipments/:id/status', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { status } = req.body;
+    const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
+    if (!shipment) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
+
+    shipment.status = status;
+    shipment.lastUpdated = new Date();
+    await shipment.save({ session });
+
+    // 🔹 Handle stock adjustments for cancelled shipments
+    if (status === 'Cancelled') {
+      for (const p of shipment.products) {
+        if (shipment.fromType === 'Company') {
+          await Company.updateOne(
+            { id: shipment.from.id },
+            { $inc: { inTransit: -p.qty } },
+            { session }
+          );
+          await Product.updateOne(
+            { id: p.productId },
+            { $inc: { qty: p.qty } }, // return units to company stock
+            { session }
+          );
+        } else if (shipment.fromType === 'Warehouse') {
+          await WarehouseInventory.updateOne(
+            { warehouseId: shipment.from.id, productId: p.productId },
+            { $inc: { inTransit: -p.qty } },
+            { session }
+          );
+        }
+      }
+    }
+
+    await session.commitTransaction();
+    res.json({ message: 'Shipment status updated', shipment });
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
+  } finally {
+    session.endSession();
+  }
+});
+
+
+
 // GET ONE SHIPMENTS 
 router.get('/shipments/:id', async (req, res) => {
   try {
@@ -370,56 +423,6 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
 
 
 
-// UPDATE SHIPMENT STATUS
-// UPDATE SHIPMENT STATUS
-router.put('/shipments/:id/status', async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    const { status } = req.body;
-    const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
-    if (!shipment) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Shipment not found' });
-    }
-
-    shipment.status = status;
-    shipment.lastUpdated = new Date();
-    await shipment.save({ session });
-
-    // 🔹 Handle stock adjustments for cancelled shipments
-    if (status === 'Cancelled') {
-      for (const p of shipment.products) {
-        if (shipment.fromType === 'Company') {
-          await Company.updateOne(
-            { id: shipment.from.id },
-            { $inc: { inTransit: -p.qty } },
-            { session }
-          );
-          await Product.updateOne(
-            { id: p.productId },
-            { $inc: { qty: p.qty } }, // return units to company stock
-            { session }
-          );
-        } else if (shipment.fromType === 'Warehouse') {
-          await WarehouseInventory.updateOne(
-            { warehouseId: shipment.from.id, productId: p.productId },
-            { $inc: { inTransit: -p.qty } },
-            { session }
-          );
-        }
-      }
-    }
-
-    await session.commitTransaction();
-    res.json({ message: 'Shipment status updated', shipment });
-  } catch (err) {
-    await session.abortTransaction();
-    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
-  } finally {
-    session.endSession();
-  }
-});
 
 
 
