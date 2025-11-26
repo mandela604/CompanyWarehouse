@@ -122,14 +122,10 @@ router.post('/login', async (req, res) => {
 
 
 // LOGOUT
-router.post('/auth/logout', ensureAuth, (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      console.error('Logout error:', err);
-      return res.status(500).json({ message: 'Failed to logout' });
-    }
-    res.clearCookie('connect.sid'); // optional, clears session cookie
-    res.json({ message: 'Logged out successfully' });
+router.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login.html');  
   });
 });
 
