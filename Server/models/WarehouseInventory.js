@@ -8,6 +8,7 @@ const warehouseInventorySchema = new mongoose.Schema({
   productName: { type: String, required: true },       
   qty: { type: Number, default: 0 },                  
   unitPrice: { type: Number, default: 0 },           
+  inTransit: { type: Number, default: 0 }, 
   totalShipped: { type: Number, default: 0 },         
   totalReceived: { type: Number, default: 0 },       
   revenue: { type: Number, default: 0 },             

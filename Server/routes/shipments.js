@@ -24,10 +24,6 @@ router.post('/shipments', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    console.log('fromId, toId, products:', fromId, toId, products);
-console.log('fromType:', fromType, 'toType:', toType);
-
-
     // 🔹 Fetch dynamic names safely
     let fromName, toName;
     if (fromType === 'Company') {
@@ -91,13 +87,13 @@ console.log('fromType:', fromType, 'toType:', toType);
         await Product.updateOne({ id: p.productId  }, { $inc: { qty: -p.qty } }, { session });
         await Company.updateOne(
           { id: fromId },
-          { $inc: { totalShipments: p.qty, totalStock: -p.qty, inTransit: p.qty }, $set: { lastUpdated: new Date() } },
+          { $inc: { inTransit: p.qty }, $set: { lastUpdated: new Date() } },
           { session }
         );
       } else if (fromType === 'Warehouse') {
         await WarehouseInventory.updateOne(
           { warehouseId: fromId, id: p.productId },
-          { $inc: { qty: -p.qty, totalShipped: p.qty } },
+          { $inc: { inTransit: p.qty } },
           { session }
         );
       }
@@ -231,34 +227,141 @@ router.get('/shipments/outlet', ensureAuth, async (req, res) => {
 
 
 // Approve shipment
+// Approve shipment
 router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const shipment = await Shipment.findOne({ id: req.params.id });
-    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+    const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
+    if (!shipment) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
 
+    // Only approve if in transit
+    if (shipment.status !== 'In Transit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Shipment is not in transit' });
+    }
+
+    // Update shipment status
     shipment.status = 'Received';
-    await shipment.save();
+    await shipment.save({ session });
 
-    res.json({ message: 'Shipment approved', shipment });
+    // Update source inventory
+    for (const p of shipment.products) {
+      if (shipment.fromType === 'Company') {
+        await Company.updateOne(
+          { id: shipment.from.id },
+          { $inc: { inTransit: -p.qty, totalShipments: p.qty } },
+          { session }
+        );
+            } else if (shipment.fromType === 'Warehouse') {
+        await WarehouseInventory.updateOne(
+          { warehouseId: shipment.from.id, productId: p.productId },
+          { $inc: { inTransit: -p.qty, totalShipped: p.qty } },
+          { session }
+        );
+      }
+    }
+
+    // Update destination inventory
+    if (shipment.toType === 'Warehouse') {
+      for (const p of shipment.products) {
+        await WarehouseInventory.updateOne(
+          { warehouseId: shipment.to.id, productId: p.productId },
+          { $inc: { qty: p.qty, totalReceived: p.qty } },
+          { session }
+        );
+      }
+    } else if (shipment.toType === 'Outlet') {
+  for (const p of shipment.products) {
+    await OutletInventory.updateOne(
+      { outletId: shipment.to.id, productId: p.productId },
+      { 
+        $inc: { qty: p.qty, totalReceived: p.qty },
+        $set: { lastUpdated: new Date() }
+      },
+      { session }
+    );
+  }
+}
+
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Shipment approved and inventory updated', shipment });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Shipment approval failed:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 // Reject shipment
 router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const shipment = await Shipment.findOne({ id: req.params.id });
-    if (!shipment) return res.status(404).json({ message: 'Shipment not found' });
+    const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
+    if (!shipment) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
 
+    // Only reject if in transit
+    if (shipment.status !== 'In Transit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Shipment is not in transit' });
+    }
+
+    // Update shipment status
     shipment.status = 'Rejected';
-    await shipment.save();
+    await shipment.save({ session });
 
-    res.json({ message: 'Shipment rejected', shipment });
+    // Return stock to source
+    for (const p of shipment.products) {
+      if (shipment.fromType === 'Company') {
+        await Company.updateOne(
+          { id: shipment.from.id },
+          { $inc: { inTransit: -p.qty } },
+          { session }
+        );
+        await Product.updateOne(
+          { id: p.productId },
+          { $inc: { qty: p.qty } }, // return units to company stock
+          { session }
+        );
+      } else if (shipment.fromType === 'Warehouse') {
+        await WarehouseInventory.updateOne(
+          { warehouseId: shipment.from.id, productId: p.productId },
+          { $inc: { inTransit: -p.qty } }, // return units to warehouse stock
+          { session }
+        );
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Shipment rejected and stock returned', shipment });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Shipment rejection failed:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 // UPDATE SHIPMENT STATUS
