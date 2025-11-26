@@ -652,6 +652,9 @@ async function loadWarehouseSales(page = 1) {
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
 
   try {
+    console.log('myWarehouse:', myWarehouse);
+console.log('Query params:', salesFilter);
+
     const q = new URLSearchParams({ warehouseId, page, limit: 20 });
     if (salesFilter.start) q.set('startDate', salesFilter.start);
     if (salesFilter.end) q.set('endDate', salesFilter.end);
