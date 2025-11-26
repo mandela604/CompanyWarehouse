@@ -10,6 +10,7 @@ function ensureAuth(req, res, next) {
 
 // Ensure only admin can access
 function ensureAdmin(req, res, next) {
+  console.log('User in session:', req.session.user);
   if (!req.session.user || req.session.user.role !== 'admin') {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
   }
