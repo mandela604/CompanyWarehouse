@@ -84,7 +84,9 @@ router.post('/shipments', async (req, res) => {
     // 🔹 Deduct stock from source and update totals
     for (const p of products) {
       if (fromType === 'Company') {
-        await Product.updateOne({ id: p.productId  }, { $inc: { qty: -p.qty } }, { session });
+        await Product.updateOne({ id: p.productId  }, 
+          { $inc: { qty: -p.qty } }, 
+          { session });
         await Company.updateOne(
           { id: fromId },
           { $inc: { inTransit: p.qty }, $set: { lastUpdated: new Date() } },
