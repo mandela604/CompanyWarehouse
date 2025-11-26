@@ -20,11 +20,18 @@ async function getAll() {
   return Promise.all(outlets.map(async o => {
     if (o.repId) {
       const rep = await Account.findOne({ id: o.repId });
-      o.repName = rep ? rep.name : null;
+      if (rep) {
+        o.repName = rep.name;
+        o.phone = rep.phone; // add phone here
+      } else {
+        o.repName = null;
+        o.phone = null;
+      }
     }
     return o;
   }));
 }
+
 
 // Get single outlet by ID
 async function getById(id) {
