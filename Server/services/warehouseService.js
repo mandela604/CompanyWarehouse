@@ -15,8 +15,17 @@ async function createWarehouse(data) {
 
 // GET ALL
 async function getAllWarehouses() {
-  return await Warehouse.find().sort({ createdAt: -1 });
+  const warehouses = await Warehouse.find().sort({ createdAt: -1 });
+
+  return Promise.all(warehouses.map(async w => {
+    if (w.managerId) {
+      const manager = await Account.findOne({ id: w.managerId });
+      w.manager = manager ? manager.name : null;
+    }
+    return w;
+  }));
 }
+
 
 // GET BY ID
 async function getWarehouseById(id) {
