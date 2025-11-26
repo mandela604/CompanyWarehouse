@@ -54,8 +54,23 @@ async function remove(id, session) {
 
 // Get outlets by warehouse
 async function getByWarehouse(warehouseId) {
-  return await Outlet.find({ warehouseId });
+  const outlets = await Outlet.find({ warehouseId });
+
+  return Promise.all(outlets.map(async o => {
+    if (o.repId) {
+      const rep = await Account.findOne({ id: o.repId });
+      if (rep) {
+        o.repName = rep.name;
+        o.phone = rep.phone;
+      } else {
+        o.repName = null;
+        o.phone = null;
+      }
+    }
+    return o;
+  }));
 }
+
 
 // Get outlets by manager
 async function getByManager(managerId) {
