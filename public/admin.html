@@ -1597,8 +1597,13 @@ $('#addUserBtn').addEventListener('click', async () => {
     `);
 
     // Save button
-    $('#saveNew').onclick = async () => {
-       $('#saveNew').disabled = true;
+    const saveBtn = document.getElementById('saveNew');
+    if (!saveBtn) return console.error('Save button not found');
+
+
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+
        showLoader();
       const name = $('#newName').value.trim();
       const email = $('#newEmail').value.trim();
@@ -1608,7 +1613,10 @@ $('#addUserBtn').addEventListener('click', async () => {
 
       if (!name || !email || !password || password.length < 6) {
           hideLoader();
-      return showToast('Name, email, and password(at least 6 characters), are required', 'error'); }
+          saveBtn.disabled = false;
+      return showToast('Name, email, and password(at least 6 characters), are required', 'error');
+         }
+
 
       try {
         const res = await fetch('/api/register', {
@@ -1620,6 +1628,7 @@ $('#addUserBtn').addEventListener('click', async () => {
         const data = await res.json();
         if (!res.ok) {
             hideLoader();
+             saveBtn.disabled = false;
             return showToast(data.message || 'Failed to create user', 'error');
         }
 
@@ -1631,7 +1640,7 @@ $('#addUserBtn').addEventListener('click', async () => {
         console.error(err);
         showToast('Server error', 'error');
       } finally{
-         $('#saveNew').disabled = false;
+             saveBtn.disabled = false;
       }
     };
 
