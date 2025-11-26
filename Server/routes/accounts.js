@@ -53,16 +53,17 @@ router.post('/register', async (req, res) => {
 
     const savedUser = await accountService.createAccount(newUser);
 
-    req.session.user = {
-      id: savedUser.id,
-      name: savedUser.name,
-      email: savedUser.email,
-      role: savedUser.role,
-      phone: savedUser.phone, 
-      canCreateOutlet: savedUser.canCreateOutlet 
-    };
+   if (userCount === 0) {
+  req.session.user = {
+    id: savedUser.id,
+    name: savedUser.name,
+    email: savedUser.email,
+    role: savedUser.role,
+    phone: savedUser.phone, 
+    canCreateOutlet: savedUser.canCreateOutlet 
+  };
+}
 
-    
     switch (savedUser.role) {
       case 'admin':
         return res.json({redirect: '/admin.html'});
@@ -121,7 +122,7 @@ router.post('/login', async (req, res) => {
 
 
 
-// LOGOUT
+
 // LOGOUT (POST)
 router.post('/logout', (req, res) => {
   req.session.destroy(() => {
