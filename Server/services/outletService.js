@@ -4,6 +4,7 @@ const Sale = require('../models/Sale');
 const Shipment = require('../models/Shipment');
 const Inventory = require('../models/OutletInventory'); // if you have this
 const Product = require('../models/Product'); // for names
+const Account = require('../models/Account');
 
 
 // Create new outlet
@@ -14,7 +15,15 @@ async function create(data) {
 
 // Get all outlets
 async function getAll() {
-  return await Outlet.find().sort({ createdAt: -1 });
+  const outlets = await Outlet.find().sort({ createdAt: -1 });
+
+  return Promise.all(outlets.map(async o => {
+    if (o.repId) {
+      const rep = await Account.findOne({ id: o.repId });
+      o.repName = rep ? rep.name : null;
+    }
+    return o;
+  }));
 }
 
 // Get single outlet by ID
