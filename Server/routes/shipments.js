@@ -141,7 +141,7 @@ router.put('/shipments/:id/status', async (req, res) => {
     await shipment.save({ session });
 
     // 🔹 Handle stock adjustments for cancelled shipments
-    if (status === 'Cancelled') {
+    if (status === 'cancelled') {
       for (const p of shipment.products) {
         if (shipment.fromType === 'Company') {
           console.log('Updating company stock for product', p.productId);

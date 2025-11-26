@@ -1755,7 +1755,7 @@ $('#shipmentTable').addEventListener('click', async (e) => {
       const res = await fetch(`/api/shipments/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Cancelled' })
+        body: JSON.stringify({ status: 'cancelled' })
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('Shipment cancelled', 'success');
