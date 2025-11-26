@@ -816,7 +816,7 @@ async function renderShipments() {
 
     tbody.innerHTML = '';
 
-    shipments.data.forEach(s => {
+    shipments.data.slice(0, 6).forEach(s => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${niceDate(new Date(s.date))}</td>
@@ -1755,7 +1755,7 @@ $('#shipmentTable').addEventListener('click', async (e) => {
       const res = await fetch(`/api/shipments/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' })
+        body: JSON.stringify({ status: 'Cancelled' })
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showToast('Shipment cancelled', 'success');
