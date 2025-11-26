@@ -1977,7 +1977,7 @@ async function editWarehouse(id) {
         });
         if (!res.ok) throw new Error('Update failed');
       
-        const updated = await updateRes.json();
+        const updated = await res.json();
         showToast('Warehouse updated successfully', 'success');
         closeModal();
         renderWarehouses(); 
