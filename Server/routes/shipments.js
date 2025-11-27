@@ -200,8 +200,8 @@ router.get('/test', (req, res) => {
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
-router.get('/shipments/warehouse', /*ensureAuth,*/ async (req, res) => {
-    console.log('Incoming request to /shipments/warehouse');
+router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
+      console.log('🔥 Route /shipments/warehouse HIT!');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);
  
