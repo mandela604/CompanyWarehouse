@@ -678,13 +678,39 @@ console.log('Query params:', salesFilter);
       `).join('');
     }
 
-    renderPag($('#salesPagination'), json.totalCount, page, n => loadWarehouseSales(n));
+    renderSalesPagination($('#salesPagination'), json.totalCount, page, n => loadWarehouseSales(n));
 
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
     console.error(err);
     showToast('Failed to load sales: ' + (err?.message || ''), 'error');
   }
+}
+
+function renderSalesPagination(totalPages, currentPage, onPageChange) {
+  const pagination = $('#salesPagination');
+  if (!pagination) return;
+  pagination.innerHTML = '';
+
+  const prev = document.createElement('button');
+  prev.textContent = '← Prev';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => onPageChange(currentPage - 1);
+  pagination.appendChild(prev);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = i === currentPage ? '' : 'secondary';
+    btn.onclick = () => onPageChange(i);
+    pagination.appendChild(btn);
+  }
+
+  const next = document.createElement('button');
+  next.textContent = 'Next →';
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => onPageChange(currentPage + 1);
+  pagination.appendChild(next);
 }
 
 // Initial call after warehouse data is loaded
