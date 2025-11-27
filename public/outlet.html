@@ -69,7 +69,7 @@
         <a href="#" data-route="sales">Sales History</a>
         <a href="#" data-route="shipments">Incoming Shipments</a>
         <div class="user-info"></div>
-        <button class="btn secondary logout-btn">Logout</button>
+         <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
       <button class="btn" id="recordSaleBtn">+ Record Sale</button>
     </aside>
@@ -157,6 +157,15 @@
 
 
   <script>
+
+function logout() {
+  fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+  .then(res => res.json())
+  .then(data => window.location.href = data.redirect);
+}
 
 async function loadUserInfo() {
   try {
