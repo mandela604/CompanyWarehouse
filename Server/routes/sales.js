@@ -293,7 +293,7 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
 
 
 // GET /api/outlet/sales?page=1&limit=10&startDate=2025-11-01&endDate=2025-11-18
-router.get('/outlet/sales', ensureAuth, async (req, res) => {
+/*router.get('/outlet/sales', ensureAuth, async (req, res) => {
    console.log('Query params:', req.query);
   console.log('User session:', req.session.user);
   try {
@@ -416,8 +416,83 @@ router.get('/outlet/sales', ensureAuth, async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-});
+});*/
 
+
+// REPLACE your entire /outlet/sales route with this:
+router.get('/outlet/sales', ensureAuth, async (req, res) => {
+  const { outletId, page = 1, limit = 20, startDate, endDate } = req.query;
+  const user = req.session.user;
+
+  try {
+    // Build filter (same logic as before)
+    const filter = { isReversal: false };
+
+    if (user.role === 'rep') {
+      const outlet = await Outlet.findOne({ repId: user.id }).lean();
+      if (!outlet) return res.status(404).json({ message: 'No outlet assigned.' });
+      filter.outletId = outlet.id;
+    } 
+    else if (user.role === 'manager') {
+      const outlets = await outletService.getByManager(user.id);
+      const managedIds = outlets.map(o => o.id);
+      if (outletId) {
+        if (!managedIds.includes(outletId)) 
+          return res.status(403).json({ message: 'Access denied' });
+        filter.outletId = outletId;
+      } else {
+        filter.outletId = { $in: managedIds };
+      }
+    } 
+    else if (user.role === 'admin') {
+      if (outletId) filter.outletId = outletId;
+    } 
+    else {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (startDate && endDate) {
+      filter.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    // Exact same simple method as /sales/full (the one that works!)
+    const sales = await Sale.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const totalCount = await Sale.countDocuments(filter);
+
+    const enriched = await Promise.all(sales.map(async (s) => {
+      const product = await Product.findOne({ id: s.productId });
+      const seller = await Account.findOne({ id: s.soldBy });
+      const outlet = await outletService.getById(s.outletId);
+
+      return {
+        id: s.id,
+        date: s.createdAt.toISOString().slice(0, 10),
+        sku: product?.sku || '—',
+        productName: product?.name || '—',
+        qty: s.qtySold,
+        repName: seller?.name || '—',
+        outletName: outlet?.name || '—',
+        totalAmount: s.totalAmount
+      };
+    }));
+
+    res.json({
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+      data: enriched
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 
 module.exports = router;
