@@ -215,13 +215,11 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
 
     if (!warehouse) return res.json([]);
 
-   const query = {
-  $or: [
-    { 'to.id': warehouse.id },    // incoming
-    { 'from.id': warehouse.id }   // outgoing
-  ]
+  const query = {
+  'to.id': warehouse.id,
+  toType: 'Warehouse',
+  status: { $in: ['In Transit', 'Pending'] }
 };
- 
 
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
@@ -229,7 +227,8 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
       console.log('Shipments found:', shipments.length);
 
     const enriched = await Promise.all(shipments.map(async s => {
-      const product = await Product.findOne({ sku: s.products[0]?.productSku });
+     const product = await Product.findOne({ id: s.products[0]?.productId });
+
       return {
         id: s.id,
         date: s.date,
