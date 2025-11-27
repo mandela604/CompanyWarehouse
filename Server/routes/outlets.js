@@ -8,6 +8,7 @@ const outletService = require('../services/outletService');
 const warehouseService = require('../services/warehouseService');
 const companyService = require('../services/companyService');
 const OutletInventory = require('../models/OutletInventory');
+const Sale = require('../models/Sale');
 
 const router = express.Router();
 
@@ -271,7 +272,7 @@ router.get('/outlet/sales', async (req, res) => {
   try {
     const { page = 1, limit = 20, startDate, endDate } = req.query;
    const repId = req.session.user?.id;               // the logged-in rep
-    if (!repId || req.session.user.role !== 'rep') 
+    if (!repId || req.session.user?.role !== 'rep') 
       return res.status(400).json({ message: 'Login as rep required' });
 
     // 1️⃣ Filter sales by this outlet + optional date filter
