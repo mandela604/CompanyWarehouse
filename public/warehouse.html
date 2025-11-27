@@ -678,7 +678,8 @@ console.log('Query params:', salesFilter);
       `).join('');
     }
 
-    renderSalesPagination($('#salesPagination'), json.totalCount, page, n => loadWarehouseSales(n));
+   const totalPages = Math.ceil(json.totalCount / 20); // 20 = limit
+renderSalesPagination(totalPages, page, n => loadWarehouseSales(n));
 
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
