@@ -263,8 +263,12 @@ router.get('/warehouse/sales', async (req, res) => {
 
     // 2️⃣ Filter sales by outlets + optional date filter
     const filter = { outletId: { $in: outletIds } };
-    if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
-    if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
+  if (startDate && startDate !== 'null') {
+  filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
+}
+if (endDate && endDate !== 'null') {
+  filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
+}
 
     // 3️⃣ Get paginated sales
     const sales = await Sale.find(filter)
