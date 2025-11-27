@@ -197,6 +197,11 @@ router.get('/shipments/:id', async (req, res) => {
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
+    console.log('Incoming request to /shipments/warehouse');
+  console.log('Query params:', req.query);
+  console.log('Session user:', req.session.user);
+
+  
   try {
     const user = req.session.user;
     const limit = parseInt(req.query.limit) || 15;  // default 15
