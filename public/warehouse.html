@@ -378,6 +378,12 @@ async function renderShipments() {
   try {
     const res = await fetch('/api/shipments/warehouse?limit=15');
     const shipments = await res.json();
+    console.log('shipments:', shipments);
+    if (!Array.isArray(shipments)) {
+  tbody.innerHTML = '<tr><td colspan="6">No shipments found</td></tr>';
+  return;
+}
+
 
     tbody.innerHTML = '';
     if (shipments.length === 0) {

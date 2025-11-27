@@ -200,7 +200,7 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
     console.log('Incoming request to /shipments/warehouse');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);
-
+  console.log('Warehouse found:', !!warehouse);
   
   try {
     const user = req.session.user;
