@@ -311,11 +311,20 @@ router.get('/outlet/sales', ensureAuth, async (req, res) => {
       const outlet = await Outlet.findOne({ repId: user.id }).lean();
       if (!outlet) return res.status(404).json({ message: 'No outlet assigned.' });
       filter.outletId = outlet.id;
-    } else if (user.role === 'manager') {
-      const outlets = await outletService.getByManager(user.id);
-      const ids = outlets.map(o => o.id);
-      filter.outletId = { $in: ids };
-    } else if (user.role === 'admin') {
+   } else if (user.role === 'manager') {
+  const outlets = await outletService.getByManager(user.id);
+  const managedOutletIds = outlets.map(o => o.id);
+
+  if (req.query.outletId) {
+    // Allow only if the requested outlet belongs to this manager
+    if (!managedOutletIds.includes(req.query.outletId)) {
+      return res.status(403).json({ message: 'Access denied to this outlet' });
+    }
+    filter.outletId = req.query.outletId; // single ID
+  } else {
+    filter.outletId = { $in: managedOutletIds };
+  }
+} else if (user.role === 'admin') {
       if (req.query.outletId) filter.outletId = req.query.outletId;
       // else admin sees all
     } else {
