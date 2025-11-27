@@ -5,6 +5,12 @@ const mongoose = require('mongoose');
 const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 const warehouseService = require('../services/warehouseService');
 const companyService = require('../services/companyService');
+const Outlet = require('../models/Outlet');
+const Warehouse = require('../models/Warehouse');
+const Sale = require('../models/Sale');
+const Product = require('../models/Product');
+const Account = require('../models/Account');
+
 const router = express.Router();
 
 // ✅ CREATE WAREHOUSE (Admin only)
@@ -262,13 +268,22 @@ router.get('/warehouse/sales', async (req, res) => {
     const outletIds = outlets.map(o => o.id);
 
     // 2️⃣ Filter sales by outlets + optional date filter
-    const filter = { outletId: { $in: outletIds } };
-  if (startDate && startDate !== 'null') {
-  filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
+ // 2️⃣ Filter sales by outlets + optional date filter
+const filter = { outletId: { $in: outletIds } };
+
+// always initialize createdAt only if needed
+if ((startDate && startDate !== 'null') || (endDate && endDate !== 'null')) {
+  filter.createdAt = {};
 }
+
+if (startDate && startDate !== 'null') {
+  filter.createdAt.$gte = new Date(startDate);
+}
+
 if (endDate && endDate !== 'null') {
-  filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
+  filter.createdAt.$lte = new Date(endDate);
 }
+
 
     // 3️⃣ Get paginated sales
     const sales = await Sale.find(filter)
