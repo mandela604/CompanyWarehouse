@@ -289,6 +289,8 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
 
 // GET /api/outlet/sales?page=1&limit=10&startDate=2025-11-01&endDate=2025-11-18
 router.get('/outlet/sales', ensureAuth, async (req, res) => {
+   console.log('Query params:', req.query);
+  console.log('User session:', req.session.user);
   try {
     const user = req.session.user;
     const page = Math.max(1, parseInt(req.query.page || '1'));
