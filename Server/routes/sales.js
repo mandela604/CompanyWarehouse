@@ -420,7 +420,7 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
 
 
 // REPLACE your entire /outlet/sales route with this:
-router.get('/outlet/sales', ensureAuth, async (req, res) => {
+router.get('/outlet/sales', async (req, res) => {
   const { outletId, page = 1, limit = 20, startDate, endDate } = req.query;
   const user = req.session.user;
 
