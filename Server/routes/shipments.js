@@ -201,9 +201,9 @@ router.get('/test', (req, res) => {
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
-    console.log('Incoming request to /shipments/warehouse');
-  console.log('Query params:', req.query);
-  console.log('Session user:', req.session.user);
+    console.error('Incoming request to /shipments/warehouse');
+  console.error('Query params:', req.query);
+  console.error('Session user:', req.session.user);
  
   try {
     const user = req.session.user;
@@ -221,6 +221,7 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
   status: { $in: ['In Transit', 'Pending'] }
 };
 
+  console.log('Query:', JSON.stringify(query, null, 2));
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
       .limit(limit);
