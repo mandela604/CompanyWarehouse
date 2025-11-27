@@ -207,7 +207,8 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
 
     const warehouse = await Warehouse.findOne({ managerId: user.id });
     console.log('Warehouse found:', !!warehouse);
-  
+    console.log('Warehouse ID:', warehouse?.id);
+
     if (!warehouse) return res.json([]);
 
     const query = {
@@ -220,7 +221,8 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
       .limit(limit);
-
+      console.log('Shipments found:', shipments.length);
+      
     const enriched = await Promise.all(shipments.map(async s => {
       const product = await Product.findOne({ sku: s.products[0]?.productSku });
       return {
