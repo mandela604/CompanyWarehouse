@@ -215,12 +215,13 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
 
     if (!warehouse) return res.json([]);
 
-    const query = {
-      $or: [
-        { 'to.id': warehouse.id, toType: 'Warehouse' },
-        { 'from.id': warehouse.id, fromType: 'Warehouse' }
-      ]
-    }; 
+   const query = {
+  $or: [
+    { 'to.id': warehouse.id },    // incoming
+    { 'from.id': warehouse.id }   // outgoing
+  ]
+};
+ 
 
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
