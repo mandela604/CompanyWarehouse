@@ -192,7 +192,7 @@ router.get('/shipments/:id', async (req, res) => {
   }
 });
 
-app.get('/test', (req, res) => {
+router.get('/test', (req, res) => {
   console.log('Test route hit!');
   res.json({ ok: true });
 });
@@ -200,7 +200,7 @@ app.get('/test', (req, res) => {
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
-router.get('/shipments/warehouse', /*ensureAuth,*/ async (req, res) => {
+router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
     console.log('Incoming request to /shipments/warehouse');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);
