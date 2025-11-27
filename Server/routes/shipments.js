@@ -200,14 +200,15 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
     console.log('Incoming request to /shipments/warehouse');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);
-  console.log('Warehouse found:', !!warehouse);
-  
+ 
   try {
     const user = req.session.user;
     const limit = parseInt(req.query.limit) || 15;  // default 15
 
     const warehouse = await Warehouse.findOne({ managerId: user.id });
-    if (!warehouse) return res.status(404).json({ message: 'No warehouse' });
+    console.log('Warehouse found:', !!warehouse);
+  
+    if (!warehouse) return res.json([]);
 
     const query = {
       $or: [
