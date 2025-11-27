@@ -380,8 +380,8 @@ router.get('/outlet/sales', ensureAuth, async (req, res) => {
     ];
 
     const result = await Sale.aggregate(agg);
-    const data = result[0].data || [];
-    const totalCount = (result[0].totalCount && result[0].totalCount[0]?.count) || 0;
+    const data = result[0]?.data || [];
+    const totalCount = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
     // map to client shape
