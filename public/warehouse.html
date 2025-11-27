@@ -792,49 +792,106 @@ function clearWarehouseSalesFilter() {
 
 
     // Ship to Outlet button
-    $('#shipToOutletBtn').onclick = async () => {
-      const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
-      const outlets = await outletsRes.json();
-      const productRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
-      const products = await productRes.json();
+$('#shipToOutletBtn').onclick = async () => {
+  try {
+    // Fetch outlets & products
+    const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+    const outlets = await outletsRes.json();
 
-      showModal(`
-        <h4>Ship to Outlet</h4>
-        <div class="form-row"><select id="targetOutlet">${outlets.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
-        <div class="form-row"><select id="productId">${products.map(p=>`<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}</select></div>
-        <div class="form-row"><input id="qty" type="number" placeholder="Quantity" /></div>
-        <div style="text-align:right">
-          <button class="btn secondary" onclick="closeModal()">Cancel</button>
-          <button class="btn" id="doShip">Ship</button>
-        </div>
-      `);
-$('#doShip').onclick = async () => {
-  const outletId = $('#targetOutlet').value;
-  const productId = $('#productId').value;
-  const qty = Number($('#qty').value);
-  if (qty <= 0) return alert('Enter valid quantity');
+    const productRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
+    const products = await productRes.json();
 
-  const res = await fetch('/api/shipments', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fromId: myWarehouse.id,
-      fromType: 'Warehouse',
-      toId: outletId,
-      toType: 'Outlet',
-      products: [{ productId, qty }]
-    })
-  });
+    // Show modal
+    showModal(`
+      <h4>Ship to Outlet</h4>
 
-  if (res.ok) {
-    closeModal();
-    showToast('Shipped!', 'success');
-    renderInventory?.(); 
-  } else {
-    const err = await res.json();
-    showToast( err?.message || 'Failed to ship', 'error');
+      <div class="form-row">
+        <select id="targetOutlet">
+          ${outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <select id="productId">
+          ${products.map(p => `<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <input id="qty" type="number" placeholder="Quantity" />
+      </div>
+
+      <div style="text-align:right">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="doShip" disabled>Ship</button>
+      </div>
+    `);
+
+    // Ensure modal elements exist
+    const btn = document.getElementById('doShip');
+    const outletSel = document.getElementById('targetOutlet');
+    const prodSel = document.getElementById('productId');
+    const qtyInput = document.getElementById('qty');
+
+    if (!btn || !outletSel || !prodSel || !qtyInput) {
+      console.error("Modal elements missing");
+      return;
+    }
+
+    // Enable ship button when qty is filled
+    qtyInput.addEventListener('input', () => {
+      btn.disabled = qtyInput.value.trim() === "";
+    });
+
+    // Ship action
+    btn.onclick = async () => {
+      const outletId = outletSel.value;
+      const productId = prodSel.value;
+      const qty = Number(qtyInput.value);
+
+      if (qty <= 0) return showToast('Enter valid quantity', 'error');
+
+      btn.disabled = true; // prevent double click
+
+      try {
+        const res = await fetch('/api/shipments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fromId: myWarehouse.id,
+            fromType: 'Warehouse',
+            toId: outletId,
+            toType: 'Outlet',
+            products: [{ productId, qty }]
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showToast(data?.message || 'Failed to ship', 'error');
+          btn.disabled = false;
+          return;
+        }
+
+        closeModal();
+        showToast('Shipped!', 'success');
+        renderInventory?.();
+
+      } catch (err) {
+        console.error(err);
+        showToast('Error sending shipment', 'error');
+        btn.disabled = false;
+
+      }
+    };
+
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to load outlets or products', 'error');
   }
-};};
+};
+
 
 
 
