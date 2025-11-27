@@ -70,7 +70,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html'
 // Routes
 app.use('/api', accountRoutes);
 app.use('/api', companyRoutes);
-app.use('/api', outletRoutes);
+app.use('/api/outlets', outletRoutes);   
 app.use('/api', productRoutes);
 app.use('/api', rolesRoutes);
 app.use('/api', salesRoutes);
