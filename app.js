@@ -68,7 +68,7 @@ app.use(session({
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 
 // Routes
-app.use('/api', shipmentRoutes);
+app.use('/api/shipments', shipmentRoutes);
 app.use('/api', accountRoutes);
 app.use('/api', companyRoutes);
 app.use('/api', outletRoutes);   
