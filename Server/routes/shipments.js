@@ -251,6 +251,8 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
 
 
 router.get('/shipments/outlet', ensureAuth, async (req, res) => {
+   console.log('Outlet route hit');
+  console.log('Session user:', req.session.user);
   try {
     const user = req.session.user;
 
