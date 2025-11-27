@@ -232,7 +232,7 @@ function showToast(message, type = 'info', duration = 3000) {
       document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
       document.querySelector(`.nav a[data-route="${r}"]`).classList.add('active');
       if(r==='inventory') renderOutletInventory();
-      if(r==='sales') renderSales();
+      if(r==='sales') loadSales();
       if(r==='shipments') renderShipments();
     }
     document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
