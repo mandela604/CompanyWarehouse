@@ -2,7 +2,9 @@
 
 // Ensure user is logged in
 function ensureAuth(req, res, next) {
+  console.log('ensureAuth hit. Session user:', req.session.user);
   if (!req.session.user) {
+    console.log('No session user, blocking request');
     return res.status(401).json({ message: 'Unauthorized. Please log in.' });
   }
   next();
