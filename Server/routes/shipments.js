@@ -192,11 +192,15 @@ router.get('/shipments/:id', async (req, res) => {
   }
 });
 
+app.get('/test', (req, res) => {
+  console.log('Test route hit!');
+  res.json({ ok: true });
+});
 
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
-router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
+router.get('/shipments/warehouse', /*ensureAuth,*/ async (req, res) => {
     console.log('Incoming request to /shipments/warehouse');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);
@@ -222,7 +226,7 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
       .sort({ date: -1 })
       .limit(limit);
       console.log('Shipments found:', shipments.length);
-      
+
     const enriched = await Promise.all(shipments.map(async s => {
       const product = await Product.findOne({ sku: s.products[0]?.productSku });
       return {
