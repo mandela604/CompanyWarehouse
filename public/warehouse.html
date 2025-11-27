@@ -799,7 +799,12 @@ $('#shipToOutletBtn').onclick = async () => {
     const outlets = await outletsRes.json();
 
     const productRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
-    const products = await productRes.json();
+    let productsData = await productRes.json();
+const products = Array.isArray(productsData) 
+  ? productsData 
+  : (productsData.products || []);
+    console.log("Products returned:", products);
+
 
     // Show modal
     showModal(`
