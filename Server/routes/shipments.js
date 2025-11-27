@@ -220,7 +220,7 @@ router.get('/shipments/warehouse', /*ensureAuth,*/ async (req, res) => {
         { 'to.id': warehouse.id, toType: 'Warehouse' },
         { 'from.id': warehouse.id, fromType: 'Warehouse' }
       ]
-    };
+    }; 
 
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
