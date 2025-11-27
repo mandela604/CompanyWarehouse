@@ -718,6 +718,43 @@ function renderSalesPagination(totalPages, currentPage, onPageChange) {
 //await loadWarehouseSales(1);
 
 
+//Display Sales For Specific Outlet
+//Display Sales For Specific Outlet
+//Display Sales For Specific Outlet
+async function renderManagerSales(outletId, page = 1) {
+  const tbody = $('#managerSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  try {
+   const res = await fetch(`/api/outlet/sales?outletId=${outletId}&page=${page}&limit=20`);
+   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6">No sales</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = json.data.map(s => `
+      <tr>
+        <td>${niceDate(s.date)}</td>
+        <td>${s.outletName}</td>
+        <td>${s.repName || '-'}</td>
+        <td>${s.productName}</td>
+        <td>${s.qty}</td>
+        <td>${formatNGN(s.totalAmount)}</td>
+      </tr>
+    `).join('');
+
+    renderSalesPagination(json.totalPages, page, n => renderManagerSales(outletId, n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+  }
+}
+
+
 let salesFilter = {
   start: null,
   end: null
