@@ -270,11 +270,12 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
 router.get('/outlet/sales', async (req, res) => {
   try {
     const { page = 1, limit = 20, startDate, endDate } = req.query;
-    const outletId = req.session.user?.outletId; // assuming outlet user has outletId in session
-    if (!outletId) return res.status(400).json({ message: 'Missing outletId' });
+   const repId = req.session.user?.id;               // the logged-in rep
+    if (!repId || req.session.user.role !== 'rep') 
+      return res.status(400).json({ message: 'Login as rep required' });
 
     // 1️⃣ Filter sales by this outlet + optional date filter
-    const filter = { outletId };
+    const filter = { repId };
     if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
 
