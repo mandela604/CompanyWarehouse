@@ -366,18 +366,16 @@ for (const p of shipment.products) {
   }
 }
 
-const totalProducts = shipment.products.length;
-
 if (shipment.toType === 'Warehouse') {
   await Warehouse.updateOne(
     { id: shipment.to.id },
-    { $inc: { totalStock: totalQty, totalProducts: totalProducts } },
+    { $inc: { totalStock: totalQty, totalProducts: 1 } },
     { session }
   );
 } else if (shipment.toType === 'Outlet') {
   await Outlet.updateOne(
     { id: shipment.to.id },
-    { $inc: { totalStock: totalQty, totalProducts: totalProducts } },
+    { $inc: { totalStock: totalQty, totalProducts: 1 } },
     { session }
   );
 }
