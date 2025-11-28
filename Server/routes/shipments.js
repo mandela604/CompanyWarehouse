@@ -207,7 +207,9 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
  
   try {
     const user = req.session.user;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;  // default 15
+    const skip = (page - 1) * limit;
 
     const warehouse = await Warehouse.findOne({ managerId: user.id });
     console.log('Warehouse found:', !!warehouse);
@@ -225,6 +227,7 @@ router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
 
     const shipments = await Shipment.find(query)
       .sort({ date: -1 })
+      .skip(skip)
       .limit(limit);
       console.log('Shipments found:', shipments.length);
 
