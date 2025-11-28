@@ -343,56 +343,46 @@ router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res)
     await shipment.save({ session });
 
     // Update source inventory
-    for (const p of shipment.products) {
-      if (shipment.fromType === 'Company') {
-        await Company.updateOne(
-          { id: shipment.from.id },
-          { $inc: { inTransit: -p.qty, totalShipments: p.qty } },
-          { session }
-        );
-            } else if (shipment.fromType === 'Warehouse') {
-        await WarehouseInventory.updateOne(
-          { warehouseId: shipment.from.id, productId: p.productId },
-          { $inc: { inTransit: -p.qty, totalShipped: p.qty } },
-          { session }
-        );
-      }
-    }
+   // Update destination inventory
+let totalQty = 0;
+for (const p of shipment.products) {
+  totalQty += p.qty;
 
-    // Update destination inventory
-    if (shipment.toType === 'Warehouse') {
-      for (const p of shipment.products) {
-       await WarehouseInventory.updateOne(
-  { warehouseId: shipment.to.id, productId: p.productId },
-  { $inc: { qty: p.qty, totalReceived: p.qty } },
-  { session, upsert: true }
-);
-      }
-    } else if (shipment.toType === 'Outlet') {
-  for (const p of shipment.products) {
+  if (shipment.toType === 'Warehouse') {
+    await WarehouseInventory.updateOne(
+      { warehouseId: shipment.to.id, productId: p.productId },
+      { $inc: { qty: p.qty, totalReceived: p.qty } },
+      { session, upsert: true }
+    );
+  } else if (shipment.toType === 'Outlet') {
     await OutletInventory.updateOne(
       { outletId: shipment.to.id, productId: p.productId },
       { 
         $inc: { qty: p.qty, totalReceived: p.qty },
         $set: { lastUpdated: new Date() }
       },
-      { session , upsert: true}
+      { session, upsert: true }
     );
   }
 }
 
-await Warehouse.updateOne(
-  { id: shipment.to.id },
-  { $inc: { totalStock: p.qty, totalProducts: 1 } },
-  { session }
-);
+const totalProducts = shipment.products.length;
+
+if (shipment.toType === 'Warehouse') {
+  await Warehouse.updateOne(
+    { id: shipment.to.id },
+    { $inc: { totalStock: totalQty, totalProducts: totalProducts } },
+    { session }
+  );
+} else if (shipment.toType === 'Outlet') {
+  await Outlet.updateOne(
+    { id: shipment.to.id },
+    { $inc: { totalStock: totalQty, totalProducts: totalProducts } },
+    { session }
+  );
+}
 
 
-await Outlet.updateOne(
-  { id: shipment.to.id },
-  { $inc: { totalStock: p.qty, totalProducts: 1 } },
-  { session }
-);
 
     await session.commitTransaction();
     session.endSession();
