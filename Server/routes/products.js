@@ -121,6 +121,7 @@ router.get('/products/:id', ensureAuth, async (req, res) => {
 router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
   try {
     const { warehouseId } = req.params;
+    console.log('warehouse:', warehouseId);
     const user = req.session.user;
 
     // Allow only admin or manager of this warehouse
@@ -144,6 +145,7 @@ router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
   res.json(products);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+        console.error('server error:',  err);
   }
 });
 
