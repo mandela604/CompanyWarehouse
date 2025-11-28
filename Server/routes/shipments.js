@@ -355,41 +355,37 @@ let totalQty = 0;
 for (const p of shipment.products) {
   totalQty += p.qty;
 
+  // Destination update
   if (shipment.toType === 'Warehouse') {
     await WarehouseInventory.updateOne(
-  { warehouseId: shipment.to.id, productId: p.productId },
-  {
-    $inc: { qty: p.qty, totalReceived: p.qty },
-    $setOnInsert: { 
-      sku: p.sku, 
-      productName: p.name || p.productName, 
-      unitPrice: p.unitPrice || 0,
-      status: 'inStock',
-      createdAt: new Date()
-    }
-  },
-  { session, upsert: true }
-);
-
+      { warehouseId: shipment.to.id, productId: p.productId },
+      { $inc: { qty: p.qty, totalReceived: p.qty }, $setOnInsert: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock', createdAt: new Date() } },
+      { session, upsert: true }
+    );
   } else if (shipment.toType === 'Outlet') {
     await OutletInventory.updateOne(
-  { outletId: shipment.to.id, productId: p.productId },
-  { 
-    $inc: { qty: p.qty, totalReceived: p.qty },
-    $set: { lastUpdated: new Date() },
-    $setOnInsert: {
-      sku: p.sku,
-      productName: p.name || p.productName,
-      unitPrice: p.unitPrice || 0,
-      status: 'inStock',
-      createdAt: new Date()
-    }
-  },
-  { session, upsert: true }
-);
+      { outletId: shipment.to.id, productId: p.productId },
+      { $inc: { qty: p.qty, totalReceived: p.qty }, $set: { lastUpdated: new Date() }, $setOnInsert: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock', createdAt: new Date() } },
+      { session, upsert: true }
+    );
+  }
 
+  // Source update
+  if (shipment.fromType === 'Company') {
+    await Company.updateOne(
+      { id: shipment.from.id, 'products.productId': p.productId },
+      { $inc: { inTransit: -p.qty, 'products.$.qty': -p.qty, totalShipments: 1 } },
+      { session }
+    );
+  } else if (shipment.fromType === 'Warehouse') {
+    await WarehouseInventory.updateOne(
+      { warehouseId: shipment.from.id, productId: p.productId },
+      { $inc: { qty: -p.qty, totalShipped: p.qty } },
+      { session }
+    );
   }
 }
+
 
 if (shipment.toType === 'Warehouse') {
   await Warehouse.updateOne(
@@ -401,21 +397,6 @@ if (shipment.toType === 'Warehouse') {
   await Outlet.updateOne(
     { id: shipment.to.id },
     { $inc: { totalStock: totalQty, totalProducts: 1 } },
-    { session }
-  );
-}
-
-
-if (shipment.fromType === 'Company') {
-  await Company.updateOne(
-    { id: shipment.from.id, 'products.productId': p.productId },
-    { 
-      $inc: { 
-        inTransit: -p.qty,          // reduce top-level inTransit
-        'products.$.qty': -p.qty,   // reduce product qty
-        totalShipments: 1           // increment total shipments
-      }
-    },
     { session }
   );
 }
