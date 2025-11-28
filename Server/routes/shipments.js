@@ -420,9 +420,9 @@ for (const p of shipment.products) {
       { $inc: { qty: -p.qty, totalShipped: p.qty } },
       { session }
     );
-  }
+  } }
 
-  
+
     await session.commitTransaction();
     session.endSession();
 
