@@ -358,16 +358,32 @@ for (const p of shipment.products) {
   // Destination update
   if (shipment.toType === 'Warehouse') {
     await WarehouseInventory.updateOne(
-      { warehouseId: shipment.to.id, productId: p.productId },
-      { $inc: { qty: p.qty, totalReceived: p.qty }, $setOnInsert: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock', createdAt: new Date() } },
-      { session, upsert: true }
-    );
+  { warehouseId: shipment.to.id, productId: p.productId },
+  { 
+    $inc: { qty: p.qty, totalReceived: p.qty },
+    $set: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock' },
+    $setOnInsert: { createdAt: new Date() }
+  },
+  { session, upsert: true }
+);
+
   } else if (shipment.toType === 'Outlet') {
-    await OutletInventory.updateOne(
-      { outletId: shipment.to.id, productId: p.productId },
-      { $inc: { qty: p.qty, totalReceived: p.qty }, $set: { lastUpdated: new Date() }, $setOnInsert: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock', createdAt: new Date() } },
-      { session, upsert: true }
-    );
+   await OutletInventory.updateOne(
+  { outletId: shipment.to.id, productId: p.productId },
+  { 
+    $inc: { qty: p.qty, totalReceived: p.qty },
+    $set: { 
+      lastUpdated: new Date(),
+      sku: p.sku,
+      productName: p.name || p.productName,
+      unitPrice: p.unitPrice || 0,
+      status: 'inStock'
+    },
+    $setOnInsert: { createdAt: new Date() }
+  },
+  { session, upsert: true }
+);
+
   }
 
   // Source update
