@@ -131,9 +131,7 @@ router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
       }
     }
 
-    const inventory = await WarehouseInventory.find({ warehouseId })
-      .populate('productId', 'name sku unitPrice');
-
+  const inventory = await WarehouseInventory.find({ warehouseId });
    const products = inventory.map(item => ({
   id: item.productId,
   sku: item.sku,
