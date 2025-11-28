@@ -134,13 +134,13 @@ router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
     const inventory = await WarehouseInventory.find({ warehouseId })
       .populate('productId', 'name sku unitPrice');
 
-    const products = inventory.map(item => ({
-      id: item.productId.id,
-      sku: item.productId.sku,
-      name: item.productId.name,
-      unitPrice: item.productId.unitPrice,
-      qty: item.qty
-    })).filter(p => p.qty > 0); // only in-stock
+   const products = inventory.map(item => ({
+  id: item.productId,
+  sku: item.sku,
+  name: item.productName,
+  unitPrice: item.unitPrice,
+  qty: item.qty
+})).filter(p => p.qty > 0);
 
     res.json(products);
   } catch (err) {
