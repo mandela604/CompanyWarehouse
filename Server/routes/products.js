@@ -140,7 +140,8 @@ router.get('/products/warehouse/:warehouseId', ensureAuth, async (req, res) => {
   qty: item.qty
 })).filter(p => p.qty > 0);
 
-    res.json(products);
+  console.log('Products fetched:', products); 
+  res.json(products);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
