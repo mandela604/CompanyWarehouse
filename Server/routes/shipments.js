@@ -197,6 +197,8 @@ router.get('/test', (req, res) => {
   res.json({ ok: true });
 });
 
+
+console.log('WAREHOUSE SHIPMENTS ROUTE LOADED - 2025');
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
