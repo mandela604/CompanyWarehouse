@@ -3,6 +3,7 @@ const Warehouse = require('../models/Warehouse');
 const WarehouseInventory = require('../models/WarehouseInventory');
 const Shipment = require('../models/Shipment');
 const Account = require('../models/Account');
+const Outlet = require('../models/Outlet');
 
 
 // CREATE
