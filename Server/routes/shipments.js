@@ -136,6 +136,13 @@ router.put('/shipments/:id/status', async (req, res) => {
       return res.status(404).json({ message: 'Shipment not found' });
     }
 
+    if (status === 'cancelled' && shipment.status !== 'In Transit') {
+  await session.abortTransaction();
+  return res.status(400).json({ message: 'Only in-transit shipments can be cancelled' });
+}
+
+
+    
     shipment.status = status;
     shipment.lastUpdated = new Date();
     await shipment.save({ session });
