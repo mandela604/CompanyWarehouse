@@ -381,6 +381,18 @@ router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res)
   }
 }
 
+await Warehouse.updateOne(
+  { id: shipment.to.id },
+  { $inc: { totalStock: p.qty, totalProducts: 1 } },
+  { session }
+);
+
+
+await Outlet.updateOne(
+  { id: shipment.to.id },
+  { $inc: { totalStock: p.qty, totalProducts: 1 } },
+  { session }
+);
 
     await session.commitTransaction();
     session.endSession();
