@@ -361,7 +361,7 @@ for (const p of shipment.products) {
   { warehouseId: shipment.to.id, productId: p.productId },
   { 
     $inc: { qty: p.qty, totalReceived: p.qty },
-    $set: { sku: p.sku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock' },
+    $set: { sku: p.productSku, productName: p.name || p.productName, unitPrice: p.unitPrice || 0, status: 'inStock' },
     $setOnInsert: { createdAt: new Date() }
   },
   { session, upsert: true }
@@ -374,7 +374,7 @@ for (const p of shipment.products) {
     $inc: { qty: p.qty, totalReceived: p.qty },
     $set: { 
       lastUpdated: new Date(),
-      sku: p.sku,
+      sku: p.productSku,
       productName: p.name || p.productName,
       unitPrice: p.unitPrice || 0,
       status: 'inStock'
