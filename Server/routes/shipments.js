@@ -202,7 +202,7 @@ console.log('WAREHOUSE SHIPMENTS ROUTE LOADED - 2025');
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
-router.get('/shipments/warehouse', ensureAuth, async (req, res) => {
+router.get('/warehouse', ensureAuth, async (req, res) => {
       console.log('🔥 Route /shipments/warehouse HIT!');
   console.log('Query params:', req.query);
   console.log('Session user:', req.session.user);

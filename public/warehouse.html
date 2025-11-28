@@ -376,7 +376,7 @@ async function renderShipments() {
   tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
 
   try {
-    const res = await fetch('/api/shipments/warehouse?limit=15');
+    const res = await fetch('/api/warehouse?limit=15');
     const shipments = await res.json();
     console.log('shipments:', shipments);
     if (!Array.isArray(shipments)) {
