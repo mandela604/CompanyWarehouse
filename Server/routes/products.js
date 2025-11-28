@@ -6,6 +6,7 @@ const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 const productService = require('../services/productServices');
 const Product = require('../models/Product');
 const Company = require('../models/Company');
+const Warehouse = require('../models/Warehouse');
 
 
 const router = express.Router();
