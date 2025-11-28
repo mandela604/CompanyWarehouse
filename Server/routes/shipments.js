@@ -406,7 +406,23 @@ if (shipment.toType === 'Warehouse') {
 }
 
 
+for (const p of shipment.products) {
+  // Reduce source inventory
+  if (shipment.fromType === 'Company') {
+    await CompanyInventory.updateOne(
+      { productId: p.productId },
+      { $inc: { qty: -p.qty, totalShipped: p.qty } },
+      { session }
+    );
+  } else if (shipment.fromType === 'Warehouse') {
+    await WarehouseInventory.updateOne(
+      { warehouseId: shipment.from.id, productId: p.productId },
+      { $inc: { qty: -p.qty, totalShipped: p.qty } },
+      { session }
+    );
+  }
 
+  
     await session.commitTransaction();
     session.endSession();
 
