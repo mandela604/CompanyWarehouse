@@ -405,7 +405,7 @@ async function renderShipments(page = 1) {
   tbody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
 
   try {
-    const res = await fetch(`/api/shipments/shipments/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
+    const res = await fetch(`/api/shipments/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
