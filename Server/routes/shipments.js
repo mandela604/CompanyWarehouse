@@ -406,21 +406,20 @@ if (shipment.toType === 'Warehouse') {
 }
 
 
-for (const p of shipment.products) {
-  // Reduce source inventory
-  if (shipment.fromType === 'Company') {
-    await CompanyInventory.updateOne(
-      { productId: p.productId },
-      { $inc: { qty: -p.qty, totalShipped: p.qty } },
-      { session }
-    );
-  } else if (shipment.fromType === 'Warehouse') {
-    await WarehouseInventory.updateOne(
-      { warehouseId: shipment.from.id, productId: p.productId },
-      { $inc: { qty: -p.qty, totalShipped: p.qty } },
-      { session }
-    );
-  } }
+if (shipment.fromType === 'Company') {
+  await Company.updateOne(
+    { id: shipment.from.id, 'products.productId': p.productId },
+    { 
+      $inc: { 
+        inTransit: -p.qty,          // reduce top-level inTransit
+        'products.$.qty': -p.qty,   // reduce product qty
+        totalShipments: 1           // increment total shipments
+      }
+    },
+    { session }
+  );
+}
+
 
 
     await session.commitTransaction();
