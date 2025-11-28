@@ -120,17 +120,18 @@ async function getManagerOverview(managerId) {
   if (!warehouse) return null;
 
   const pendingShipments = await Shipment.countDocuments({
-  'to.id': warehouse.id,
-  toType: 'Warehouse',
-  status: { $in: ['In Transit', 'Pending'] } 
-});
+    'to.id': warehouse.id,
+    toType: 'Warehouse',
+    status: { $in: ['In Transit', 'Pending'] }
+  });
 
+  const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
   return {
     warehouseId: warehouse.id,
     name: warehouse.name,
     location: warehouse.location,
-
+    totalOutlets,
     totalProducts: warehouse.totalProducts,
     totalStock: warehouse.totalStock,
     totalRevenue: warehouse.totalRevenue,
@@ -138,6 +139,7 @@ async function getManagerOverview(managerId) {
     pendingShipments
   };
 }
+
 
 
 
