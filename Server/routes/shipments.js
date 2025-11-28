@@ -362,11 +362,11 @@ router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res)
     // Update destination inventory
     if (shipment.toType === 'Warehouse') {
       for (const p of shipment.products) {
-        await WarehouseInventory.updateOne(
-          { warehouseId: shipment.to.id, productId: p.productId },
-          { $inc: { qty: p.qty, totalReceived: p.qty } },
-          { session }
-        );
+       await WarehouseInventory.updateOne(
+  { warehouseId: shipment.to.id, productId: p.productId },
+  { $inc: { qty: p.qty, totalReceived: p.qty } },
+  { session, upsert: true }
+);
       }
     } else if (shipment.toType === 'Outlet') {
   for (const p of shipment.products) {
@@ -376,7 +376,7 @@ router.put('/shipments/approve/:id', ensureAuth, ensureManager, async (req, res)
         $inc: { qty: p.qty, totalReceived: p.qty },
         $set: { lastUpdated: new Date() }
       },
-      { session }
+      { session , upsert: true}
     );
   }
 }
