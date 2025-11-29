@@ -7,6 +7,7 @@ const productService = require('../services/productServices');
 const Product = require('../models/Product');
 const Company = require('../models/Company');
 const Warehouse = require('../models/Warehouse');
+const WarehouseInventory = require('../models/WarehouseInventory');
 
 
 const router = express.Router();
