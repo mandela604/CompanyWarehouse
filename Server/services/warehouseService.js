@@ -126,6 +126,15 @@ async function getManagerOverview(managerId) {
     status: { $in: ['In Transit', 'Pending'] }
   });
 
+
+  const recentShipments = await Shipment.find({
+  'to.id': warehouse.id,
+  toType: 'Warehouse'
+})
+.sort({ createdAt: -1 })
+.limit(6)
+.lean();
+
   const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
   return {
