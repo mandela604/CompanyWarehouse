@@ -542,18 +542,19 @@ async function  renderInventory() {
 
     data.products.forEach(p => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${p.sku}</td>
-        <td>${p.productName || p.name}</td>
-        <td><strong>${p.qty}</strong></td>
-        <td>${formatNGN(p.unitPrice)}</td>
-        <td>
-  <button class="btn secondary ship-inventory-btn" style="font-size:11px;padding:4px 8px" 
-          data-id="${p.productId}">
-    Ship →
-  </button>
-</td>
-      `;
+    tr.innerHTML = `
+  <td>${p.sku}</td>
+  <td>${p.productName || p.name}</td>
+  <td><strong>${p.qty}</strong></td>
+  <td>${formatNGN(p.unitPrice)}</td>
+  <td>
+    <button class="btn secondary ship-inventory-btn" 
+            style="font-size:11px;padding:4px 8px"
+            data-id="${p.id || p.productId}">
+      Ship →
+    </button>
+  </td>
+`;
       tbody.appendChild(tr);
     });
 
@@ -800,6 +801,8 @@ $('#shipToOutletBtn').onclick = async () => {
 
     const productRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
     let productsData = await productRes.json();
+    console.log("Raw products response:", productsData);
+    
 const products = Array.isArray(productsData) 
   ? productsData 
   : (productsData.products || []);
