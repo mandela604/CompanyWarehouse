@@ -205,7 +205,6 @@ router.get('/test', (req, res) => {
 });
 
 
-console.log('WAREHOUSE SHIPMENTS ROUTE LOADED - 2025');
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
@@ -226,12 +225,11 @@ router.get('/warehouse', ensureAuth, async (req, res) => {
 
     if (!warehouse) return res.json([]);
 
-   const query = {
-  $or: [
-   { 'to.id': warehouse.id, toType: 'Warehouse' },
-   { 'from.id': warehouse.id, fromType: 'Warehouse' }
-]
+  const query = {
+  'to.id': warehouse.id,
+  toType: 'Warehouse'
 };
+
  
 
     const shipments = await Shipment.find(query)
