@@ -127,13 +127,16 @@ async function getManagerOverview(managerId) {
   });
 
 
-  const recentShipments = await Shipment.find({
-  'to.id': warehouse.id,
-  toType: 'Warehouse'
+const recentShipments = await Shipment.find({
+  $or: [
+    { 'to.id': warehouse.id, toType: 'Warehouse' },       // incoming
+    { 'from.id': warehouse.id, fromType: 'Warehouse' }    // outgoing
+  ]
 })
 .sort({ createdAt: -1 })
 .limit(6)
 .lean();
+
 
   const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
