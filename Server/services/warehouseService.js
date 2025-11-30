@@ -147,7 +147,7 @@ async function getManagerOverview(managerId) {
     totalRevenue: warehouse.totalRevenue,
     totalShipments: warehouse.totalShipments,
     pendingShipments,
-      recentShipments 
+    recentShipments 
   };
 }
 

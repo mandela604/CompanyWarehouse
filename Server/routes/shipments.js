@@ -18,7 +18,7 @@ router.post('/shipments', async (req, res) => {
   session.startTransaction();
   try {
     const { fromId, toId, fromType, toType, products, senderId, senderPhone } = req.body;
-
+    console.log('req received:', req.body);
     if (!fromId || !toId || !fromType || !toType || !products?.length) {
       await session.abortTransaction();
       return res.status(400).json({ message: 'Missing required fields' });
