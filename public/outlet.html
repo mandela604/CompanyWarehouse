@@ -316,9 +316,11 @@ async function renderOutletInventory(page = 1) {
   const tbody = $('#fullInventoryTable tbody');
 
   try {
+    console.log('Fetching shipments, page:', page);
     const res = await fetch('/api/outlet/inventory');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+        console.log('Shipments response:', data);
     fullInventory = data.products || [];
 
     const start = (curInv - 1) * ITEMS_PER_PAGE;
@@ -444,6 +446,8 @@ $('#shipmentsTable').addEventListener('click', async e => {
   btn.disabled = true; 
   const id = btn.dataset.id;
 
+   console.log('Receive button clicked for shipment ID:', id);
+
   try {
     const res = await fetch(`/api/shipments/${id}/status`, {
       method: 'PUT',
@@ -452,6 +456,7 @@ $('#shipmentsTable').addEventListener('click', async e => {
     });
 
     const data = await res.json();
+        console.log('Shipment receive response:', data);
     if (!res.ok) throw new Error(data.message || 'Failed to update status');
 
     showToast('Shipment marked as received', 'success');
