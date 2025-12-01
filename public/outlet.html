@@ -244,6 +244,21 @@ function showToast(message, type = 'info', duration = 3000) {
 
 
 
+async function loadOutletId() {
+  try {
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    OUTLET_ID = data.outletId;
+    return data.products || [];
+  } catch (err) {
+    console.error('Failed to get outlet ID:', err);
+    showToast(err?.message || 'Failed to load outlet info', 'error');
+    return [];
+  }
+}
+
+
 
   async function renderOutletOverview() {
   const stockEl = $('#totalStock');
@@ -353,7 +368,7 @@ async function loadSales(page = 1) {
   curSales = page;
   const start = salesFilter.start || '';
   const end = salesFilter.end || '';
-  const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
+  const q = new URLSearchParams({ page, limit: SALES_PER_PAGE,  outletId: OUTLET_ID });
   if (start) q.set('startDate', start);
   if (end) q.set('endDate', end);
 
@@ -599,8 +614,14 @@ $('#confirmSale').onclick = async () => {
 
 
 
-    renderOutletOverview();
- renderOutletInventory(); loadSales(); renderShipments();
+(async () => {
+  await loadOutletId();       // wait for OUTLET_ID to be set
+  renderOutletOverview();
+  renderOutletInventory();
+  loadSales();                // now OUTLET_ID is ready
+  renderShipments();
+})();
+
   </script>
 </body>
 </html>

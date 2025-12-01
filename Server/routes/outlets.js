@@ -270,22 +270,27 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
 // GET /api/outlet/sales
 router.get('/outlet/sales', async (req, res) => {
   try {
-    const { page = 1, limit = 20, startDate, endDate } = req.query;
-   const repId = req.session.user?.id;               // the logged-in rep
+    const { page = 1, limit = 20, startDate, endDate, outletId  } = req.query;
+    if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
+
+    const repId = req.session.user?.id;               // the logged-in rep
     if (!repId || req.session.user?.role !== 'rep') 
       return res.status(400).json({ message: 'Login as rep required' });
 
     // 1️⃣ Filter sales by this outlet + optional date filter
-   const filter = { soldBy: repId };
+const filter = { outletId: outletId };
 if (startDate || endDate) filter.createdAt = {};
 if (startDate) filter.createdAt.$gte = new Date(startDate);
 if (endDate) filter.createdAt.$lte = new Date(endDate);
 
+const pageNumber = Number(page) || 1;
+const limitNumber = Number(limit) || 20;
+
     // 2️⃣ Get paginated sales
     const sales = await Sale.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
+      .skip((pageNumber  - 1) * limit)
+      .limit(limitNumber)
       .lean();
 
     // 3️⃣ Enrich sales with product info

@@ -15,13 +15,6 @@ const router = express.Router();
 
 
 
-// sales.js
-router.get('/test', (req, res) => {
-  console.log('Test route hit!');
-  res.json({ message: 'Sales route works' });
-});
-
-
 router.post('/sales', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
