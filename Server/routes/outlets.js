@@ -269,6 +269,8 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
 
 // GET /api/outlet/sales
 router.get('/outlet/sales', async (req, res) => {
+   console.log("Incoming /outlet/sales request:", req.query, req.session.user);
+  
   try {
     const { page = 1, limit = 20, startDate, endDate, outletId  } = req.query;
     if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
@@ -312,7 +314,7 @@ const limitNumber = Number(limit) || 20;
 
     res.json({ data: enriched, totalCount });
   } catch (err) {
-    console.error(err);
+     console.log("Incoming /outlet/sales request:", req.query, req.session.user);
     res.status(500).json({ message: 'Failed to load outlet sales', error: err.message });
   }
 });
