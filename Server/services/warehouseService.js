@@ -137,6 +137,13 @@ const recentShipments = await Shipment.find({
 .limit(6)
 .lean();
 
+const enrichedRecent = recentShipments.map(s => ({
+  date: s.date,
+  from: s.from.name,
+  product: s.products?.[0]?.name || 'Items',
+  qty: s.products?.reduce((a, p) => a + p.qty, 0),
+  status: s.status
+}));
 
   const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
@@ -150,7 +157,8 @@ const recentShipments = await Shipment.find({
     totalRevenue: warehouse.totalRevenue,
     totalShipments: warehouse.totalShipments,
     pendingShipments,
-    recentShipments 
+    recentShipments: enrichedRecent
+
   };
 }
 
