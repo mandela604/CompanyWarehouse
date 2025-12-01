@@ -48,7 +48,6 @@ async function reverseInventory(session, inventoryId, qty, amount) {
 module.exports = {
   getInventory,
   updateInventory,
-  incrementOutlet,
   incrementWarehouse,
   reverseInventory
 };
