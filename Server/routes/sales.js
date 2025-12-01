@@ -31,13 +31,14 @@ router.post('/sales', ensureAuth, async (req, res) => {
 }
 
 
+    // 1️⃣ Get inventory
+    const inventory = await outletService.getInventory(outletId, productId);
+  
 console.log('Updating inventory', inventory.id);
 console.log('Incrementing outlet', outletId);
 console.log('Incrementing warehouse', inventory.warehouseId, productId);
 
 
-    // 1️⃣ Get inventory
-    const inventory = await outletService.getInventory(outletId, productId);
     if (!inventory || inventory.qty < qtySold)
       return res.status(400).json({ message: 'Insufficient stock.' });
 
