@@ -327,15 +327,20 @@ router.get('/outlet/sales', async (req, res) => {
     }
 
     // Enrich product names
- for (const group of groupedSales) {
-  for (const item of group.items) {
-    const saleRecord = itemsInSale.find(s => s.productId === item.productId);
-    const prod = await Product.findOne({ id: item.productId }).lean();
-    
-    item.productName = prod?.name || '—';
-    item.unitPrice = prod?.unitPrice || 0;  
-  }
+// Enrich product names using productMap
+const productIds = [...new Set(rawSales.map(s => s.productId))];
+const products = await Product.find({ id: { $in: productIds } }).lean();
+const productMap = Object.fromEntries(products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }]));
+
+// Update groupedSales items
+for (const group of groupedSales) {
+  group.items = group.items.map(s => ({
+    ...s,
+    productName: productMap[s.productId]?.name || '—',
+    unitPrice: productMap[s.productId]?.unitPrice || 0
+  }));
 }
+
 
     const start = (pageNum - 1) * limitNum;
     const paginated = groupedSales.slice(start, start + limitNum);
