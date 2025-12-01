@@ -276,7 +276,7 @@ router.get('/outlet/sales', async (req, res) => {
       return res.status(400).json({ message: 'Login as rep required' });
 
     // 1️⃣ Filter sales by this outlet + optional date filter
-    const filter = { repId };
+   const filter = { soldBy: repId };
 if (startDate || endDate) filter.createdAt = {};
 if (startDate) filter.createdAt.$gte = new Date(startDate);
 if (endDate) filter.createdAt.$lte = new Date(endDate);
