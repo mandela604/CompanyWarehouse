@@ -51,13 +51,13 @@ const totalAmount = qtySold * product.unitPrice;
 
 
     // 2️⃣ Update inventory
-    await outletService.updateInventory(session, inventory.id, qtySold, totalAmount);
+    await OutletService.updateInventory(session, inventory.id, qtySold, totalAmount);
 
     // 3️⃣ Update outlet totals
-    await outletService.incrementOutlet(session, outletId, qtySold, totalAmount);
+    await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
 
     // 4️⃣ Update warehouse totals
-    await outletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
+    await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
 
     // 5️⃣ Update company totals
     await companyService.incrementRevenue(session, totalAmount, qtySold);
