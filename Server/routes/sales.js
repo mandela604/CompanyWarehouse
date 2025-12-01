@@ -78,6 +78,7 @@ const totalAmount = qtySold * product.unitPrice;
 
     res.json({ message: 'Sale recorded successfully.', sale });
   } catch (err) {
+    console.log("TRANSACTION ERROR →", err);
     await session.abortTransaction();
     session.endSession();
     res.status(500).json({ message: 'Server error', error: err.message });

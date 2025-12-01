@@ -159,13 +159,21 @@ async function getOutletOverview(repId) {
 }
 
 async function incrementOutlet(session, outletId, qtySold, totalAmount) {
- const outlet = await Outlet.findOne({ id: outletId }).session(session);
+  console.log('Searching for outlet with id:', outletId);
+
+  const outlet = await Outlet.findOne({ id: outletId }).session(session);
+  console.log('FOUND OUTLET:', outlet);
+
   if (!outlet) throw new Error('Outlet not found');
 
-  outlet.totalStock -= qtySold;  // decrement total stock
-  outlet.revenue += totalAmount;  // increment revenue
+  console.log('Before update → totalStock:', outlet.totalStock, 'revenue:', outlet.revenue);
+
+  outlet.totalStock -= qtySold;
+  outlet.revenue += totalAmount;
 
   await outlet.save({ session });
+
+  console.log('After update → totalStock:', outlet.totalStock, 'revenue:', outlet.revenue);
 }
 
 
