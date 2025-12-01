@@ -400,9 +400,6 @@ for (const p of shipment.products) {
   }
 }
 
-const outlet = await Outlet.findOne({ id: shipment.to.id });
-console.log('Outlet before commit:', outlet);
-
 
 if (shipment.toType === 'Warehouse') {
   await Warehouse.updateOne(
@@ -422,6 +419,10 @@ if (shipment.toType === 'Warehouse') {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Fetch again after commit
+const updatedOutlet = await Outlet.findOne({ id: shipment.to.id });
+console.log('Outlet after commit:', updatedOutlet);
 
     res.json({ message: 'Shipment approved and inventory updated', shipment });
   } catch (err) {
