@@ -2,7 +2,8 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const { ensureAuth } = require('../middlewares/auth');
-const outletService = require('../services/inventoryService');
+const OutletService = require('../services/outletService');
+const InventoryService = require('../services/inventoryService');
 const Warehouse = require('../models/Warehouse');
 const companyService = require('../services/companyService');
 const Sale = require('../models/Sale');
@@ -102,7 +103,7 @@ router.post('/sales/:id/reverse', ensureAuth, async (req, res) => {
       return res.status(400).json({ message: 'Inventory not found for reversal.' });
 
     // Add the sold quantity back to outlet inventory
-    await outletService.reverseInventory(session, inventory.id, original.qtySold, original.totalAmount);
+    await InventoryService.reverseInventory(session, inventory.id, original.qtySold, original.totalAmount);
 
     // 2️⃣ Reverse outlet totals
     await outletService.decrementOutlet(session, original.outletId, original.qtySold, original.totalAmount);

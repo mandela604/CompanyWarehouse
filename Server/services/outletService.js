@@ -158,24 +158,31 @@ async function getOutletOverview(repId) {
 }
 
 async function incrementOutlet(session, outletId, qtySold, totalAmount) {
-  console.log("DECREMENTING totalStock for outlet:", outletId, "by", qtySold);
+ const outlet = await Outlet.findOne({ id: outletId }).session(session);
+  if (!outlet) throw new Error('Outlet not found');
 
-  const result = await Outlet.updateOne(
-    { id: outletId },
-    { 
-      $inc: { 
-        totalStock: -qtySold,
-        revenue: totalAmount 
-      } 
-    },
-    { session }
+  outlet.totalStock -= qtySold;  // decrement total stock
+  outlet.revenue += totalAmount;  // increment revenue
+
+  await outlet.save({ session });
+}
+
+
+// Add these to outletService.js
+async function updateInventory(session, inventoryId, qtySold, revenue) {
+  return OutletInventory.findOneAndUpdate(
+    { id: inventoryId },
+    { $inc: { qty: -qtySold, totalSold: qtySold, revenue } },
+    { new: true, session }
   );
+}
 
-  if (result.matchedCount === 0) {
-    throw new Error('Outlet not found - totalStock not updated');
-  }
-
-  console.log("totalStock decreased by", qtySold, "revenue +", totalAmount);
+async function incrementWarehouse(session, warehouseId, productId, revenue) {
+  return WarehouseInventory.findOneAndUpdate(
+    { warehouseId, productId },
+    { $inc: { revenue } },
+    { new: true, session }
+  );
 }
 
 module.exports = {
@@ -188,5 +195,7 @@ module.exports = {
   getByManager,
   getByRep,
   getOutletOverview,
-  incrementOutlet
+  incrementOutlet,
+  updateInventory,
+  incrementWarehouse
 };

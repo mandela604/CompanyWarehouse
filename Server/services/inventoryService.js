@@ -15,13 +15,13 @@ async function updateInventory(session, inventoryId, qtySold, revenue) {
   );
 }
 
-async function incrementOutlet(session, outletId, qtySold, revenue) {
+/*async function incrementOutlet(session, outletId, qtySold, revenue) {
   return Outlet.findOneAndUpdate(
     { id: outletId },
     { $inc: { totalSales: qtySold, revenue }, lastUpdated: new Date() },
     { new: true, session }
   );
-}
+} */
 
 async function incrementWarehouse(session, warehouseId, productId, revenue) {
   return WarehouseInventory.findOneAndUpdate(
