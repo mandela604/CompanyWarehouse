@@ -32,16 +32,16 @@ router.post('/sales', ensureAuth, async (req, res) => {
 
 
     // 1️⃣ Get inventory
-    const inventory = await outletService.getInventory(outletId, productId);
-  
-console.log('Updating inventory', inventory.id);
-console.log('Incrementing outlet', outletId);
-console.log('Incrementing warehouse', inventory.warehouseId, productId);
+   const inventory = await OutletInventory.findOne({ 
+  outletId, 
+  productId 
+}).session(session);
 
-
-    if (!inventory || inventory.qty < qtySold)
-      return res.status(400).json({ message: 'Insufficient stock.' });
-
+if (!inventory || inventory.qty < qtySold) {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({ message: 'Insufficient stock.' });
+}
    // Fetch product price
 const product = await Product.findOne({ id: productId }).lean();
 if (!product) return res.status(400).json({ message: 'Product not found.' });
