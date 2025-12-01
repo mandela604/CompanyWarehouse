@@ -209,17 +209,37 @@
 "></div>
 
 
-
 <div class="modal-backdrop" id="viewModal">
-  <div class="modal" style="max-width:600px;">
+  <div class="modal" style="max-width:700px;">
     <h3>Sale Details</h3>
+    <div style="margin-bottom:16px;color:#666;">
+      Date: <strong id="saleDate"></strong> | 
+      Items: <strong id="itemCount"></strong>
+    </div>
+
     <table style="width:100%;margin:16px 0;">
-      <thead><tr><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+      <thead style="background:#f0f0f0;">
+        <tr>
+          <th style="text-align:left;padding:10px;">Product</th>
+          <th style="width:80px;">Qty</th>
+          <th style="width:120px;">Unit Price</th>
+          <th style="width:120px;">Line Total</th>
+        </tr>
+      </thead>
       <tbody id="viewItems"></tbody>
     </table>
-    <button class="btn secondary" onclick="$('#viewModal').style.display='none'">Close</button>
+
+    <div style="text-align:right;margin:20px 0;font-size:20px;font-weight:700;">
+      Grand Total: <span class="grand-total" style="color:var(--blue);">₦0</span>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn secondary" onclick="printSale()">Print Receipt</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="$('#viewModal').style.display='none'">Close</button>
+    </div>
   </div>
 </div>
+
 
 
 
@@ -331,14 +351,25 @@ function viewSale(groupId) {
   const sale = window.lastSalesData?.data.find(s => s.id === groupId);
   if (!sale) return showToast('Sale not found', 'error');
 
-  const tbody = $('#viewItems');
-  tbody.innerHTML = sale.items.map(item => `
-    <tr>
-      <td><strong>${item.productName}</strong></td>
-      <td>${item.qty}</td>
-      <td>${formatNGN(item.amount)}</td>
-    </tr>
-  `).join('');
+  let itemsHTML = '';
+  let grandTotal = 0;
+
+  sale.items.forEach(item => {
+    const lineTotal = item.qty * item.unitPrice;
+    grandTotal += lineTotal;
+
+    itemsHTML += `
+      <tr>
+        <td><strong>${item.productName}</strong></td>
+        <td style="text-align:center;">${item.qty}</td>
+        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  $('#viewItems').innerHTML = itemsHTML;
+  $('#viewModal .grand-total').textContent = '₦' + grandTotal.toLocaleString();
 
   $('#viewModal').style.display = 'flex';
 }
@@ -832,6 +863,42 @@ $('#confirmSale').onclick = async () => {
 
 // Change button
 $('#recordSaleBtn').onclick = openMultiSaleModal;
+
+
+function printSale() {
+  const printWindow = window.open('', '_blank');
+  const date = new Date().toLocaleString();
+  const content = `
+    <html>
+      <head><title>Sale Receipt</title></head,var(--blue);font-family:system-ui;</style></head>
+      <body style="padding:20px;">
+        <h2 style="text-align:center;">SALE RECEIPT</h2>
+        <p style="text-align:center;color:#666;">Date: ${date}</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="text-align:left;padding:10px;border:1px solid #ddd;">Product</th>
+              <th style="padding:10px;border:1px solid #ddd;">Qty</th>
+              <th style="padding:10px;border:1px solid #ddd;">Price</th>
+              <th style="padding:10px;border:1px solid #ddd;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${$('#viewItems').innerHTML}
+          </tbody>
+        </table>
+        <div style="text-align:right;font-size:20px;font-weight:bold;">
+          Grand Total: ${$('#viewModal .grand-total').textContent}
+        </div>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(content);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+}
 
 
 (async () => {
