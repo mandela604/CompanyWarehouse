@@ -178,13 +178,14 @@ async function incrementOutlet(session, outletId, qtySold, totalAmount) {
 
 
 // Add these to outletService.js
-async function updateInventory(session, inventoryId, qtySold, revenue) {
+async function updateInventory(session, outletId, productId, qtySold, revenue) {
   return OutletInventory.findOneAndUpdate(
-    { id: inventoryId },
-    { $inc: { qty: -qtySold, totalSold: qtySold, revenue } },
+    { outletId, productId },
+    { $inc: { qty: -qtySold, totalSold: qtySold, revenue }, lastUpdated: Date.now() },
     { new: true, session }
   );
 }
+
 
 async function incrementWarehouse(session, warehouseId, productId, revenue) {
   return WarehouseInventory.findOneAndUpdate(
