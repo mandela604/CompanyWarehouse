@@ -353,6 +353,8 @@ let totalQty = 0;
 for (const p of shipment.products) {
   totalQty += p.qty;
 
+  console.log('Total quantity to increment:', totalQty);
+
   // Destination update
   if (shipment.toType === 'Warehouse') {
     await WarehouseInventory.updateOne(
@@ -423,6 +425,9 @@ if (shipment.toType === 'Warehouse') {
     await session.commitTransaction();
     session.endSession();
 
+console.log('Shipment to.id:', shipment.to.id);
+const outlet = await Outlet.findOne({ id: shipment.to.id });
+console.log('Found outlet:', outlet);
 
     res.json({ message: 'Shipment approved and inventory updated', shipment });
   } catch (err) {
