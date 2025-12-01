@@ -282,66 +282,69 @@ router.get('/outlet/sales', async (req, res) => {
     const { page = 1, limit = 20, startDate, endDate, outletId } = req.query;
     if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
 
+    // Build filter
     const filter = { outletId };
-    if (startDate || endDate) filter.createdAt = {};
-    if (startDate) filter.createdAt.$gte = new Date(startDate);
-    if (endDate) filter.createdAt.$lte = new Date(endDate);
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
+    }
 
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 20;
 
-    // Group sales by createdAt timestamp (same second = same transaction)
+    // Fetch all sales
     const rawSales = await Sale.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
-    const groupedSales = [];
-    const seen = new Set();
+    if (rawSales.length === 0) {
+      return res.json({ data: [], totalCount: 0 });
+    }
+
+    // Fetch all product names in one query
+    const productIds = [...new Set(rawSales.map(s => s.productId))];
+    const products = await Product.find({ id: { $in: productIds } }).lean();
+    const productMap = Object.fromEntries(
+      products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }])
+    );
+
+    // Group by transactionId (fallback to timestamp for old data)
+    const groups = {};
 
     for (const sale of rawSales) {
-      const timeKey = sale.createdAt.toISOString().slice(0, 19); // up to seconds
-      if (seen.has(timeKey)) continue;
-      seen.add(timeKey);
+      const key = sale.transactionId || sale.createdAt.toISOString().slice(0, 19);
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(sale);
+    }
 
-      const itemsInSale = rawSales.filter(s => 
-        s.createdAt.toISOString().slice(0, 19) === timeKey
-      );
-
+    // Build final grouped sales
+    const groupedSales = Object.values(groups).map(itemsInSale => {
+      const sample = itemsInSale[0];
       const totalAmount = itemsInSale.reduce((sum, s) => sum + s.totalAmount, 0);
       const totalQty = itemsInSale.reduce((sum, s) => sum + s.qtySold, 0);
 
-      groupedSales.push({
-        id: sale.id + '-group', // unique
-        date: new Date(sale.createdAt).toISOString().slice(0, 10),
-        time: new Date(sale.createdAt).toTimeString().slice(0, 8),
+      return {
+        transactionId: sample.transactionId || null,
+        id: (sample.transactionId || sample._id) + '-group',
+        date: new Date(sample.createdAt).toISOString().slice(0, 10),
+        time: new Date(sample.createdAt).toTimeString().slice(0, 8),
         items: itemsInSale.map(s => ({
           productId: s.productId,
-          productName: '—', 
+          productName: productMap[s.productId]?.name || '—',
+          unitPrice: productMap[s.productId]?.unitPrice || 0,
           qty: s.qtySold,
           amount: s.totalAmount
         })),
         totalQty,
         totalAmount,
         itemCount: itemsInSale.length
-      });
-    }
+      };
+    });
 
-    // Enrich product names
-// Enrich product names using productMap
-const productIds = [...new Set(rawSales.map(s => s.productId))];
-const products = await Product.find({ id: { $in: productIds } }).lean();
-const productMap = Object.fromEntries(products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }]));
-
-// Update groupedSales items
-for (const group of groupedSales) {
-  group.items = group.items.map(s => ({
-    ...s,
-    productName: productMap[s.productId]?.name || '—',
-    unitPrice: productMap[s.productId]?.unitPrice || 0
-  }));
-}
-
-
+    // Pagination
     const start = (pageNum - 1) * limitNum;
     const paginated = groupedSales.slice(start, start + limitNum);
 
@@ -351,7 +354,8 @@ for (const group of groupedSales) {
     });
 
   } catch (err) {
-    res.status(500).json({ message: 'Error', error: err.message });
+    console.error('Error in /outlet/sales:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

@@ -100,50 +100,53 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
     const { outletId, items } = req.body;
     if (!outletId || !items?.length) throw new Error('Invalid request');
 
+    const transactionId = uuidv4();  // One ID for the entire sale
     let totalSaleAmount = 0;
 
     for (const item of items) {
       const { productId, qtySold } = item;
 
-      // 1️⃣ Get inventory
       const inventory = await OutletInventory.findOne({ outletId, productId }).session(session);
       if (!inventory || inventory.qty < qtySold) {
         throw new Error(`Insufficient stock for product ${productId}`);
       }
 
-      // 2️⃣ Fetch product price
       const product = await Product.findOne({ id: productId }).lean();
       if (!product) throw new Error(`Product not found: ${productId}`);
+
       const totalAmount = qtySold * product.unitPrice;
       totalSaleAmount += totalAmount;
 
-      // 3️⃣ Update inventory & totals
       await OutletService.updateInventory(session, inventory.outletId, inventory.productId, qtySold, totalAmount);
       await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
       await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
       await companyService.incrementRevenue(session, totalAmount, qtySold);
 
-      // 4️⃣ Record sale
       const sale = new Sale({
         id: uuidv4(),
         outletId,
         productId,
         qtySold,
         totalAmount,
-        soldBy: req.session.user.id
+        soldBy: req.session.user.id,
+        transactionId                     // This is the key!
       });
       await sale.save({ session });
     }
 
     await session.commitTransaction();
-    session.endSession();
-    res.json({ message: 'Multi-product sale recorded successfully', totalAmount: totalSaleAmount });
+    res.json({ 
+      message: 'Multi-product sale recorded successfully', 
+      totalAmount: totalSaleAmount,
+      transactionId 
+    });
 
   } catch (err) {
     await session.abortTransaction();
-    session.endSession();
     console.log("BULK SALE ERROR →", err);
     res.status(500).json({ message: err.message });
+  } finally {
+    session.endSession();
   }
 });
 

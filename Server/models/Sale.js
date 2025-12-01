@@ -7,6 +7,11 @@ const saleSchema = new mongoose.Schema({
   productId: { type: String, required: true },
   qtySold: { type: Number, required: true },
   totalAmount: { type: Number, required: true },
+  transactionId: {
+  type: String,
+  required: true,
+  index: true  // very important for performance
+},
   soldBy: { type: String, required: true }, 
   isReversal: { type: Boolean, default: false },
 reversedSaleId: { type: String },
