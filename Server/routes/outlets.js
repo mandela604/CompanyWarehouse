@@ -277,9 +277,77 @@ res.json({
 });
 
 
+router.get('/outlet/sales', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, startDate, endDate, outletId } = req.query;
+    if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
+
+    const filter = { outletId };
+    if (startDate || endDate) filter.createdAt = {};
+    if (startDate) filter.createdAt.$gte = new Date(startDate);
+    if (endDate) filter.createdAt.$lte = new Date(endDate);
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+
+    // Group sales by createdAt timestamp (same second = same transaction)
+    const rawSales = await Sale.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const groupedSales = [];
+    const seen = new Set();
+
+    for (const sale of rawSales) {
+      const timeKey = sale.createdAt.toISOString().slice(0, 19); // up to seconds
+      if (seen.has(timeKey)) continue;
+      seen.add(timeKey);
+
+      const itemsInSale = rawSales.filter(s => 
+        s.createdAt.toISOString().slice(0, 19) === timeKey
+      );
+
+      const totalAmount = itemsInSale.reduce((sum, s) => sum + s.totalAmount, 0);
+      const totalQty = itemsInSale.reduce((sum, s) => sum + s.qtySold, 0);
+
+      groupedSales.push({
+        id: sale.id + '-group', // unique
+        date: new Date(sale.createdAt).toISOString().slice(0, 10),
+        time: new Date(sale.createdAt).toTimeString().slice(0, 8),
+        items: itemsInSale.map(s => ({
+          productName: '—', // we'll enrich below
+          qty: s.qtySold,
+          amount: s.totalAmount
+        })),
+        totalQty,
+        totalAmount,
+        itemCount: itemsInSale.length
+      });
+    }
+
+    // Enrich product names
+    for (const group of groupedSales) {
+      for (const item of group.items) {
+        const prod = await Product.findOne({ id: item.productId || (await Sale.findOne({ id: group.id.replace('-group','') })?.productId) }).lean();
+        item.productName = prod?.name || '—';
+      }
+    }
+
+    const start = (pageNum - 1) * limitNum;
+    const paginated = groupedSales.slice(start, start + limitNum);
+
+    res.json({
+      data: paginated,
+      totalCount: groupedSales.length
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Error', error: err.message });
+  }
+});
 
 // GET /api/outlet/sales
-router.get('/outlet/sales', async (req, res) => {
+/*router.get('/outlet/sales', async (req, res) => {
    console.log("Incoming /outlet/sales request:", req.query, req.session.user);
   
   try {
@@ -335,7 +403,7 @@ const limitNumber = Number(limit) || 20;
      console.log("Incoming /outlet/sales request:", req.query, req.session.user);
     res.status(500).json({ message: 'Failed to load outlet sales', error: err.message });
   }
-});
+}); */
 
 
 

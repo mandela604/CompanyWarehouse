@@ -122,8 +122,20 @@
           <button class="btn secondary" onclick="clearSalesFilter()">Clear</button>
         </div>
         <div class="card">
-          <table id="fullSalesTable"><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead><tbody></tbody></table>
-          <div class="pagination" id="salesPagination"></div>
+          <table id="fullSalesTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Items</th>
+              <th>Total Qty</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="pagination" id="salesPagination"></div>
         </div>
       </section>
 
@@ -198,7 +210,16 @@
 
 
 
-
+<div class="modal-backdrop" id="viewModal">
+  <div class="modal" style="max-width:600px;">
+    <h3>Sale Details</h3>
+    <table style="width:100%;margin:16px 0;">
+      <thead><tr><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+      <tbody id="viewItems"></tbody>
+    </table>
+    <button class="btn secondary" onclick="$('#viewModal').style.display='none'">Close</button>
+  </div>
+</div>
 
 
 
@@ -306,6 +327,21 @@ async function loadOutletId() {
 }
 
 
+function viewSale(groupId) {
+  const sale = window.lastSalesData?.data.find(s => s.id === groupId);
+  if (!sale) return showToast('Sale not found', 'error');
+
+  const tbody = $('#viewItems');
+  tbody.innerHTML = sale.items.map(item => `
+    <tr>
+      <td><strong>${item.productName}</strong></td>
+      <td>${item.qty}</td>
+      <td>${formatNGN(item.amount)}</td>
+    </tr>
+  `).join('');
+
+  $('#viewModal').style.display = 'flex';
+}
 
   async function renderOutletOverview() {
   const stockEl = $('#totalStock');
@@ -426,18 +462,21 @@ async function loadSales(page = 1) {
     const res = await fetch(`/api/outlet/sales?${q.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
+    window.lastSalesData = json; 
 
     if (!json.data || json.data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="muted">No sales</td></tr>';
     } else {
       tbody.innerHTML = json.data.map(s => `
-        <tr>
-          <td>${s.date}</td>
-          <td>${s.productName}</td>
-          <td>${s.qty}</td>
-          <td>${formatNGN(s.totalAmount)}</td>
-        </tr>
-      `).join('');
+  <tr>
+    <td>${s.date}</td>
+    <td>${s.time}</td>
+    <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
+    <td>${s.totalQty}</td>
+    <td>${formatNGN(s.totalAmount)}</td>
+    <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+  </tr>
+`).join('');
     }
 
     // render pagination UI using your existing renderPag
