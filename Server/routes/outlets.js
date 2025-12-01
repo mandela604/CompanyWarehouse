@@ -249,15 +249,25 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
     }
 
     // Fetch full inventory for this rep’s outlet
-    const items = await OutletInventory.find({ outletId: outlet.id })
-      .sort({ productName: 1 })
-      .lean();
+   // Fetch inventory for outlet with product price
+const items = await OutletInventory.find({ outletId: outlet.id }).lean();
 
-    res.json({
-      outletId: outlet.id,
-      products: items,
-      count: items.length
-    });
+const enriched = await Promise.all(
+  items.map(async (inv) => {
+    const product = await Product.findOne({ id: inv.productId }).lean();
+    return {
+      ...inv,
+      price: product?.unitPrice || 0
+    };
+  })
+);
+
+res.json({
+  outletId: outlet.id,
+  products: enriched,
+  count: enriched.length
+});
+
 
   } catch (err) {
     console.error(err);
