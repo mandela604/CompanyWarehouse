@@ -296,18 +296,25 @@ const limitNumber = Number(limit) || 20;
       .lean();
 
     // 3️⃣ Enrich sales with product info
-    const enriched = await Promise.all(
-      sales.map(async (s) => {
-        const product = await Product.findOne({ id: s.productId });
-        return {
-          id: s.id,
-          date: s.createdAt.toISOString().slice(0, 10),
-          productName: product?.name || '—',
-          qty: s.qtySold,
-          totalAmount: s.totalAmount,
-        };
-      })
-    );
+   const enriched = await Promise.all(
+  sales.map(async (s) => {
+    let productName = '—';
+    try {
+      const product = await Product.findOne({ id: s.productId }).lean();
+      if (product?.name) productName = product.name;
+    } catch (e) {
+      console.error('Product lookup failed:', s.productId);
+    }
+
+    return {
+      id: s.id,
+      date: s.createdAt ? new Date(s.createdAt).toISOString().slice(0, 10) : '—',
+      productName,
+      qty: s.qtySold || 0,
+      totalAmount: s.totalAmount || 0,
+    };
+  })
+);
 
     // 4️⃣ Count total for pagination
     const totalCount = await Sale.countDocuments(filter);
