@@ -21,7 +21,7 @@
     .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40;cursor:pointer}
     @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40} .sidebar.open{left:0} .hamburger{display:block}}
     main{padding:6px 0}
-    .topbar{display:none}
+    .topbar{display:none} /* Hidden now — everything in sidebar */
     .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:600}
     .btn.secondary{background:transparent;border:1px solid #ddd;color:#333}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
@@ -68,8 +68,8 @@
         <a href="#" data-route="inventory">My Inventory</a>
         <a href="#" data-route="sales">Sales History</a>
         <a href="#" data-route="shipments">Incoming Shipments</a>
-        <div class="user-info">Signed in as<br><strong>Chioma Okeke</strong></div>
-        <button class="btn secondary logout-btn">Logout</button>
+        <div class="user-info"></div>
+         <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
       <button class="btn" id="recordSaleBtn">+ Record Sale</button>
     </aside>
@@ -83,8 +83,25 @@
           <div class="card"><h3>Total Revenue</h3><div class="value" id="totalRevenue">₦0</div></div>
           <div class="card"><h3>Incoming Today</h3><div class="value" id="pendingShipments">0</div></div>
         </div>
-        <div class="card"><h3>Quick Inventory</h3><table id="quickInventory"><tbody></tbody></table></div>
-        <div class="card"><h3>Recent Sales</h3><table id="recentSales"><tbody></tbody></table></div>
+        <div class="card"><h3>Quick Inventory</h3><table id="quickInventory">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>In Stock</th>
+        <th>Unit Price</th>
+      </tr>
+    </thead>
+    <tbody></tbody></table></div>
+        <div class="card"><h3>Recent Sales</h3><table id="recentSales">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody></tbody></table></div>
       </section>
 
       <!-- INVENTORY -->
@@ -118,27 +135,56 @@
             <thead><tr><th>Date</th><th>From</th><th>Product</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
             <tbody></tbody>
           </table>
+          <div class="pagination" id="shipmentsPagination"></div>
         </div>
       </section>
     </main>
   </div>
 
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <h3>Record New Sale</h3>
-      <div id="successMsg" class="success">Sale recorded!</div>
-      <div class="form-row"><label>Product</label><select id="productSelect"></select></div>
-      <div class="form-row"><label>Quantity</label><input type="number" id="qtyInput" min="1"></div>
-      <div style="text-align:right;margin-top:20px">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="confirmSale">Record Sale</button>
+<!-- Replace your current modal with this -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" style="min-width:600px;max-width:800px;">
+    <h3>Record Sale (Multiple Products)</h3>
+    <div id="successMsg" class="success" style="display:none;">Sale recorded!</div>
+
+    <table style="width:100%;margin:16px 0;">
+      <thead>
+        <tr style="background:#f8fafc;">
+          <th style="text-align:left;padding:10px;">Product</th>
+          <th style="width:100px;">Qty</th>
+          <th style="width:120px;">Price</th>
+          <th style="width:100px;">Total</th>
+          <th style="width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody id="saleItems"></tbody>
+    </table>
+
+    <div class="form-row">
+      <select id="productSelect" style="width:100%;padding:10px;"></select>
+    </div>
+    <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+      <div style="flex:1;">
+        <label>Quantity</label>
+        <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
       </div>
+      <button class="btn secondary" id="addItemBtn" style="height:42px;">+ Add Item</button>
+    </div>
+
+    <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+      Grand Total: <span id="grandTotal">₦0</span>
+    </div>
+
+    <div style="text-align:right;margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="confirmSale" disabled>Complete Sale</button>
     </div>
   </div>
+</div>
 
+ 
   
-  <!-- Add this in <body> -->
-<div id="toastContainer" style="
+  <div id="toastContainer" style="
   position: fixed;
   top: 50%;
   left: 50%;
@@ -156,16 +202,35 @@
 
 
 
-
-
-
-
-
-
-
   <script>
 
-    // Toast function
+let OUTLET_ID = null;
+
+function logout() {
+  fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+  .then(res => res.json())
+  .then(data => window.location.href = data.redirect);
+}
+
+async function loadUserInfo() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) throw new Error('Failed to get user');
+    const user = await res.json();
+    const userInfo = document.querySelector('.user-info');
+    userInfo.innerHTML = `Signed in as<br><strong>${user.name}</strong>`;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+loadUserInfo();
+
+
+// Toast function
 function showToast(message, type = 'info', duration = 3000) {
   const container = document.getElementById('toastContainer');
   if (!container) return;
@@ -196,178 +261,548 @@ function showToast(message, type = 'info', duration = 3000) {
   }, duration);
 }
 
-    const PRODUCTS = [
-      {id:"p1",name:"Coke 50cl",sku:"CK50",qty:120,price:250},
-      {id:"p2",name:"Fanta 50cl",sku:"FT50",qty:80,price:250},
-      {id:"p3",name:"Eva Water",sku:"EVA1",qty:47,price:150},
-      {id:"p4",name:"Peak Milk Sachet",sku:"PK01",qty:200,price:100},
-      {id:"p5",name:"Indomie Superpack",sku:"IND1",qty:150,price:350},
-      {id:"p6",name:"Golden Morn 500g",sku:"GM50",qty:90,price:800},
-      {id:"p7",name:"Maltina 33cl",sku:"ML33",qty:110,price:300},
-      {id:"p8",name:"Heineken Can",sku:"HK33",qty:60,price:600},
-      {id:"p9",name:"Red Bull",sku:"RB25",qty:40,price:900},
-      {id:"p10",name:"Pringles Original",sku:"PR01",qty:70,price:1200},
-      {id:"p11",name:"Oreo Biscuit",sku:"ORO1",qty:85,price:400},
-      {id:"p12",name:"Dettol Soap",sku:"DT01",qty:130,price:250},
-      {id:"p13",name:"Close-Up Toothpaste",sku:"CL01",qty:95,price:450},
-      {id:"p14",name:"Always Ultra",sku:"AL01",qty:55,price:700},
-      {id:"p15",name:"Gulder Lager",sku:"GL75",qty:65,price:550},
-      {id:"p16",name:"Star Radler",sku:"SR33",qty:88,price:350},
-      {id:"p17",name:"Nutri-Yo Yogurt",sku:"NY50",qty:72,price:400},
-      {id:"p18",name:"Chivita 1L",sku:"CV1L",qty:45,price:850},
-      {id:"p19",name:"Hollandia Milk",sku:"HL45",qty:110,price:500},
-      {id:"p20",name:"Power Oil 1L",sku:"PO1L",qty:38,price:1800}
-    ];
-
-    let inventory = PRODUCTS.map(p => ({...p}));
-    let sales = [];
-    let shipments = [
-      {id:"s1",date:"2025-11-18",from:"Ikeja Warehouse",product:"Coke 50cl",qty:100,status:"In Transit"},
-      {id:"s2",date:"2025-11-17",from:"Ikeja Warehouse",product:"Eva Water",qty:200,status:"In Transit"},
-      {id:"s3",date:"2025-11-16",from:"Head Office",product:"Indomie Superpack",qty:50,status:"Delivered"},
-      {id:"s4",date:"2025-11-15",from:"Ikeja Warehouse",product:"Peak Milk Sachet",qty:300,status:"In Transit"},
-      {id:"s5",date:"2025-11-14",from:"Head Office",product:"Golden Morn 500g",qty:80,status:"Delivered"}
-    ];
-
-    const today = "2025-11-18";
-    // Generate 87 fake sales
-    for(let i = 0; i < 87; i++) {
-      const daysAgo = Math.floor(Math.random() * 18);
-      const d = new Date(); d.setDate(d.getDate() - daysAgo);
-      const date = d.toISOString().slice(0,10);
-      const p = inventory[Math.floor(Math.random() * inventory.length)];
-      const qty = Math.floor(Math.random() * 30) + 1;
-      if(p.qty >= qty) sales.push({date, product: p.name, qty, amount: qty * p.price});
-    }
-    sales.sort((a,b) => b.date.localeCompare(a.date));
-
     const ITEMS_PER_PAGE = 10;
-    let curInv = 1, curSales = 1, salesFilter = {start: null, end: null};
+    const SALES_PER_PAGE = 10;
+    let curInv = 1;
+    let curSales = 1;
+    let fullInventory = [];
+    let salesFilter = { start: null, end: null };
 
-    function $(s) { return document.querySelector(s); }
-    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
+    function $(s){return document.querySelector(s)}
+    function formatNGN(n){return '₦'+(n||0).toLocaleString()}
 
-    function navigateTo(route) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      $(`#${route}Section`).classList.add('active');
-      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
-      if (route === 'inventory') renderInventory();
-      if (route === 'sales') renderSales();
-      if (route === 'shipments') renderShipments();
+
+    function niceDate(d) {
+    const date = new Date(d);
+    return date.toLocaleDateString(); // or format as needed
+  }
+
+    function navigateTo(r){
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      $(`#${r}Section`).classList.add('active');
+      document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${r}"]`).classList.add('active');
+      if(r==='inventory') renderOutletInventory();
+      if(r==='sales') loadSales();
+      if(r==='shipments') renderShipments();
     }
+    document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
+    $('#hambBtn').onclick=()=>$('#sidebar').classList.toggle('open');
 
-    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
-      e.preventDefault();
-      navigateTo(a.dataset.route);
-    }));
-    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
 
-    function renderOverview() {
-      const totalStock = inventory.reduce((s,p) => s + p.qty, 0);
-      const todayRev = sales.filter(s => s.date === today).reduce((s,x) => s + x.amount, 0);
-      const totalRev = sales.reduce((s,x) => s + x.amount, 0);
-      $('#totalStock').textContent = totalStock;
-      $('#todaySales').textContent = formatNGN(todayRev);
-      $('#totalRevenue').textContent = formatNGN(totalRev);
-      $('#pendingShipments').textContent = shipments.filter(s => s.status === "In Transit").length;
 
-      $('#quickInventory tbody').innerHTML = inventory.slice(0,6).map(p => `<tr><td><strong>${p.name}</strong></td><td>${p.qty}</td><td>${formatNGN(p.price)}</td></tr>`).join('');
-      $('#recentSales tbody').innerHTML = sales.slice(0,5).map(s => `<tr><td>${s.date}</td><td>${s.product}</td><td>${s.qty}</td><td>${formatNGN(s.amount)}</td></tr>`).join('');
-    }
+async function loadOutletId() {
+  try {
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    OUTLET_ID = data.outletId;
+    return data.products || [];
+  } catch (err) {
+    console.error('Failed to get outlet ID:', err);
+    showToast(err?.message || 'Failed to load outlet info', 'error');
+    return [];
+  }
+}
 
-    function renderInventory() {
-      const start = (curInv - 1) * ITEMS_PER_PAGE, end = start + ITEMS_PER_PAGE;
-      const page = inventory.slice(start, end);
-      $('#fullInventoryTable tbody').innerHTML = page.map(p => `
-        <tr>
-          <td><strong>${p.name}</strong></td>
-          <td>${p.sku}</td>
-          <td>${p.qty}</td>
-          <td>${formatNGN(p.price)}</td>
-          <td>${formatNGN(p.qty * p.price)}</td>
-        </tr>
-      `).join('');
-      renderPag($('#inventoryPagination'), inventory.length, curInv, n => { curInv = n; renderInventory(); });
-    }
 
-    function renderSales() {
-      let f = sales;
-      if (salesFilter.start) f = f.filter(s => s.date >= salesFilter.start);
-      if (salesFilter.end) f = f.filter(s => s.date <= salesFilter.end);
-      const start = (curSales - 1) * ITEMS_PER_PAGE, end = start + ITEMS_PER_PAGE;
-      $('#fullSalesTable tbody').innerHTML = f.slice(start, end).map(s => `
+
+  async function renderOutletOverview() {
+  const stockEl = $('#totalStock');
+  const todaySalesEl = $('#todaySales');
+  const totalRevenueEl = $('#totalRevenue');
+  const incomingEl = $('#pendingShipments');
+
+  // table bodies
+  const quickInvBody = $('#quickInventory tbody');
+  const recentSalesBody = $('#recentSales tbody');
+
+  // show loading
+  stockEl.textContent = '...';
+  todaySalesEl.textContent = '...';
+  totalRevenueEl.textContent = '...';
+  incomingEl.textContent = '...';
+
+  try {
+    const res = await fetch('/api/outlet/overview');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+  
+    // top cards
+    stockEl.textContent = data.outletStock || 0;
+    todaySalesEl.textContent = formatNGN(data.todaySales || 0);
+    totalRevenueEl.textContent = formatNGN(data.totalRevenue || 0);
+    incomingEl.textContent = data.incomingShipments || 0;
+
+    // quick inventory list
+    quickInvBody.innerHTML =
+      (data.quickInventory || [])
+        .slice(0,2)
+        .map(item => `
+          <tr>
+            <td><strong>${item.name}</strong></td>
+            <td>${item.qty}</td>
+            <td>${formatNGN(item.price)}</td>
+          </tr>
+        `).join('');
+
+    // recent sales
+    recentSalesBody.innerHTML =
+      (data.recentSales || [])
+        .slice(0,5)
+        .map(s => `
+          <tr>
+            <td>${s.date}</td>
+            <td>${s.product}</td>
+            <td>${s.qty}</td>
+            <td>${formatNGN(s.amount)}</td>
+          </tr>
+        `).join('');
+
+  } catch (err) {
+  stockEl.textContent = 'Error';
+  todaySalesEl.textContent = 'Error';
+  totalRevenueEl.textContent = 'Error';
+  incomingEl.textContent = 'Error';
+
+  console.error('Outlet overview error:', err);
+  showToast('Failed to load overview: ' + (err?.message || ''), 'error');
+}
+
+}
+
+
+async function renderOutletInventory(page = 1) {
+  curInv = page;
+  const tbody = $('#fullInventoryTable tbody');
+
+  try {
+    console.log('Fetching shipments, page:', page);
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+        console.log('Shipments response:', data);
+    fullInventory = data.products || [];
+
+    const start = (curInv - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const pageItems = fullInventory.slice(start, end);
+
+    tbody.innerHTML = pageItems.map(p => `
+      <tr>
+        <td><strong>${p.productName}</strong></td>
+        <td>${p.sku}</td>
+        <td>${p.qty}</td>
+        <td>${formatNGN(p.price)}</td>
+        <td>${formatNGN(p.qty * p.price)}</td>
+      </tr>
+    `).join('');
+
+    renderPag($('#inventoryPagination'), fullInventory.length, curInv, n => renderOutletInventory(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load inventory</td></tr>';
+    console.error('Outlet inventory error:', err);
+     showToast('Failed to load inventory: ' + (err?.message || ''), 'error');
+
+  }
+}
+
+
+
+async function loadSales(page = 1) {
+  curSales = page;
+  const start = salesFilter.start || '';
+  const end = salesFilter.end || '';
+  const q = new URLSearchParams({ page, limit: SALES_PER_PAGE,  outletId: OUTLET_ID });
+  if (start) q.set('startDate', start);
+  if (end) q.set('endDate', end);
+
+  const tbody = $('#fullSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="4" class="muted">Loading...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/outlet/sales?${q.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No sales</td></tr>';
+    } else {
+      tbody.innerHTML = json.data.map(s => `
         <tr>
           <td>${s.date}</td>
-          <td>${s.product}</td>
+          <td>${s.productName}</td>
           <td>${s.qty}</td>
-          <td>${formatNGN(s.amount)}</td>
-        </tr>
-      `).join('');
-      renderPag($('#salesPagination'), f.length, curSales, n => { curSales = n; renderSales(); });
-    }
-
-    function renderShipments() {
-      $('#shipmentsTable tbody').innerHTML = shipments.map(s => `
-        <tr>
-          <td>${s.date}</td>
-          <td>${s.from}</td>
-          <td>${s.product}</td>
-          <td>${s.qty}</td>
-          <td>${s.status}</td>
-          <td>${s.status === "In Transit" ? `<button class="receive-btn" data-id="${s.id}">Receive</button>` : '—'}</td>
+          <td>${formatNGN(s.totalAmount)}</td>
         </tr>
       `).join('');
     }
 
-    $('#shipmentsTable').addEventListener('click', e => {
-      const btn = e.target.closest('.receive-btn');
-      if (!btn) return;
-      const id = btn.dataset.id;
-      const shipment = shipments.find(s => s.id === id);
-      const product = inventory.find(p => p.name === shipment.product);
-      if (product) product.qty += shipment.qty;
-      shipment.status = "Delivered";
-      renderShipments();
-      renderOverview();
-      if (document.querySelector('#inventorySection').classList.contains('active')) renderInventory();
+    // render pagination UI using your existing renderPag
+    renderPag($('#salesPagination'), json.totalCount, curSales, n => loadSales(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="4">Failed to load sales</td></tr>';
+    console.error(err);
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+
+  }
+}
+
+// initial load
+//loadSales(1);
+
+
+
+
+
+
+async function renderShipments(page = 1) {
+  const tbody = $('#shipmentsTable tbody');
+  tbody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
+
+  try {
+    const res = await fetch(`/api/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    const shipments = data.shipments || [];
+    const totalCount = data.totalCount || 0;
+
+    if (!shipments.length) {
+      tbody.innerHTML = `<tr><td colspan="6">No shipments yet</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = shipments.map(s => `
+      <tr>
+        <td>${niceDate(s.date)}</td>
+        <td>${s.fromName}</td>
+        <td>${s.productNames}</td>
+        <td>${s.qty}</td>
+        <td>${s.status}</td>
+        <td>
+          ${s.status === 'In Transit'
+            ? `<button class="btn tiny receive-btn" data-id="${s.id}">Receive</button>`
+            : '—'
+          }
+        </td>
+      </tr>
+    `).join('');
+
+    renderPag($('#shipmentsPagination'), totalCount, page, renderShipments);
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6">Failed to load shipments</td></tr>`;
+    console.error('Shipments error:', err);
+    showToast('Failed to load shipments: ' + (err?.message || ''), 'error');
+  }
+}
+
+$('#shipmentsTable').addEventListener('click', async e => {
+  const btn = e.target.closest('.receive-btn');
+  if (!btn) return;
+
+  btn.disabled = true; 
+  const id = btn.dataset.id;
+
+ //  console.log('Receive button clicked for shipment ID:', id);
+
+  try {
+    const res = await fetch(`/api/shipments/approve/${id}`,{
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Received' })
     });
 
-    function renderPag(c, total, cur, cb) {
-      const pages = Math.ceil(total / ITEMS_PER_PAGE); c.innerHTML = '';
-      const prev = document.createElement('button'); prev.textContent = '← Prev'; prev.disabled = cur === 1; prev.onclick = () => cb(cur - 1); c.appendChild(prev);
-      for (let i = 1; i <= pages; i++) {
-        if (i === 1 || i === pages || Math.abs(i - cur) <= 2) {
-          const b = document.createElement('button'); b.textContent = i; b.className = i === cur ? 'active' : ''; b.onclick = () => cb(i); c.appendChild(b);
-        } else if (c.lastChild && c.lastChild.textContent !== '...') {
-          const d = document.createElement('span'); d.textContent = '...'; d.style.padding = '0 8px'; c.appendChild(d);
+    const data = await res.json();
+        console.log('Shipment receive response:', data);
+    if (!res.ok) throw new Error(data.message || 'Failed to update status');
+
+    showToast('Shipment marked as received', 'success');
+    renderShipments();
+
+  } catch (err) {
+    console.error(err);
+     showToast(err?.message || 'An error occurred', 'error');
+  } finally {
+    btn.disabled = false; 
+  }
+});
+
+
+
+
+    function renderPag(c,total,cur,cb){
+      const pages=Math.ceil(total/ITEMS_PER_PAGE); c.innerHTML='';
+      const prev=document.createElement('button'); prev.textContent='← Prev'; prev.disabled=cur===1; prev.onclick=()=>cb(cur-1); c.appendChild(prev);
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-cur)<=2){
+          const b=document.createElement('button'); b.textContent=i; b.className=i===cur?'active':''; b.onclick=()=>cb(i); c.appendChild(b);
+        }else if(c.lastChild && c.lastChild.textContent!=='...'){
+          const d=document.createElement('span'); d.textContent='...'; d.style.padding='0 8px'; c.appendChild(d);
         }
       }
-      const next = document.createElement('button'); next.textContent = 'Next →'; next.disabled = cur === pages; next.onclick = () => cb(cur + 1); c.appendChild(next);
+      const next=document.createElement('button'); next.textContent='Next →'; next.disabled=cur===pages; next.onclick=()=>cb(cur+1); c.appendChild(next);
     }
 
-    function applySalesFilter() { salesFilter.start = $('#filterStart').value; salesFilter.end = $('#filterEnd').value; curSales = 1; renderSales(); }
-    function clearSalesFilter() { $('#filterStart').value = ''; $('#filterEnd').value = ''; salesFilter = {start:null,end:null}; curSales = 1; renderSales(); }
+  function applySalesFilter() {
+  salesFilter.start = $('#filterStart').value;
+  salesFilter.end = $('#filterEnd').value;
+  curSales = 1;
+  loadSales();
+}
+   
 
-    $('#recordSaleBtn').onclick = () => {
-      $('#productSelect').innerHTML = inventory.filter(p => p.qty > 0).map(p => `<option value="${p.id}" data-qty="${p.qty}" data-price="${p.price}">${p.name} (${p.qty} left)</option>`).join('');
-      $('#successMsg').style.display = 'none'; $('#modalBackdrop').style.display = 'flex';
-    };
 
-    $('#confirmSale').onclick = () => {
-      const sel = $('#productSelect'), id = sel.value, qty = Number($('#qtyInput').value), max = Number(sel.selectedOptions[0].dataset.qty), price = Number(sel.selectedOptions[0].dataset.price);
-      if (qty > 0 && qty <= max) {
-        const p = inventory.find(x => x.id === id); p.qty -= qty;
-        sales.unshift({date: today, product: p.name, qty, amount: qty * price});
-        $('#successMsg').style.display = 'block';
-        setTimeout(() => { closeModal(); renderOverview(); renderInventory(); renderSales(); renderShipments(); }, 1200);
-      } else showToast('Invalid quantity',  'error');
-    };
+function clearSalesFilter() {
+  $('#filterStart').value = '';
+  $('#filterEnd').value = '';
+  salesFilter = { start: null, end: null };
+  curSales = 1;
+  loadSales();
+}
 
-    function closeModal() { $('#modalBackdrop').style.display = 'none'; }
-    $('#modalBackdrop').onclick = e => e.target.id === 'modalBackdrop' && closeModal();
 
-    renderOverview(); renderInventory(); renderSales(); renderShipments();
+
+
+
+    
+
+// Open "Record Sale" modal
+$('#recordSaleBtn').onclick = async () => {
+  try {
+    const res = await fetch('/api/outlet/inventory');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    OUTLET_ID = data.outletId;
+
+    const products = data.products || [];
+
+    const options = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option 
+          value="${p.productId}"
+          data-qty="${p.qty}"
+          data-price="${p.unitPrice}"
+        >
+          ${p.productName} (${p.qty} left)
+        </option>
+      `)
+      .join('');
+
+    $('#productSelect').innerHTML = options || `<option>No stock available</option>`;
+    $('#qtyInput').value = '';
+    $('#successMsg').style.display = 'none';
+    $('#modalBackdrop').style.display = 'flex';
+
+  } catch (err) {
+    console.error(err);
+      showToast(err?.message || 'An error occurred', 'error');
+  }
+};
+
+
+// Confirm sale
+$('#confirmSale').onclick = async () => {
+  const sel = $('#productSelect');
+  const qtyInput = $('#qtyInput');
+
+  // Basic safety checks
+  if (!sel || !sel.value) return alert('No product selected');
+  if (!qtyInput) return alert('Invalid form');
+
+  const productId = sel.value;
+  const qty = Number(qtyInput.value);
+  const max = Number(sel.selectedOptions[0]?.dataset.qty || 0);
+
+  if (!qty || qty <= 0) return alert('Enter a valid quantity');
+  if (qty > max) return alert(`Maximum allowed is ${max}`);
+
+
+  $('#confirmSale').disabled = true;
+
+  try {
+    const res = await fetch('/api/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID, productId, qtySold: qty })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+  showToast(data.message || 'An error occurred', 'error');
+  return;
+}
+
+
+    // Success updates
+    closeModal();
+    renderOutletOverview();
+    renderOutletInventory();
+    loadSales(1);
+
+  } catch (err) {
+    console.error(err);
+     showToast(err?.message || 'An error occurred', 'error');
+  } finally {
+    $('#confirmSale').disabled = false;
+  }
+};
+
+
+    function closeModal(){$('#modalBackdrop').style.display='none';}
+    $('#modalBackdrop').onclick=e=>e.target.id==='modalBackdrop'&&closeModal();
+
+
+
+
+
+// Multi-product sale logic
+let saleCart = [];
+
+async function openMultiSaleModal() {
+  saleCart = [];
+  renderCart();
+
+  const res = await fetch('/api/outlet/inventory');
+  const data = await res.json();
+  OUTLET_ID = data.outletId;
+
+  const options = (data.products || [])
+    .filter(p => p.qty > 0)
+    .map(p => `
+      <option value="${p.productId}" 
+              data-price="${p.unitPrice}" 
+              data-qty="${p.qty}">
+        ${p.productName} (${p.qty} left) — ₦${p.unitPrice.toLocaleString()}
+      </option>
+    `).join('');
+
+  $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
+  $('#modalBackdrop').style.display = 'flex';
+}
+
+function renderCart() {
+  const tbody = $('#saleItems');
+  if (saleCart.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
+    $('#confirmSale').disabled = true;
+    $('#grandTotal').textContent = '₦0';
+    return;
+  }
+
+  let grandTotal = 0;
+  tbody.innerHTML = saleCart.map((item, i) => {
+    const total = item.qty * item.price;
+    grandTotal += total;
+    return `
+      <tr>
+        <td style="padding:8px;"><strong>${item.name}</strong></td>
+        <td><input type="number" min="1" max="${item.max}" value="${item.qty}" 
+                   onchange="updateQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
+        <td style="text-align:right;">₦${item.price.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
+        <td><button onclick="removeItem(${i})" style="color:var(--dark-red);background:none;border:none;font-size:18px;">×</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  $('#grandTotal').textContent = '₦' + grandTotal.toLocaleString();
+  $('#confirmSale').disabled = false;
+}
+
+function updateQty(index, newQty) {
+  newQty = parseInt(newQty) || 1;
+  if (newQty > saleCart[index].max) newQty = saleCart[index].max;
+  saleCart[index].qty = newQty;
+  renderCart();
+}
+
+function removeItem(index) {
+  saleCart.splice(index, 1);
+  renderCart();
+}
+
+$('#addItemBtn').onclick = () => {
+  const sel = $('#productSelect');
+  const qty = parseInt($('#qtyInput').value) || 1;
+  if (!sel.value) return showToast('Select a product', 'error');
+
+  const price = parseFloat(sel.selectedOptions[0].dataset.price);
+  const max = parseInt(sel.selectedOptions[0].dataset.qty);
+  const name = sel.selectedOptions[0].text.split(' (')[0];
+
+  if (qty > max) return showToast(`Only ${max} available`, 'error');
+
+  const existing = saleCart.findIndex(x => x.productId === sel.value);
+  if (existing !== -1) {
+    saleCart[existing].qty += qty;
+    if (saleCart[existing].qty > max) saleCart[existing].qty = max;
+  } else {
+    saleCart.push({ productId: sel.value, name, price, qty, max });
+  }
+
+  $('#qtyInput').value = 1;
+  sel.value = '';
+  renderCart();
+};
+
+$('#confirmSale').onclick = async () => {
+  if (saleCart.length === 0) return;
+
+  $('#confirmSale').disabled = true;
+  $('#confirmSale').textContent = 'Processing...';
+
+  try {
+    const items = saleCart.map(item => ({
+      productId: item.productId,
+      qtySold: item.qty
+    }));
+
+    const res = await fetch('/api/sales/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID, items })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Sale failed');
+
+    showToast('Sale recorded!', 'success');
+    $('#successMsg').style.display = 'block';
+    setTimeout(() => {
+      closeModal();
+      renderOutletOverview();
+      renderOutletInventory();
+      loadSales(1);
+    }, 800);
+
+  } catch (err) {
+    showToast(err.message || 'Error', 'error');
+  } finally {
+    $('#confirmSale').disabled = false;
+    $('#confirmSale').textContent = 'Complete Sale';
+  }
+};
+
+// Change button
+$('#recordSaleBtn').onclick = openMultiSaleModal;
+
+
+(async () => {
+  await loadOutletId();      
+  renderOutletOverview();
+  renderOutletInventory();
+  loadSales();                
+  renderShipments();
+})();
+
   </script>
 </body>
 </html>
