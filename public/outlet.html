@@ -159,6 +159,8 @@
 
   <script>
 
+let OUTLET_ID = null;
+
 function logout() {
   fetch('/api/logout', {
     method: 'POST',
@@ -522,7 +524,7 @@ function clearSalesFilter() {
 
 
 
-    let OUTLET_ID = null;
+    
 
 // Open "Record Sale" modal
 $('#recordSaleBtn').onclick = async () => {
@@ -615,10 +617,10 @@ $('#confirmSale').onclick = async () => {
 
 
 (async () => {
-  await loadOutletId();       // wait for OUTLET_ID to be set
+  await loadOutletId();      
   renderOutletOverview();
   renderOutletInventory();
-  loadSales();                // now OUTLET_ID is ready
+  loadSales();                
   renderShipments();
 })();
 
