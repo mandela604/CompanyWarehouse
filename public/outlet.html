@@ -591,9 +591,10 @@ $('#confirmSale').onclick = async () => {
     const data = await res.json();
 
     if (!res.ok) {
-     showToast(err?.message || 'An error occurred', 'error');
-     return;
-    }
+  showToast(data.message || 'An error occurred', 'error');
+  return;
+}
+
 
     // Success updates
     closeModal();
