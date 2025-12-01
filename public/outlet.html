@@ -407,7 +407,7 @@ async function loadSales(page = 1) {
 }
 
 // initial load
-loadSales(1);
+//loadSales(1);
 
 
 
@@ -463,7 +463,7 @@ $('#shipmentsTable').addEventListener('click', async e => {
   btn.disabled = true; 
   const id = btn.dataset.id;
 
-   console.log('Receive button clicked for shipment ID:', id);
+ //  console.log('Receive button clicked for shipment ID:', id);
 
   try {
     const res = await fetch(`/api/shipments/approve/${id}`,{
