@@ -158,7 +158,7 @@ async function getOutletOverview(repId) {
 }
 
 async function incrementOutlet(session, outletId, qtySold, totalAmount) {
-  const outlet = await Outlet.findOne(outletId).session(session);
+ const outlet = await Outlet.findOne({ id: outletId }).session(session);
   if (!outlet) throw new Error('Outlet not found');
 
   outlet.totalStock -= qtySold;  // decrement total stock
