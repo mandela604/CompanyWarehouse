@@ -449,7 +449,7 @@ $('#shipmentsTable').addEventListener('click', async e => {
    console.log('Receive button clicked for shipment ID:', id);
 
   try {
-    const res = await fetch(`/api/shipments/${id}/status`, {
+    const res = await fetch(`/api/shipments/approve/${id}`,{
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'Received' })

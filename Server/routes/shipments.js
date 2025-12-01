@@ -353,7 +353,10 @@ let totalQty = 0;
 for (const p of shipment.products) {
   totalQty += p.qty;
 
-  console.log('Total quantity to increment:', totalQty);
+  console.error('Total quantity to increment:', totalQty);
+
+  console.log("DEBUG: totalQty =", totalQty);
+process.stdout.write("\n");
 
   // Destination update
   if (shipment.toType === 'Warehouse') {
@@ -402,9 +405,9 @@ for (const p of shipment.products) {
   }
 }
 
-console.log("Updating outlet ID:", shipment.to.id, "with +", totalQty);
+console.error("Updating outlet ID:", shipment.to.id, "with +", totalQty);
 const test = await Outlet.findOne({ id: shipment.to.id });
-console.log("Found outlet?", test ? test.name + " | totalStock: " + test.totalStock : "NOT FOUND");
+console.error("Found outlet?", test ? test.name + " | totalStock: " + test.totalStock : "NOT FOUND");
 
 if (shipment.toType === 'Warehouse') {
   await Warehouse.updateOne(
@@ -425,7 +428,7 @@ if (shipment.toType === 'Warehouse') {
     await session.commitTransaction();
     session.endSession();
 
-console.log('Shipment to.id:', shipment.to.id);
+console.error('Shipment to.id:', shipment.to.id);
 const outlet = await Outlet.findOne({ id: shipment.to.id });
 console.log('Found outlet:', outlet);
 
