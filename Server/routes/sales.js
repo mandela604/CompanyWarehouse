@@ -27,7 +27,12 @@ router.post('/sales', ensureAuth, async (req, res) => {
     if (!inventory || inventory.qty < qtySold)
       return res.status(400).json({ message: 'Insufficient stock.' });
 
-    const totalAmount = qtySold * inventory.price;
+   // Fetch product price
+const product = await Product.findOne({ id: productId }).lean();
+if (!product) return res.status(400).json({ message: 'Product not found.' });
+
+const totalAmount = qtySold * product.unitPrice;
+
 
     // 2️⃣ Update inventory
     await outletService.updateInventory(session, inventory.id, qtySold, totalAmount);
