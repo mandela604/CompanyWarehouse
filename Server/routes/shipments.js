@@ -400,6 +400,9 @@ for (const p of shipment.products) {
   }
 }
 
+const outlet = await Outlet.findOne({ id: shipment.to.id });
+console.log('Outlet before commit:', outlet);
+
 
 if (shipment.toType === 'Warehouse') {
   await Warehouse.updateOne(
