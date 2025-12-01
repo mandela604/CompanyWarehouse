@@ -315,7 +315,8 @@ router.get('/outlet/sales', async (req, res) => {
         date: new Date(sale.createdAt).toISOString().slice(0, 10),
         time: new Date(sale.createdAt).toTimeString().slice(0, 8),
         items: itemsInSale.map(s => ({
-          productName: '—', // we'll enrich below
+          productId: s.productId,
+          productName: '—', 
           qty: s.qtySold,
           amount: s.totalAmount
         })),
@@ -326,12 +327,15 @@ router.get('/outlet/sales', async (req, res) => {
     }
 
     // Enrich product names
-    for (const group of groupedSales) {
-      for (const item of group.items) {
-        const prod = await Product.findOne({ id: item.productId || (await Sale.findOne({ id: group.id.replace('-group','') })?.productId) }).lean();
-        item.productName = prod?.name || '—';
-      }
-    }
+ for (const group of groupedSales) {
+  for (const item of group.items) {
+    const saleRecord = itemsInSale.find(s => s.productId === item.productId);
+    const prod = await Product.findOne({ id: item.productId }).lean();
+    
+    item.productName = prod?.name || '—';
+    item.unitPrice = prod?.unitPrice || 0;  
+  }
+}
 
     const start = (pageNum - 1) * limitNum;
     const paginated = groupedSales.slice(start, start + limitNum);
