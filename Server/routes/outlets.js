@@ -9,6 +9,7 @@ const warehouseService = require('../services/warehouseService');
 const companyService = require('../services/companyService');
 const OutletInventory = require('../models/OutletInventory');
 const Sale = require('../models/Sale');
+const Product = require('../models/Product'); // make sure path is correct
 
 const router = express.Router();
 
