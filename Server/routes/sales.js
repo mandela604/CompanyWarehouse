@@ -22,6 +22,13 @@ router.post('/sales', ensureAuth, async (req, res) => {
   try {
     const { outletId, productId, qtySold } = req.body;
 
+    console.log('SALE → outletId:', outletId, 'qtySold:', qtySold);
+    if (!outletId || outletId === 'null' || outletId === 'undefined') {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({ message: 'Invalid outlet ID' });
+}
+
     // 1️⃣ Get inventory
     const inventory = await outletService.getInventory(outletId, productId);
     if (!inventory || inventory.qty < qtySold)
