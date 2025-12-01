@@ -678,7 +678,7 @@ async function openMultiSaleModal() {
     .filter(p => p.qty > 0)
     .map(p => `
       <option value="${p.productId}" 
-              data-price="${p.unitPrice}" 
+              data-price="${p.price}" 
               data-qty="${p.qty}">
         ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
       </option>
@@ -734,7 +734,7 @@ $('#addItemBtn').onclick = () => {
   const qty = parseInt($('#qtyInput').value) || 1;
   if (!sel.value) return showToast('Select a product', 'error');
 
-  const price = parseFloat(sel.selectedOptions[0].dataset.price);
+  const price = parseFloat(sel.selectedOptions[0].dataset.price) || 0;
   const max = parseInt(sel.selectedOptions[0].dataset.qty);
   const name = sel.selectedOptions[0].text.split(' (')[0];
 
