@@ -680,7 +680,7 @@ async function openMultiSaleModal() {
       <option value="${p.productId}" 
               data-price="${p.unitPrice}" 
               data-qty="${p.qty}">
-        ${p.productName} (${p.qty} left) — ₦${p.unitPrice.toLocaleString()}
+        ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
       </option>
     `).join('');
 
@@ -706,14 +706,14 @@ function renderCart() {
         <td style="padding:8px;"><strong>${item.name}</strong></td>
         <td><input type="number" min="1" max="${item.max}" value="${item.qty}" 
                    onchange="updateQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
-        <td style="text-align:right;">₦${item.price.toLocaleString()}</td>
+        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
         <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
         <td><button onclick="removeItem(${i})" style="color:var(--dark-red);background:none;border:none;font-size:18px;">×</button></td>
       </tr>
     `;
   }).join('');
 
-  $('#grandTotal').textContent = '₦' + grandTotal.toLocaleString();
+  $('#grandTotal').textContent = '₦' + (grandTotal || 0).toLocaleString();
   $('#confirmSale').disabled = false;
 }
 

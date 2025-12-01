@@ -141,46 +141,18 @@
     </main>
   </div>
 
-<!-- Replace your current modal with this -->
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" style="min-width:600px;max-width:800px;">
-    <h3>Record Sale (Multiple Products)</h3>
-    <div id="successMsg" class="success" style="display:none;">Sale recorded!</div>
-
-    <table style="width:100%;margin:16px 0;">
-      <thead>
-        <tr style="background:#f8fafc;">
-          <th style="text-align:left;padding:10px;">Product</th>
-          <th style="width:100px;">Qty</th>
-          <th style="width:120px;">Price</th>
-          <th style="width:100px;">Total</th>
-          <th style="width:40px;"></th>
-        </tr>
-      </thead>
-      <tbody id="saleItems"></tbody>
-    </table>
-
-    <div class="form-row">
-      <select id="productSelect" style="width:100%;padding:10px;"></select>
-    </div>
-    <div class="form-row" style="display:flex;gap:10px;align-items:end;">
-      <div style="flex:1;">
-        <label>Quantity</label>
-        <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3>Record New Sale</h3>
+      <div id="successMsg" class="success">Sale recorded!</div>
+      <div class="form-row"><label>Product</label><select id="productSelect"></select></div>
+      <div class="form-row"><label>Quantity</label><input type="number" id="qtyInput" min="1"></div>
+      <div style="text-align:right;margin-top:20px">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmSale">Record Sale</button>
       </div>
-      <button class="btn secondary" id="addItemBtn" style="height:42px;">+ Add Item</button>
-    </div>
-
-    <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
-      Grand Total: <span id="grandTotal">₦0</span>
-    </div>
-
-    <div style="text-align:right;margin-top:20px;">
-      <button class="btn secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn" id="confirmSale" disabled>Complete Sale</button>
     </div>
   </div>
-</div>
 
  
   
@@ -660,139 +632,6 @@ $('#confirmSale').onclick = async () => {
     $('#modalBackdrop').onclick=e=>e.target.id==='modalBackdrop'&&closeModal();
 
 
-
-
-
-// Multi-product sale logic
-let saleCart = [];
-
-async function openMultiSaleModal() {
-  saleCart = [];
-  renderCart();
-
-  const res = await fetch('/api/outlet/inventory');
-  const data = await res.json();
-  OUTLET_ID = data.outletId;
-
-  const options = (data.products || [])
-    .filter(p => p.qty > 0)
-    .map(p => `
-      <option value="${p.productId}" 
-              data-price="${p.unitPrice}" 
-              data-qty="${p.qty}">
-        ${p.productName} (${p.qty} left) — ₦${p.unitPrice.toLocaleString()}
-      </option>
-    `).join('');
-
-  $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
-  $('#modalBackdrop').style.display = 'flex';
-}
-
-function renderCart() {
-  const tbody = $('#saleItems');
-  if (saleCart.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
-    $('#confirmSale').disabled = true;
-    $('#grandTotal').textContent = '₦0';
-    return;
-  }
-
-  let grandTotal = 0;
-  tbody.innerHTML = saleCart.map((item, i) => {
-    const total = item.qty * item.price;
-    grandTotal += total;
-    return `
-      <tr>
-        <td style="padding:8px;"><strong>${item.name}</strong></td>
-        <td><input type="number" min="1" max="${item.max}" value="${item.qty}" 
-                   onchange="updateQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
-        <td style="text-align:right;">₦${item.price.toLocaleString()}</td>
-        <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
-        <td><button onclick="removeItem(${i})" style="color:var(--dark-red);background:none;border:none;font-size:18px;">×</button></td>
-      </tr>
-    `;
-  }).join('');
-
-  $('#grandTotal').textContent = '₦' + grandTotal.toLocaleString();
-  $('#confirmSale').disabled = false;
-}
-
-function updateQty(index, newQty) {
-  newQty = parseInt(newQty) || 1;
-  if (newQty > saleCart[index].max) newQty = saleCart[index].max;
-  saleCart[index].qty = newQty;
-  renderCart();
-}
-
-function removeItem(index) {
-  saleCart.splice(index, 1);
-  renderCart();
-}
-
-$('#addItemBtn').onclick = () => {
-  const sel = $('#productSelect');
-  const qty = parseInt($('#qtyInput').value) || 1;
-  if (!sel.value) return showToast('Select a product', 'error');
-
-  const price = parseFloat(sel.selectedOptions[0].dataset.price);
-  const max = parseInt(sel.selectedOptions[0].dataset.qty);
-  const name = sel.selectedOptions[0].text.split(' (')[0];
-
-  if (qty > max) return showToast(`Only ${max} available`, 'error');
-
-  const existing = saleCart.findIndex(x => x.productId === sel.value);
-  if (existing !== -1) {
-    saleCart[existing].qty += qty;
-    if (saleCart[existing].qty > max) saleCart[existing].qty = max;
-  } else {
-    saleCart.push({ productId: sel.value, name, price, qty, max });
-  }
-
-  $('#qtyInput').value = 1;
-  sel.value = '';
-  renderCart();
-};
-
-$('#confirmSale').onclick = async () => {
-  if (saleCart.length === 0) return;
-
-  $('#confirmSale').disabled = true;
-  $('#confirmSale').textContent = 'Processing...';
-
-  try {
-    const items = saleCart.map(item => ({
-      productId: item.productId,
-      qtySold: item.qty
-    }));
-
-    const res = await fetch('/api/sales/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ outletId: OUTLET_ID, items })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Sale failed');
-
-    showToast('Sale recorded!', 'success');
-    $('#successMsg').style.display = 'block';
-    setTimeout(() => {
-      closeModal();
-      renderOutletOverview();
-      renderOutletInventory();
-      loadSales(1);
-    }, 800);
-
-  } catch (err) {
-    showToast(err.message || 'Error', 'error');
-  } finally {
-    $('#confirmSale').disabled = false;
-    $('#confirmSale').textContent = 'Complete Sale';
-  }
-};
-
-// Change button
-$('#recordSaleBtn').onclick = openMultiSaleModal;
 
 
 (async () => {
