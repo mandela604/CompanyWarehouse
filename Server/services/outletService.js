@@ -121,7 +121,7 @@ async function getOutletOverview(repId) {
     quickInventory.push({
       name: product?.name || '—',
       qty: item.qty,
-      price: item.price
+      price: product?.unitPrice || 0
     });
   }
 
