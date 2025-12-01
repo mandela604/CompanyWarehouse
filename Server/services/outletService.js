@@ -157,6 +157,16 @@ async function getOutletOverview(repId) {
   };
 }
 
+async function incrementOutlet(session, outletId, qtySold, totalAmount) {
+  const outlet = await Outlet.findById(outletId).session(session);
+  if (!outlet) throw new Error('Outlet not found');
+
+  outlet.totalStock -= qtySold;  // decrement total stock
+  outlet.revenue += totalAmount;  // increment revenue
+
+  await outlet.save({ session });
+}
+
 
 module.exports = {
   create,
@@ -167,5 +177,6 @@ module.exports = {
   getByWarehouse,
   getByManager,
   getByRep,
-  getOutletOverview
+  getOutletOverview,
+  incrementOutlet
 };
