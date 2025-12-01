@@ -352,8 +352,8 @@ async function loadManagerData() {
     tbody.innerHTML = (data.recentShipments || []).slice(0, 6).map(s => `
       <tr>
         <td>${niceDate(s.date)}</td>
-        <td>${s.from}</td>
-        <td>${s.product}</td>
+        <td>${s.fromName}</td>
+        <td>${s.productName}</td>
         <td>${s.qty}</td>
         <td><span class="pill">${s.status}</span></td>
       </tr>
