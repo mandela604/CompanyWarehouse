@@ -861,18 +861,22 @@ const products = Array.isArray(productsData)
 
       btn.disabled = true; // prevent double click
 
+      const payload = {
+  fromId: myWarehouse.id,
+  fromType: 'Warehouse',
+  toId: outletId,
+  toType: 'Outlet',
+  products: [{ productId, qty }]
+};
+
+console.log("Sending shipment payload:", payload); // ✅ log it
+
       try {
-        const res = await fetch('/api/shipments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fromId: myWarehouse.id,
-            fromType: 'Warehouse',
-            toId: outletId,
-            toType: 'Outlet',
-            products: [{ productId, qty }]
-          })
-        });
+       const res = await fetch('/api/shipments', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
 
         const data = await res.json();
 
