@@ -5,6 +5,7 @@ const Shipment = require('../models/Shipment');
 const Inventory = require('../models/OutletInventory'); // if you have this
 const Product = require('../models/Product'); // for names
 const Account = require('../models/Account');
+const WarehouseInventory = require('../models/WarehouseInventory');
 
 
 // Create new outlet
