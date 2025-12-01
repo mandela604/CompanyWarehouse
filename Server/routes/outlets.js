@@ -277,8 +277,9 @@ router.get('/outlet/sales', async (req, res) => {
 
     // 1️⃣ Filter sales by this outlet + optional date filter
     const filter = { repId };
-    if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
-    if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate) };
+if (startDate || endDate) filter.createdAt = {};
+if (startDate) filter.createdAt.$gte = new Date(startDate);
+if (endDate) filter.createdAt.$lte = new Date(endDate);
 
     // 2️⃣ Get paginated sales
     const sales = await Sale.find(filter)
