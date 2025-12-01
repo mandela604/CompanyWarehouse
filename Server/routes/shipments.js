@@ -260,7 +260,7 @@ router.get('/warehouse', ensureAuth, async (req, res) => {
 });
 
 
-router.get('/shipments/outlet', ensureAuth, async (req, res) => {
+router.get('/outlet', ensureAuth, async (req, res) => {
    console.log('Outlet route hit');
    
   console.log('Session user:', req.session.user);
