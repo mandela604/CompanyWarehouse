@@ -45,7 +45,11 @@ const totalAmount = qtySold * product.unitPrice;
     await outletService.updateInventory(session, inventory.id, qtySold, totalAmount);
 
     // 3️⃣ Update outlet totals
-    await outletService.incrementOutlet(session, outletId, qtySold, totalAmount);
+  await Outlet.updateOne(
+  { id: outletId },
+  { $inc: { totalStock: -qtySold, revenue: totalAmount } },
+  { session }
+);
 
     // 4️⃣ Update warehouse totals
     await outletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
