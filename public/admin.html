@@ -469,7 +469,7 @@
       <!-- ==================== SALES RECORDS ==================== -->
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
-       <!-- Add this inside #salesSection or wherever you want the date display -->
+      
       <div id="salesDateDisplay" style="display:none;"></div>
        <div id="salesUnits"></div>
       <div id="salesRevenue"></div>
@@ -485,7 +485,7 @@
               <!--  <th>Manager (Approver)</th> -->
                 <th>Status</th>
                 <th>Sent From</th>
-              <!--  <th>Actions</th> -->
+               <th>Details</th> 
               </tr>
             </thead>
             <tbody></tbody>
@@ -588,6 +588,36 @@
 
 
 
+<div class="modal-backdrop" id="viewModal">
+  <div class="modal" style="max-width:700px;">
+    <h3>Sale Details</h3>
+    <div style="margin-bottom:16px;color:#666;">
+      Date: <strong id="saleDate"></strong> | 
+      Items: <strong id="itemCount"></strong>
+    </div>
+
+    <table style="width:100%;margin:16px 0;">
+      <thead style="background:#f0f0f0;">
+        <tr>
+          <th style="text-align:left;padding:10px;">Product</th>
+          <th style="width:80px;">Qty</th>
+          <th style="width:120px;">Unit Price</th>
+          <th style="width:120px;">Line Total</th>
+        </tr>
+      </thead>
+      <tbody id="viewItems"></tbody>
+    </table>
+
+    <div style="text-align:right;margin:20px 0;font-size:20px;font-weight:700;">
+      Grand Total: <span class="grand-total" style="color:var(--blue);">₦0</span>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn secondary" onclick="printSale()">Print Receipt</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="$('#viewModal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
 
 
 
@@ -1240,6 +1270,7 @@ async function renderSales(page = 1) {
     if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
 
     const sales = json.data || [];
+    window.lastSalesData = { data: sales };
     const totalCount = json.totalCount || 0;
 
     if (!sales.length) {
@@ -1255,6 +1286,9 @@ async function renderSales(page = 1) {
         
           <td><span class="pill">${s.status}</span></td>
           <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
+          <td>
+         <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
+  </td>
           <td></td>
         </tr>
       `).join('');
@@ -1268,6 +1302,33 @@ async function renderSales(page = 1) {
     console.error('Failed to load sales:', err);
     showToast('Server error: ' + (err?.message || 'Failed'), 'error');
   }
+}
+
+function viewSale(groupId) {
+  const sale = window.lastSalesData?.data.find(s => s.id === groupId);
+  if (!sale) return showToast('Sale not found', 'error');
+
+  let itemsHTML = '';
+  let grandTotal = 0;
+
+  sale.items.forEach(item => {
+    const lineTotal = item.qty * item.unitPrice;
+    grandTotal += lineTotal;
+
+    itemsHTML += `
+      <tr>
+        <td><strong>${item.productName}</strong></td>
+        <td style="text-align:center;">${item.qty}</td>
+        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  $('#viewItems').innerHTML = itemsHTML;
+  $('#viewModal .grand-total').textContent = '₦' + grandTotal.toLocaleString();
+
+  $('#viewModal').style.display = 'flex';
 }
 
 
