@@ -233,6 +233,92 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
 
 
 
+// GET /api/outlet/inventory
+// → Reps: no query param needed
+// → Manager/Admin: ?outletId=xxx required
+/*router.get('/outlet/inventory', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
+    let outletId = req.query.outletId?.trim();
+
+    // === CASE 1: User is a Rep → auto-resolve their own outlet
+    if (user.role === 'rep') {
+      if (outletId) {
+        // Optional: Reps can also view another outlet if explicitly given AND it's theirs
+        const requestedOutlet = await Outlet.findOne({ id: outletId }).lean();
+        if (!requestedOutlet || requestedOutlet.repId !== user.id) {
+          return res.status(403).json({ message: 'You can only view your own outlet' });
+        }
+        // It's valid → proceed with requested one
+      } else {
+        // No outletId provided → find the one assigned to this rep
+        const ownOutlet = await Outlet.findOne({ repId: user.id }).lean();
+        if (!ownOutlet) {
+          return res.status(404).json({ message: 'No outlet assigned to you' });
+        }
+        outletId = ownOutlet.id;
+      }
+    }
+
+    // === CASE 2: Manager or Admin → outletId is REQUIRED
+    else if (user.role === 'manager' || user.role === 'admin') {
+      if (!outletId) {
+        return res.status(400).json({ message: 'outletId query parameter is required' });
+      }
+    }
+
+    // === Invalid role
+    else {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
+    // === Now fetch the outlet (we have a valid outletId at this point)
+    const outlet = await Outlet.findOne({ id: outletId }).lean();
+    if (!outlet) {
+      return res.status(404).json({ message: 'Outlet not found' });
+    }
+
+    // === Final permission check (extra safety for managers/admins)
+    const allowed =
+      user.role === 'admin' ||
+      user.role === 'manager' ||
+      (user.role === 'rep' && outlet.repId === user.id);
+
+    if (!allowed) {
+      return res.status(403).json({ message: 'You do not have access to this outlet' });
+    }
+
+    // === Fetch inventory
+    const items = await OutletInventory.find({ outletId: outlet.id }).lean();
+
+    const enriched = await Promise.all(
+      items.map(async (inv) => {
+        const product = await Product.findOne({ id: inv.productId }).lean();
+        return {
+          ...inv,
+          productName: product?.name || 'Unknown Product',
+          price: product?.unitPrice || 0,
+          unitPrice: product?.unitPrice || 0,
+        };
+      })
+    );
+
+    // === Success response
+    res.json({
+      outletId: outlet.id,
+      outletName: outlet.name,
+      location: outlet.location,
+      products: enriched,
+      count: enriched.length,
+    });
+
+  } catch (err) {
+    console.error('Error in /outlet/inventory:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}); */
+
+
 router.get('/outlet/inventory', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;

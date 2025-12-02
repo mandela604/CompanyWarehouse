@@ -245,6 +245,10 @@
 
   <script>
 
+
+const urlParams = new URLSearchParams(window.location.search);
+const URL_OUTLET_ID = urlParams.get('outletId'); 
+
 let OUTLET_ID = null;
 
 function logout() {
@@ -334,7 +338,12 @@ function showToast(message, type = 'info', duration = 3000) {
 
 async function loadOutletInfo() {
   try {
-    const res = await fetch('/api/outlet/inventory');
+    let url = '/api/outlet/inventory';
+    if (URL_OUTLET_ID) {
+      url += `?outletId=${URL_OUTLET_ID}`;
+    }
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed');
     const data = await res.json();
 
