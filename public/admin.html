@@ -1162,6 +1162,11 @@ async function renderWarehouses() {
 
   try {
     const res = await fetch('/api/sales');
+   if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
+  }
+   
     const sales = await res.json();
 
     sales.forEach(s => {
