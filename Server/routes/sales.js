@@ -251,6 +251,14 @@ const enriched = await Promise.all(
   })
 );
 
+res.json({
+  page: Number(page),
+  limit: Number(limit),
+  totalPages: Math.ceil(totalCount / limit),
+  totalCount,
+  data: enriched
+});
+
   } catch (err) {
     console.error('SALES ERROR:', err);
     res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
