@@ -265,6 +265,8 @@ const enriched = await Promise.all(
 
 res.json({
   outletId: outlet.id,
+  outletName: outlet.name,       
+  location: outlet.location,
   products: enriched,
   count: enriched.length
 });

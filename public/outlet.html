@@ -60,7 +60,7 @@
         <div class="logo">O</div>
         <div>
           <h2>Outlet Rep</h2>
-          <div class="small" style="color:var(--muted)">Ikeja Outlet • Lagos</div>
+          <div class="small" id="outletDisplay" style="color:var(--muted)">Ikeja Outlet • Lagos</div>
         </div>
       </div>
       <div class="nav">
@@ -332,16 +332,24 @@ function showToast(message, type = 'info', duration = 3000) {
 
 
 
-async function loadOutletId() {
+async function loadOutletInfo() {
   try {
     const res = await fetch('/api/outlet/inventory');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error('Failed');
     const data = await res.json();
+
     OUTLET_ID = data.outletId;
+
+    // Dynamically set the outlet name in the sidebar
+    const outletDisplay = document.getElementById('outletDisplay');
+    if (outletDisplay) {
+      outletDisplay.textContent = `${data.outletName} • ${data.location}`;
+    }
+
     return data.products || [];
   } catch (err) {
-    console.error('Failed to get outlet ID:', err);
-    showToast(err?.message || 'Failed to load outlet info', 'error');
+    console.error(err);
+    showToast('Failed to load outlet info', 'error');
     return [];
   }
 }
