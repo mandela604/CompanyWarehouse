@@ -785,6 +785,7 @@ async function openMultiSaleModal() {
   renderCart();
 
   const id = OUTLET_ID || URL_OUTLET_ID;
+  console.log('id:', id)
   if (!id) {
     return showToast('Outlet not selected. Please select an outlet first.', 'error');
   }
