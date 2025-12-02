@@ -468,8 +468,12 @@ async function renderOutletInventory(page = 1) {
   const tbody = $('#fullInventoryTable tbody');
 
   try {
+    let url = '/api/outlet/inventory';
+    if (URL_OUTLET_ID) {
+      url += `?outletId=${URL_OUTLET_ID}`;
+    }
     console.log('Fetching shipments, page:', page);
-    const res = await fetch('/api/outlet/inventory');
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
         console.log('Shipments response:', data);
@@ -667,7 +671,10 @@ function clearSalesFilter() {
 // Open "Record Sale" modal
 $('#recordSaleBtn').onclick = async () => {
   try {
-    const res = await fetch('/api/outlet/inventory');
+    let url = '/api/outlet/inventory';
+    if (URL_OUTLET_ID) url += `?outletId=${URL_OUTLET_ID}`;
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
