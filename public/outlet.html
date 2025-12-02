@@ -688,6 +688,9 @@ $('#recordSaleBtn').onclick = async () => {
     let url = '/api/outlet/inventory';
     if (URL_OUTLET_ID) url += `?outletId=${URL_OUTLET_ID}`;
 
+    console.log("URL_OUTLET_ID =", URL_OUTLET_ID);
+console.log("Final fetch URL =", url);
+
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 

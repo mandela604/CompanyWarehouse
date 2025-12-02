@@ -300,6 +300,7 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
     const user = req.session.user;
     let outletId = req.query.outletId?.trim();
 
+    console.log('outletid:', outletId );
     // === CASE 1: User is a Rep → auto-resolve their own outlet
     if (user.role === 'rep') {
       if (outletId) {
