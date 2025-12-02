@@ -225,7 +225,7 @@ router.get('/sales', ensureAuth, async (req, res) => {
 
         return {
           id: s.id,
-          date: s.createdAt.toISOString().slice(0, 10),
+          date: s.createdAt ? s.createdAt.toISOString().slice(0, 10) : '',
           productName: product?.name || '—',
           qty: s.qtySold,
           outletName: outlet?.name || '—',
