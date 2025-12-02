@@ -236,7 +236,7 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
 // GET /api/outlet/inventory
 // → Reps: no query param needed
 // → Manager/Admin: ?outletId=xxx required
-/*router.get('/outlet/inventory', ensureAuth, async (req, res) => {
+router.get('/outlet/inventory', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
     let outletId = req.query.outletId?.trim();
@@ -316,10 +316,10 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
     console.error('Error in /outlet/inventory:', err);
     res.status(500).json({ message: 'Server error' });
   }
-}); */
+}); 
 
 
-router.get('/outlet/inventory', ensureAuth, async (req, res) => {
+/*router.get('/outlet/inventory', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
 
@@ -362,7 +362,7 @@ res.json({
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
-});
+});*/
 
 
 router.get('/outlet/sales', async (req, res) => {
