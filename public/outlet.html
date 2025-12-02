@@ -685,11 +685,8 @@ function clearSalesFilter() {
 // Open "Record Sale" modal
 $('#recordSaleBtn').onclick = async () => {
   try {
-   let url = '/api/outlet/inventory';
-if (OUTLET_ID) url += `?outletId=${OUTLET_ID}`;
-
-    console.log("URL_OUTLET_ID =", URL_OUTLET_ID);
-console.log("Final fetch URL =", url);
+    let url = '/api/outlet/inventory';
+    if (URL_OUTLET_ID) url += `?outletId=${URL_OUTLET_ID}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -784,19 +781,27 @@ $('#confirmSale').onclick = async () => {
 let saleCart = [];
 
 async function openMultiSaleModal() {
-  
   saleCart = [];
   renderCart();
 
-  const res = await fetch('/api/outlet/inventory');
+  const id = OUTLET_ID || URL_OUTLET_ID;
+  if (!id) {
+    return showToast('Outlet not selected. Please select an outlet first.', 'error');
+  }
+
+  const res = await fetch(`/api/outlet/inventory?outletId=${encodeURIComponent(id)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return showToast(err.message || `Failed to load products (${res.status})`, 'error');
+  }
   const data = await res.json();
   OUTLET_ID = data.outletId;
 
   const options = (data.products || [])
     .filter(p => p.qty > 0)
     .map(p => `
-      <option value="${p.productId}" 
-              data-price="${p.price}" 
+      <option value="${p.productId}"
+              data-price="${p.price}"
               data-qty="${p.qty}">
         ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
       </option>
@@ -955,7 +960,6 @@ function printSale() {
   renderOutletInventory();
   loadSales();                
   renderShipments();
-  $('#recordSaleBtn').onclick = openMultiSaleModal;
 })();
 
   </script>
