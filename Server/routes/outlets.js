@@ -256,10 +256,7 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
     if (!outlet) {
       return res.status(404).json({ message: 'Outlet not found' });
     }
-
-    // Optional extra security for managers (if you want to limit them to their warehouse only)
-    // Remove this block if managers should see ALL outlets
-    if (user.role === 'manager') {
+   if (user.role === 'manager') {
       const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
       if (!warehouse || !outlet.warehouseId || outlet.warehouseId !== warehouse.id) {
         return res.status(403).json({ message: 'You do not manage this outlet' });

@@ -561,9 +561,23 @@ async function renderShipments(page = 1) {
   tbody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
 
   try {
-    const res = await fetch(`/api/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+   const params = new URLSearchParams({
+      page: page,
+      limit: ITEMS_PER_PAGE
+    });
 
+    if (URL_OUTLET_ID) {
+      params.append('outletId', URL_OUTLET_ID);
+    }
+
+    const url = `/api/outlet?${params.toString()}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    
     const data = await res.json();
     const shipments = data.shipments || [];
     const totalCount = data.totalCount || 0;

@@ -83,13 +83,15 @@ async function getByRep(repId) {
   return await Outlet.find({ repId });
 }
 
+// Updated: now accepts outletId directly (not repId)
+async function getOutletOverview(outletId) {
+  if (!outletId) return null;
 
-async function getOutletOverview(repId) {
-  // 1️⃣ Find the outlet assigned to this rep
-  const outlet = await Outlet.findOne({ repId }).lean();
+  // 1. Find the outlet by outletId (not repId)
+  const outlet = await Outlet.findOne({ id: outletId }).lean();
   if (!outlet) return null;
 
-  // 2️⃣ Today’s sales
+  // 2. Today’s sales
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -101,31 +103,31 @@ async function getOutletOverview(repId) {
 
   const todaySalesTotal = todaysSales.reduce((sum, s) => sum + s.totalAmount, 0);
 
-  // 3️⃣ Incoming shipments for this outlet
+  // 3. Incoming shipments count
   const incomingShipments = await Shipment.countDocuments({
     'to.id': outlet.id,
     toType: 'Outlet',
-    status: { $in: ['In Transit', 'Pending'] } 
-  }); 
+    status: { $in: ['In Transit', 'Pending'] }
+  });
 
-  // 4️⃣ Quick inventory summary (first 6 products)
+  // 4. Quick inventory (top 6 by stock)
   const inventoryList = await Inventory.find({ outletId: outlet.id })
     .sort({ qty: -1 })
     .limit(6)
     .lean();
 
-  const quickInventory = [];
+  const quickInventory = await Promise.all(
+    inventoryList.map(async (item) => {
+      const product = await Product.findOne({ id: item.productId }).lean();
+      return {
+        name: product?.name || '—',
+        qty: item.qty,
+        price: product?.unitPrice || 0
+      };
+    })
+  );
 
-  for (const item of inventoryList) {
-    const product = await Product.findOne({ id: item.productId }).lean();
-    quickInventory.push({
-      name: product?.name || '—',
-      qty: item.qty,
-      price: product?.unitPrice || 0
-    });
-  }
-
-  // 5️⃣ Recent sales (latest 5)
+  // 5. Recent sales (latest 5)
   const recentSalesList = await Sale.find({
     outletId: outlet.id,
     isReversal: false
@@ -134,23 +136,23 @@ async function getOutletOverview(repId) {
     .limit(5)
     .lean();
 
-  const recentSales = [];
+  const recentSales = await Promise.all(
+    recentSalesList.map(async (s) => {
+      const product = await Product.findOne({ id: s.productId }).lean();
+      return {
+        date: s.createdAt.toISOString().slice(0, 10),
+        product: product?.name || '—',
+        qty: s.qtySold,
+        amount: s.totalAmount
+      };
+    })
+  );
 
-  for (const s of recentSalesList) {
-    const prod = await Product.findOne({ id: s.productId }).lean();
-    recentSales.push({
-      date: s.createdAt.toISOString().slice(0, 10),
-      product: prod?.name || '—',
-      qty: s.qtySold,
-      amount: s.totalAmount
-    });
-  }
-
-  // 6️⃣ Response for frontend
+  // 6. Final response
   return {
-    outletStock: outlet.totalStock,
+    outletStock: outlet.totalStock || 0,
     todaySales: todaySalesTotal,
-    totalRevenue: outlet.revenue,
+    totalRevenue: outlet.revenue || 0,
     incomingShipments,
 
     quickInventory,
