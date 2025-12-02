@@ -408,7 +408,13 @@ function viewSale(groupId) {
   incomingEl.textContent = '...';
 
   try {
-    const res = await fetch('/api/outlet/overview');
+
+    let url = '/api/outlet/overview';
+    if (URL_OUTLET_ID) {
+      url += `?outletId=${URL_OUTLET_ID}`;
+    }
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();

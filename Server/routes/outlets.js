@@ -219,6 +219,67 @@ router.get('/outlets/rep/:repId', ensureAuth, async (req, res) => {
 router.get('/outlet/overview', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
+    const requestedOutletId = req.query.outletId?.trim(); // e.g. ?outletId=out_123
+
+    let targetOutletId;
+
+    // CASE 1: Reps — auto-resolve their own outlet (even if they send outletId, validate it)
+    if (user.role === 'rep') {
+      const repOutlet = await Outlet.findOne({ repId: user.id }).lean();
+      if (!repOutlet) {
+        return res.status(404).json({ message: 'No outlet assigned to you' });
+      }
+
+      // If rep sends ?outletId=, make sure it's THEIR outlet
+      if (requestedOutletId && requestedOutletId !== repOutlet.id) {
+        return res.status(403).json({ message: 'You can only view your own outlet' });
+      }
+
+      targetOutletId = repOutlet.id;
+    }
+
+    // CASE 2: Manager or Admin — outletId is REQUIRED
+    else if (user.role === 'manager' || user.role === 'admin') {
+      if (!requestedOutletId) {
+        return res.status(400).json({ message: 'outletId query parameter is required' });
+      }
+      targetOutletId = requestedOutletId;
+    }
+
+    // Invalid role
+    else {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // Final check: does the outlet actually exist?
+    const outlet = await Outlet.findOne({ id: targetOutletId }).lean();
+    if (!outlet) {
+      return res.status(404).json({ message: 'Outlet not found' });
+    }
+
+    // Optional extra security for managers (if you want to limit them to their warehouse only)
+    // Remove this block if managers should see ALL outlets
+    if (user.role === 'manager') {
+      const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
+      if (!warehouse || !outlet.warehouseId || outlet.warehouseId !== warehouse.id) {
+        return res.status(403).json({ message: 'You do not manage this outlet' });
+      }
+    }
+
+    // All good — get overview for the resolved outlet
+    const data = await outletService.getOutletOverview(targetOutletId);
+
+    res.json(data);
+
+  } catch (err) {
+    console.error('Error in /outlet/overview:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+/*router.get('/outlet/overview', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
 
     if (user.role !== 'rep' && user.role !== 'admin')
       return res.status(403).json({ message: 'Only outlet reps can access this' });
@@ -229,7 +290,7 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-});
+});*/
 
 
 
