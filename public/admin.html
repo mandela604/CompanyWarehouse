@@ -1103,6 +1103,12 @@ async function renderWarehouses() {
         <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
           <div><div class="stock">${Number(totalStock || 0).toLocaleString()}</div><div class="badge">In Stock</div></div>
           <div><div class="stock">${formatNGN(totalSales)}</div><div class="badge">Sales</div></div>
+                  <a href="/outlet.html?outletId=${o.id}" 
+     target="_blank"
+     class="btn" 
+     style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
+     Open Dashboard
+  </a>
           <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="openFullSalesPage('${o.id}', 'outlet')">View Sales</button>
         </div>
       `;
