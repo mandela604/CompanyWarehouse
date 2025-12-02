@@ -258,6 +258,35 @@
   40%{ opacity:1; }
 }
 
+.pagination {
+  margin: 20px 0;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.pagination button.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -1223,7 +1252,7 @@ async function renderSales(page = 1) {
           <td><strong>${s.qty}</strong></td>
           <td>${s.outletName}</td>
           <td>${s.repName}</td>
-          <td>—</td>
+        
           <td><span class="pill">${s.status}</span></td>
           <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
           <td></td>
