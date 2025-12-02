@@ -215,7 +215,7 @@ router.post('/sales/:id/reverse', ensureAuth, async (req, res) => {
 router.get('/sales', ensureAuth, async (req, res) => {
   try {
     const sales = await Sale.find().sort({ createdAt: -1 });
-
+    console.log('sales:', sales);
     // Enrich with product, outlet, and seller info
     const enriched = await Promise.all(
       sales.map(async (s) => {
@@ -239,6 +239,7 @@ router.get('/sales', ensureAuth, async (req, res) => {
 
     res.json(enriched);
   } catch (err) {
+    console.error('SALES ERROR:', err); 
     res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
   }
 });
