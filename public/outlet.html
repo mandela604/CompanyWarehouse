@@ -784,6 +784,7 @@ $('#confirmSale').onclick = async () => {
 let saleCart = [];
 
 async function openMultiSaleModal() {
+  
   saleCart = [];
   renderCart();
 
@@ -954,6 +955,7 @@ function printSale() {
   renderOutletInventory();
   loadSales();                
   renderShipments();
+  $('#recordSaleBtn').onclick = openMultiSaleModal;
 })();
 
   </script>
