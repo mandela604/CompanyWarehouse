@@ -1312,14 +1312,14 @@ function viewSale(groupId) {
   let grandTotal = 0;
 
   sale.items.forEach(item => {
-    const lineTotal = item.qty * item.unitPrice;
+    const lineTotal = item.qty * item.price;
     grandTotal += lineTotal;
 
     itemsHTML += `
       <tr>
         <td><strong>${item.productName}</strong></td>
         <td style="text-align:center;">${item.qty}</td>
-        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right;">₦${item.price.toLocaleString()}</td>
         <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
       </tr>
     `;

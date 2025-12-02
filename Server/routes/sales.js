@@ -217,7 +217,6 @@ router.get('/sales', ensureAuth, async (req, res) => {
     let { page = 1, limit = 10 } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
-
     const skip = (page - 1) * limit;
 
     const totalCount = await Sale.countDocuments();
@@ -225,33 +224,39 @@ router.get('/sales', ensureAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+const enriched = await Promise.all(
+  sales.map(async (s) => {
+    const outlet = await outletService.getById(s.outletId);
+    const product = await Product.findOne({ id: s.productId });
+    const seller = await Account.findOne({ id: s.soldBy });
 
-    const enriched = await Promise.all(
-      sales.map(async (s) => {
-        const outlet = await OutletService.getById(s.outletId);
-        const product = await Product.findOne({ id: s.productId });
-        const seller = await Account.findOne({ id: s.soldBy });
-
-        return {
-          id: s.id,
-          date: s.createdAt ? s.createdAt.toISOString().slice(0, 10) : '',
+    return {
+      id: s.id,
+      date: s.createdAt ? s.createdAt.toISOString().slice(0, 10) : '',
+      totalAmount: s.totalAmount,
+      outletName: outlet?.name || '—',
+      repName: seller?.name || '—',
+      status: 'Sold',
+      sentFrom: 'Outlet',
+      senderPhone: seller?.phone || '',
+      items: [ // ✅ wrap single product in array
+        {
           productName: product?.name || '—',
+          sku: product?.sku || '—',
           qty: s.qtySold,
-          outletName: outlet?.name || '—',
-          repName: seller?.name || '—',
-          status: 'Sold',            
-          sentFrom: 'Outlet',        
-          senderPhone: seller?.phone || ''
-        };
-      })
-    );
+          price: s.totalAmount
+        }
+      ]
+    };
+  })
+);
 
-    res.json({ data: enriched, totalCount });
   } catch (err) {
-    console.error('SALES ERROR:', err); 
+    console.error('SALES ERROR:', err);
     res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
   }
 });
+
 
 
 
