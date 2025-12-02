@@ -226,7 +226,7 @@ router.get('/sales', ensureAuth, async (req, res) => {
       .limit(limit);
 const enriched = await Promise.all(
   sales.map(async (s) => {
-    const outlet = await outletService.getById(s.outletId);
+    const outlet = await OutletService.getById(s.outletId);
     const product = await Product.findOne({ id: s.productId });
     const seller = await Account.findOne({ id: s.soldBy });
 
