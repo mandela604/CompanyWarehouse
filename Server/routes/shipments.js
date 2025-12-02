@@ -261,61 +261,74 @@ router.get('/warehouse', ensureAuth, async (req, res) => {
 
 
 router.get('/outlet', ensureAuth, async (req, res) => {
-   console.log('Outlet route hit');
-   
-  console.log('Session user:', req.session.user);
+  console.log('Outlet shipments route hit');
+
   try {
     const user = req.session.user;
+    let outletId;
 
-    // get the outlet managed by this rep
-    const outlet = await Outlet.findOne({ repId: user.id });
-    if (!outlet) return res.status(404).json({ message: 'No outlet found' });
+    // Resolve outletId based on role
+    if (user.role === 'rep') {
+      const outlet = await Outlet.findOne({ repId: user.id }).lean();
+      if (!outlet) return res.status(404).json({ message: 'No outlet assigned' });
+      outletId = outlet.id;
+    } else {
+      outletId = req.query.outletId?.trim();
+      if (!outletId) return res.status(400).json({ message: 'outletId required' });
+    }
 
-    // pagination params
+    // Optional: validate outlet exists + manager access
+    const outlet = await Outlet.findOne({ id: outletId }).lean();
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
+
+    if (user.role === 'manager') {
+      const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
+      if (!warehouse || outlet.warehouseId !== warehouse.id) {
+        return res.status(403).json({ message: 'Not your outlet' });
+      }
+    }
+
+    // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // fetch shipments sent to this outlet
-    const shipments = await Shipment.find({ 'to.id': outlet.id, toType: 'Outlet' })
+    // Fetch shipments for this outlet
+    const shipments = await Shipment.find({ 'to.id': outletId, toType: 'Outlet' })
       .sort({ date: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const enriched = await Promise.all(
-      shipments.map(async s => {
-        // fetch all product names by ID
+      shipments.map(async (s) => {
         const productIds = s.products.map(p => p.productId);
-        const products = await Product.find({ id: { $in: productIds } });
+        const products = await Product.find({ id: { $in: productIds } }).lean();
         const productNames = products.map(p => p.name).join(', ');
-
         const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
 
         return {
           id: s.id,
           date: s.date.toISOString().slice(0, 10),
-          direction: 'Incoming', // always incoming for outlet
-          fromName: s.from.name,
-          toName: s.to.name,
-          productNames,   // all product names in shipment
+          fromName: s.from?.name || 'Unknown',
+          productNames,
           qty: totalQty,
           status: s.status
         };
       })
     );
 
+    const totalCount = await Shipment.countDocuments({ 'to.id': outletId, toType: 'Outlet' });
 
-    const totalCount = await Shipment.countDocuments({ 'to.id': outlet.id, toType: 'Outlet' });
-
-    // return pagination info along with shipments
     res.json({
       page,
       limit,
-      totalCount, 
+      totalCount,
       shipments: enriched
     });
+
   } catch (err) {
-    console.error(err);
+    console.error('Shipments error:', err);
     res.status(500).json({ message: 'Error loading shipments' });
   }
 });
