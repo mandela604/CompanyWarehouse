@@ -461,6 +461,7 @@
             </thead>
             <tbody></tbody>
           </table>
+        <div class="pagination" id="salesPagination"></div>
         </div>
       </section>
 
@@ -1156,41 +1157,90 @@ async function renderWarehouses() {
 }
 
 
-    async function renderSales() {
+
+    function renderPag(c,total,cur,cb){
+      const pages=Math.ceil(total/ITEMS_PER_PAGE); c.innerHTML='';
+      const prev=document.createElement('button'); prev.textContent='← Prev'; prev.disabled=cur===1; prev.onclick=()=>cb(cur-1); c.appendChild(prev);
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-cur)<=2){
+          const b=document.createElement('button'); b.textContent=i; b.className=i===cur?'active':''; b.onclick=()=>cb(i); c.appendChild(b);
+        }else if(c.lastChild && c.lastChild.textContent!=='...'){
+          const d=document.createElement('span'); d.textContent='...'; d.style.padding='0 8px'; c.appendChild(d);
+        }
+      }
+      const next=document.createElement('button'); next.textContent='Next →'; next.disabled=cur===pages; next.onclick=()=>cb(cur+1); c.appendChild(next);
+    }
+
+  function applySalesFilter() {
+  salesFilter.start = $('#filterStart').value;
+  salesFilter.end = $('#filterEnd').value;
+  curSales = 1;
+  loadSales();
+}
+   
+
+
+function clearSalesFilter() {
+  $('#filterStart').value = '';
+  $('#filterEnd').value = '';
+  salesFilter = { start: null, end: null };
+  curSales = 1;
+  loadSales();
+}
+
+
+ const SALES_PER_PAGE = 10; // items per page
+let curSales = 1;          // current page
+let salesFilter = { start: null, end: null }; // optional filters
+
+async function renderSales(page = 1) {
+  curSales = page;
   const tbody = $('#salesTable tbody');
-  tbody.innerHTML = '';
+  tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
 
   try {
-    const res = await fetch('/api/sales');
-    const data = await res.json(); 
-  
-  if (!res.ok) {
-    throw new Error(data.message || `HTTP error! Status: ${res.status}`);
-  }
+    // build query params
+    const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
+    if (salesFilter.start) q.set('startDate', salesFilter.start);
+    if (salesFilter.end) q.set('endDate', salesFilter.end);
 
-  const sales = data;
-    sales.forEach(s => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${s.date}</td>
-        <td>${s.productName}</td>
-        <td><strong>${s.qty}</strong></td>
-        <td>${s.outletName}</td>
-        <td>${s.repName}</td>
-        <td>—</td> <!-- Manager column -->
-        <td><span class="pill">${s.status}</span></td>
-        <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
-        <td></td>
-      `;
-      tbody.appendChild(tr);
-    });
+    // fetch paginated sales from backend
+    const res = await fetch(`/api/sales?${q.toString()}`);
+    const json = await res.json();
+
+    if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+
+    const sales = json.data || [];
+    const totalCount = json.totalCount || 0;
+
+    if (!sales.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">No sales</td></tr>';
+    } else {
+      tbody.innerHTML = sales.map(s => `
+        <tr>
+          <td>${s.date}</td>
+          <td>${s.productName}</td>
+          <td><strong>${s.qty}</strong></td>
+          <td>${s.outletName}</td>
+          <td>${s.repName}</td>
+          <td>—</td>
+          <td><span class="pill">${s.status}</span></td>
+          <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
+          <td></td>
+        </tr>
+      `).join('');
+    }
+
+    // render pagination buttons
+    renderPag($('#salesPagination'), totalCount, curSales, n => renderSales(n));
+
   } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999">Failed to load sales</td></tr>';
     console.error('Failed to load sales:', err);
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#999">Failed to load sales</td></tr>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
+    showToast('Server error: ' + (err?.message || 'Failed'), 'error');
   }
 }
+
 
 let fullSalesTargetId = null;
 let fullSalesTargetType = null;

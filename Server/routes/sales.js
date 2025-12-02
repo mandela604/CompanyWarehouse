@@ -214,9 +214,18 @@ router.post('/sales/:id/reverse', ensureAuth, async (req, res) => {
 // GET ALL SALES
 router.get('/sales', ensureAuth, async (req, res) => {
   try {
-    const sales = await Sale.find().sort({ createdAt: -1 });
-    console.log('sales:', sales);
-    // Enrich with product, outlet, and seller info
+    let { page = 1, limit = 10 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Sale.countDocuments();
+    const sales = await Sale.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     const enriched = await Promise.all(
       sales.map(async (s) => {
         const outlet = await OutletService.getById(s.outletId);
@@ -237,12 +246,13 @@ router.get('/sales', ensureAuth, async (req, res) => {
       })
     );
 
-    res.json(enriched);
+    res.json({ data: enriched, totalCount });
   } catch (err) {
     console.error('SALES ERROR:', err); 
     res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
   }
 });
+
 
 
 
