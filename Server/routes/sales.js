@@ -229,7 +229,7 @@ router.get('/sales', ensureAuth, async (req, res) => {
   sales.map(async (s) => {
     const outlet = await OutletService.getById(s.outletId);
     const seller = await Account.findOne({ id: s.soldBy });
-    const product = await Product.findById(s.productId); // use _id
+    const product = await Product.findOne(s.productId); // use _id
 
     return {
       id: s.id,
