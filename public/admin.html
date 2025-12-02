@@ -470,7 +470,7 @@
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
       
-      <div id="salesDateDisplay" style="display:none;"></div>
+      <div id="salesDateDisplay" ></div>
        <div id="salesUnits"></div>
       <div id="salesRevenue"></div>
       <div class="table">
@@ -1234,7 +1234,7 @@ async function renderWarehouses() {
   salesFilter.start = $('#filterStart').value;
   salesFilter.end = $('#filterEnd').value;
   curSales = 1;
-  loadSales();
+  renderSales();
 }
    
 
@@ -1244,7 +1244,7 @@ function clearSalesFilter() {
   $('#filterEnd').value = '';
   salesFilter = { start: null, end: null };
   curSales = 1;
-  loadSales();
+  renderSales();
 }
 
 
@@ -1279,8 +1279,8 @@ async function renderSales(page = 1) {
       tbody.innerHTML = sales.map(s => `
         <tr>
           <td>${s.date}</td>
-          <td>${s.productName}</td>
-          <td><strong>${s.qty}</strong></td>
+          <td>${s.items[0]?.productName}</td>
+          <td><strong>${s.items[0]?.qty}</strong></td>
           <td>${s.outletName}</td>
           <td>${s.repName}</td>
         

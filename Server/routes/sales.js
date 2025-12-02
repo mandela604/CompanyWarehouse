@@ -224,11 +224,12 @@ router.get('/sales', ensureAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-const enriched = await Promise.all(
+
+    const enriched = await Promise.all(
   sales.map(async (s) => {
     const outlet = await OutletService.getById(s.outletId);
-    const product = await Product.findOne({ id: s.productId });
     const seller = await Account.findOne({ id: s.soldBy });
+    const product = await Product.findById(s.productId); // use _id
 
     return {
       id: s.id,
@@ -239,7 +240,7 @@ const enriched = await Promise.all(
       status: 'Sold',
       sentFrom: 'Outlet',
       senderPhone: seller?.phone || '',
-      items: [ // ✅ wrap single product in array
+      items: [
         {
           productName: product?.name || '—',
           sku: product?.sku || '—',
