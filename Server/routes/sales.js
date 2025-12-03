@@ -17,7 +17,7 @@ const router = express.Router();
 
 
 
-router.post('/sales', ensureAuth, async (req, res) => {
+/*router.post('/sales', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -89,7 +89,7 @@ const totalAmount = qtySold * product.unitPrice;
     session.endSession();
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-});
+}); */
 
 
 router.post('/sales/bulk', ensureAuth, async (req, res) => {
@@ -102,6 +102,10 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
 
     const transactionId = uuidv4();  // One ID for the entire sale
     let totalSaleAmount = 0;
+
+    // Calculate totals once
+    const itemCount = items.length;
+    const totalQty = items.reduce((sum, i) => sum + i.qtySold, 0);
 
     for (const item of items) {
       const { productId, qtySold } = item;
@@ -129,7 +133,8 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
         qtySold,
         totalAmount,
         soldBy: req.session.user.id,
-        transactionId                     // This is the key!
+        transactionId,
+        itemCount,      
       });
       await sale.save({ session });
     }
@@ -138,7 +143,9 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
     res.json({ 
       message: 'Multi-product sale recorded successfully', 
       totalAmount: totalSaleAmount,
-      transactionId 
+      transactionId,
+      itemCount,
+      totalQty 
     });
 
   } catch (err) {
@@ -212,7 +219,7 @@ router.post('/sales/:id/reverse', ensureAuth, async (req, res) => {
 
 
 // GET ALL SALES
-router.get('/sales', ensureAuth, async (req, res) => {
+/*router.get('/sales', ensureAuth, async (req, res) => {
   try {
     let { page = 1, limit = 10 } = req.query;
     page = parseInt(page);
@@ -265,9 +272,100 @@ res.json({
     console.error('SALES ERROR:', err);
     res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
   }
+});*/
+
+router.get('/sales', ensureAuth, async (req, res) => {
+  try {
+    let { page = 1, limit = 10, startDate, endDate } = req.query;
+    page = Number(page); limit = Number(limit);
+    const skip = (page - 1) * limit;
+
+    // 1. Build filter (add date filter if needed)
+    const filter = {};
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
+    }
+
+    // 2. Get raw sales + total count
+    const [rawSales, totalCount] = await Promise.all([
+      Sale.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Sale.countDocuments(filter)
+    ]);
+
+    if (!rawSales.length) {
+      return res.json({ data: [], totalCount: 0 });
+    }
+
+    // 3. Load all needed refs in bulk
+    const productIds = [...new Set(rawSales.map(s => s.productId))];
+    const outletIds  = [...new Set(rawSales.map(s => s.outletId))];
+    const sellerIds  = [...new Set(rawSales.map(s => s.soldBy))];
+
+    const [products, outlets, sellers] = await Promise.all([
+      Product.find({ id: { $in: productIds } }).lean(),
+      Outlet.find({ _id: { $in: outletIds } }).lean(),
+      Account.find({ id: { $in: sellerIds } }).lean()
+    ]);
+
+    const productMap = Object.fromEntries(products.map(p => [p.id, p]));
+    const outletMap  = Object.fromEntries(outlets.map(o => [o.id.toString(), o]));
+    const sellerMap  = Object.fromEntries(sellers.map(a => [a.id, a]));
+
+    // 4. Group by transactionId (fallback to timestamp)
+    const groups = {};
+    for (const s of rawSales) {
+      const key = s.transactionId;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    }
+
+    // 5. Build final grouped response
+    const data = Object.values(groups).map(g => {
+      const first = g[0];
+      const totalQty   = g.reduce((sum, x) => sum + x.qtySold, 0);
+      const totalAmt   = g.reduce((sum, x) => sum + x.totalAmount, 0);
+
+      return {
+        id: first.transactionId,
+        date: new Date(first.createdAt).toISOString().slice(0,10),
+        time: new Date(first.createdAt).toTimeString().slice(0,8),
+        itemCount: g.length,
+        totalQty,
+        totalAmount: totalAmt,
+        outletName: outletMap[first.outletId]?.name || '—',
+        repName:    sellerMap[first.soldBy]?.name || '—',
+        status: 'Sold',
+        sentFrom: outletMap[first.outletId]?.name || 'Unknown Outlet',
+        senderPhone: sellerMap[first.soldBy]?.phone || '',
+        items: g.map(s => ({
+          productName: productMap[s.productId]?.name || '—',
+          sku:         productMap[s.productId]?.sku || '—',
+          qty:         s.qtySold,
+          unitPrice:   productMap[s.productId]?.unitPrice || 0,
+          amount:      s.totalAmount
+        }))
+      };
+    });
+
+    res.json({
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      data
+    });
+
+  } catch (err) {
+    console.error('SALES ERROR:', err);
+    res.status(500).json({ message: 'Failed to fetch sales', error: err.message });
+  }
 });
-
-
 
 
 
