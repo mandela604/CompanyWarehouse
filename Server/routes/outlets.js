@@ -495,6 +495,7 @@ router.get('/outlet/sales', async (req, res) => {
 
   } catch (err) {
     console.error('Error in /outlet/sales:', err);
+   console.error(err.stack); 
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
