@@ -1466,19 +1466,21 @@ function initSalesDatePicker(){
   salesPicker = flatpickr(input, {
     mode:'range',
     dateFormat:'Y-m-d',
-    onChange: dates => {
-      if(dates.length===2){
-        const [f,t]=dates;
-        salesFilter.start = f.toISOString().slice(0,10);
-        salesFilter.end = t.toISOString().slice(0,10);
-        $('#salesDateDisplay').textContent = `${niceDate(f)} – ${niceDate(t)}`;
-      } else {
-        salesFilter.start = null;
-        salesFilter.end = null;
-        $('#salesDateDisplay').textContent='All time';
-      }
-      renderSales();
+   onChange: dates => {
+    if (dates.length === 2) {
+      const start = dates[0] < dates[1] ? dates[0] : dates[1];
+      const end = dates[0] < dates[1] ? dates[1] : dates[0];
+      salesFilter.start = start.toISOString().slice(0,10);
+      salesFilter.end = end.toISOString().slice(0,10);
+      $('#salesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+    } else {
+      salesFilter.start = null;
+      salesFilter.end = null;
+      $('#salesDateDisplay').textContent='All time';
     }
+    curSales = 1;  // ← always reset page when filtering
+    renderSales();
+  }
   });
 }
 

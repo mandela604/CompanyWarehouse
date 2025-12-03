@@ -297,14 +297,11 @@ router.get('/sales', ensureAuth, async (req, res) => {
     }
 
     // 2. Get raw sales + total count
-    const [rawSales, totalCount] = await Promise.all([
-      Sale.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Sale.countDocuments(filter)
-    ]);
+   const rawSales = await Sale.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     if (!rawSales.length) {
       return res.json({ data: [], totalCount: 0 });
@@ -332,6 +329,8 @@ router.get('/sales', ensureAuth, async (req, res) => {
       if (!groups[key]) groups[key] = [];
       groups[key].push(s);
     }
+
+     const groupedCount = Object.keys(groups).length;
 
     // 5. Build final grouped response
     const data = Object.values(groups).map(g => {
@@ -364,8 +363,8 @@ router.get('/sales', ensureAuth, async (req, res) => {
     res.json({
       page,
       limit,
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
+      totalCount : groupedCount,
+      totalPages: Math.ceil(groupedCount / limit),
       data
     });
 
