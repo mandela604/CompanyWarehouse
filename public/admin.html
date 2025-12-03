@@ -2578,6 +2578,42 @@ async function deleteUser(id) {
 }
 
 
+
+function printSale() {
+  const printWindow = window.open('', '_blank');
+  const date = new Date().toLocaleString();
+  const content = `
+    <html>
+      <head><title>Sale Receipt</title></head,var(--blue);font-family:system-ui;</style></head>
+      <body style="padding:20px;">
+        <h2 style="text-align:center;">SALE RECEIPT</h2>
+        <p style="text-align:center;color:#666;">Date: ${date}</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="text-align:left;padding:10px;border:1px solid #ddd;">Product</th>
+              <th style="padding:10px;border:1px solid #ddd;">Qty</th>
+              <th style="padding:10px;border:1px solid #ddd;">Price</th>
+              <th style="padding:10px;border:1px solid #ddd;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${$('#viewItems').innerHTML}
+          </tbody>
+        </table>
+        <div style="text-align:right;font-size:20px;font-weight:bold;">
+          Grand Total: ${$('#viewModal .grand-total').textContent}
+        </div>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(content);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+}
+
     function refreshAll(){ 
       renderOverviewCards(); 
       renderShipments();  
