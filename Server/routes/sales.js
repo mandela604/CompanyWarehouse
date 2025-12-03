@@ -11,6 +11,7 @@ const Account = require('../models/Account');
 const OutletInventory = require('../models/OutletInventory');
 const OutletService = require('../services/outletService');
 const Outlet = require('../models/Outlet');
+const Company = require('../models/Company'); 
 
 
 const router = express.Router();
