@@ -430,7 +430,6 @@ router.get('/outlet/sales', async (req, res) => {
     const { page = 1, limit = 20, startDate, endDate, outletId } = req.query;
     if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
 
-    // Build filter
     const filter = { outletId };
     if (startDate || endDate) {
       filter.createdAt = {};
@@ -438,37 +437,27 @@ router.get('/outlet/sales', async (req, res) => {
       if (endDate) filter.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
     }
 
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 20;
+    const rawSales = await Sale.find(filter).sort({ createdAt: -1 }).lean();
+    if (rawSales.length === 0) return res.json({ data: [], totalCount: 0 });
 
-    // Fetch all sales
-    const rawSales = await Sale.find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    if (rawSales.length === 0) {
-      return res.json({ data: [], totalCount: 0 });
-    }
-
-    // Fetch all product names in one query
+    // Fetch products
     const productIds = [...new Set(rawSales.map(s => s.productId))];
     const products = await Product.find({ id: { $in: productIds } }).lean();
-    const productMap = Object.fromEntries(
-      products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }])
-    );
+    const productMap = Object.fromEntries(products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }]));
 
-    // Group by transactionId (fallback to timestamp for old data)
+    // Fetch sellers
+    const sellerIds = [...new Set(rawSales.map(s => s.soldBy))];
+    const sellers = await Account.find({ id: { $in: sellerIds } }).lean();
+    const sellerMap = Object.fromEntries(sellers.map(s => [s.id, s]));
+
+    // Group by transactionId
     const groups = {};
-
     for (const sale of rawSales) {
       const key = sale.transactionId || sale.createdAt.toISOString().slice(0, 19);
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(sale);
     }
 
-    // Build final grouped sales
     const groupedSales = Object.values(groups).map(itemsInSale => {
       const sample = itemsInSale[0];
       const totalAmount = itemsInSale.reduce((sum, s) => sum + s.totalAmount, 0);
@@ -479,6 +468,7 @@ router.get('/outlet/sales', async (req, res) => {
         id: (sample.transactionId || sample._id) + '-group',
         date: new Date(sample.createdAt).toISOString().slice(0, 10),
         time: new Date(sample.createdAt).toTimeString().slice(0, 8),
+        repName: sellerMap[sample.soldBy]?.name || '—',   // <-- added repName
         items: itemsInSale.map(s => ({
           productId: s.productId,
           productName: productMap[s.productId]?.name || '—',
@@ -493,6 +483,8 @@ router.get('/outlet/sales', async (req, res) => {
     });
 
     // Pagination
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
     const start = (pageNum - 1) * limitNum;
     const paginated = groupedSales.slice(start, start + limitNum);
 
@@ -506,6 +498,7 @@ router.get('/outlet/sales', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 // GET /api/outlet/sales
 /*router.get('/outlet/sales', async (req, res) => {

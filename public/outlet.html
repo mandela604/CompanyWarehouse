@@ -368,6 +368,11 @@ function viewSale(groupId) {
   const sale = window.lastSalesData?.data.find(s => s.id === groupId);
   if (!sale) return showToast('Sale not found', 'error');
 
+  // Set date, time, items count, and recorded by (if repName available)
+  $('#saleDate').textContent = `${sale.date} ${sale.time} | Recorded by: ${sale.repName || '—'}`;
+  $('#itemCount').textContent = `${sale.itemCount} item${sale.itemCount > 1 ? 's' : ''}`;
+
+  // Build items table
   let itemsHTML = '';
   let grandTotal = 0;
 
@@ -387,7 +392,6 @@ function viewSale(groupId) {
 
   $('#viewItems').innerHTML = itemsHTML;
   $('#viewModal .grand-total').textContent = '₦' + grandTotal.toLocaleString();
-
   $('#viewModal').style.display = 'flex';
 }
 
