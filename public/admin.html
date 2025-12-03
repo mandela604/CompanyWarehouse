@@ -1466,22 +1466,21 @@ function initSalesDatePicker(){
   salesPicker = flatpickr(input, {
     mode:'range',
     dateFormat:'Y-m-d',
-   onChange: dates => {
-    if (dates.length === 2) {
-      const start = dates[0] < dates[1] ? dates[0] : dates[1];
-      const end = dates[0] < dates[1] ? dates[1] : dates[0];
-      salesFilter.start = start.toISOString().slice(0,10);
-      salesFilter.end = end.toISOString().slice(0,10);
-      $('#salesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
-    } else {
-      salesFilter.start = null;
-      salesFilter.end = null;
-      $('#salesDateDisplay').textContent='All time';
-    }
-    curSales = 1;  // ← always reset page when filtering
-    renderSales();
+ onChange: dates => {
+  if (dates.length === 2) {
+    const start = dates[0] < dates[1] ? dates[0] : dates[1];
+    const end   = dates[0] < dates[1] ? dates[1] : dates[0];
+    salesFilter.start = start.toISOString().slice(0,10);
+    salesFilter.end   = end.toISOString().slice(0,10);
+    $('#salesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+  } else {
+    salesFilter.start = salesFilter.end = null;
+    $('#salesDateDisplay').textContent = 'All time';
   }
-  });
+  curSales = 1;
+  renderSales();
+}
+ });
 }
 
 async function renderSalesSummary() {
@@ -2580,39 +2579,50 @@ async function deleteUser(id) {
 
 
 function printSale() {
-  const printWindow = window.open('', '_blank');
-  const date = new Date().toLocaleString();
-  const content = `
+  const printWin = window.open('', '', 'width=800,height=600');
+  const itemsHTML = $('#viewItems').innerHTML;
+  const grandTotal = $('#viewModal .grand-total').textContent;
+  const saleDate = $('#saleDate').textContent;
+
+  printWin.document.write(`
+    <!DOCTYPE html>
     <html>
-      <head><title>Sale Receipt</title></head,var(--blue);font-family:system-ui;</style></head>
-      <body style="padding:20px;">
-        <h2 style="text-align:center;">SALE RECEIPT</h2>
-        <p style="text-align:center;color:#666;">Date: ${date}</p>
-        <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      <head>
+        <title>Sale Receipt</title>
+        <style>
+          body { font-family: system-ui, sans-serif; padding: 30px; }
+          h2 { text-align: center; color: #0b5ed7; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background: #f4f4f4; }
+          .total { font-size: 22px; font-weight: bold; text-align: right; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <h2>SALE RECEIPT</h2>
+        <p style="text-align:center; color:#666;">${saleDate}</p>
+        <table>
           <thead>
-            <tr style="background:#f0f0f0;">
-              <th style="text-align:left;padding:10px;border:1px solid #ddd;">Product</th>
-              <th style="padding:10px;border:1px solid #ddd;">Qty</th>
-              <th style="padding:10px;border:1px solid #ddd;">Price</th>
-              <th style="padding:10px;border:1px solid #ddd;">Total</th>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Line Total</th>
             </tr>
           </thead>
-          <tbody>
-            ${$('#viewItems').innerHTML}
-          </tbody>
+          <tbody>${itemsHTML}</tbody>
         </table>
-        <div style="text-align:right;font-size:20px;font-weight:bold;">
-          Grand Total: ${$('#viewModal .grand-total').textContent}
-        </div>
+        <div class="total">Grand Total: ${grandTotal}</div>
       </body>
     </html>
-  `;
-  printWindow.document.write(content);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
+  `);
+
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+  printWin.close();
 }
+
 
     function refreshAll(){ 
       renderOverviewCards(); 
