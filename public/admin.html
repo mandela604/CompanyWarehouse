@@ -479,7 +479,8 @@
               <tr>
                 <th>Date</th>
                 <th>Product</th>
-                <th>Qty</th>
+                <th>Total Qty</th>
+                <th>Items</th>
                 <th>Outlet</th>
                 <th>Rep (Recorder)</th>
               <!--  <th>Manager (Approver)</th> -->
@@ -1280,7 +1281,8 @@ async function renderSales(page = 1) {
         <tr>
           <td>${s.date}</td>
           <td>${s.items[0]?.productName}</td>
-          <td><strong>${s.items[0]?.qty}</strong></td>
+          <td><strong>${s.totalQty}</strong></td>
+           <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
           <td>${s.outletName}</td>
           <td>${s.repName}</td>
         
@@ -1312,14 +1314,14 @@ function viewSale(groupId) {
   let grandTotal = 0;
 
   sale.items.forEach(item => {
-    const lineTotal = item.qty * item.price;
+    const lineTotal = item.qty * item.unitPrice;
     grandTotal += lineTotal;
 
     itemsHTML += `
       <tr>
         <td><strong>${item.productName}</strong></td>
         <td style="text-align:center;">${item.qty}</td>
-        <td style="text-align:right;">₦${item.price.toLocaleString()}</td>
+        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
         <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
       </tr>
     `;
