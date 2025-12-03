@@ -309,7 +309,7 @@ router.get('/sales', ensureAuth, async (req, res) => {
 
     const [products, outlets, sellers] = await Promise.all([
       Product.find({ id: { $in: productIds } }).lean(),
-      Outlet.find({ _id: { $in: outletIds } }).lean(),
+      Outlet.find({ id: { $in: outletIds } }).lean(),
       Account.find({ id: { $in: sellerIds } }).lean()
     ]);
 
@@ -492,136 +492,8 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
 });
 
 
-
-// GET /api/outlet/sales?page=1&limit=10&startDate=2025-11-01&endDate=2025-11-18
-/*router.get('/outlet/sales', ensureAuth, async (req, res) => {
-   console.log('Query params:', req.query);
-  console.log('User session:', req.session.user);
-  try {
-    const user = req.session.user;
-    const page = Math.max(1, parseInt(req.query.page || '1'));
-    const limit = Math.max(1, parseInt(req.query.limit || '10'));
-    const skip = (page - 1) * limit;
-    const { startDate, endDate } = req.query;
-
-    // build filter
-    const filter = { isReversal: false };
-
-    // restrict by role: rep -> their outlet only; manager -> their outlets; admin -> allow ?outletId
-    if (user.role === 'rep') {
-      const outlet = await Outlet.findOne({ repId: user.id }).lean();
-      if (!outlet) return res.status(404).json({ message: 'No outlet assigned.' });
-      filter.outletId = outlet.id;
-   } else if (user.role === 'manager') {
-  const outlets = await outletService.getByManager(user.id);
-  const managedOutletIds = outlets.map(o => o.id);
-
-  if (req.query.outletId) {
-    // Allow only if the requested outlet belongs to this manager
-    if (!managedOutletIds.includes(req.query.outletId)) {
-      return res.status(403).json({ message: 'Access denied to this outlet' });
-    }
-    filter.outletId = req.query.outletId; // single ID
-  } else {
-    filter.outletId = { $in: managedOutletIds };
-  }
-} else if (user.role === 'admin') {
-      if (req.query.outletId) filter.outletId = req.query.outletId;
-      // else admin sees all
-    } else {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    if (startDate && endDate) {
-      filter.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    }
-
-    // Aggregation with lookups (products, accounts, outlets)
-    const agg = [
-      { $match: filter },
-      { $sort: { createdAt: -1 } },
-      {
-        $lookup: {
-          from: 'products',
-          localField: 'productId',
-          foreignField: 'id',
-          as: 'product'
-        }
-      },
-      { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'accounts',
-          localField: 'soldBy',
-          foreignField: 'id',
-          as: 'seller'
-        }
-      },
-      { $unwind: { path: '$seller', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'outlets',
-          localField: 'outletId',
-          foreignField: 'id',
-          as: 'outlet'
-        }
-      },
-      { $unwind: { path: '$outlet', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          id: 1,
-          createdAt: 1,
-          qtySold: 1,
-          totalAmount: 1,
-          'product.name': 1,
-          'product.sku': 1,
-          'seller.name': 1,
-          'seller.phone': 1,
-          'outlet.name': 1
-        }
-      },
-      // facet for pagination metadata
-      {
-        $facet: {
-          data: [{ $skip: skip }, { $limit: limit }],
-          totalCount: [{ $count: 'count' }]
-        }
-      }
-    ];
-
-    const result = await Sale.aggregate(agg);
-    const data = result[0]?.data || [];
-    const totalCount = result[0]?.totalCount[0]?.count || 0;
-    const totalPages = Math.ceil(totalCount / limit);
-
-    // map to client shape
-    const mapped = data.map(s => ({
-      id: s.id,
-      date: s.createdAt.toISOString().slice(0,10),
-      sku: s.product?.sku || '—',
-      productName: s.product?.name || '—',
-      qty: s.qtySold,
-      repName: s.seller?.name || '—',
-      outletName: s.outlet?.name || '—',
-      totalAmount: s.totalAmount
-    }));
-
-    res.json({
-      page,
-      limit,
-      totalPages,
-      totalCount,
-      data: mapped
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});*/
-
-
 // REPLACE your entire /outlet/sales route with this:
-router.get('/outlet/sales', async (req, res) => {
+/*router.get('/outlet/sales', async (req, res) => {
   const { outletId, page = 1, limit = 20, startDate, endDate } = req.query;
   const user = req.session.user;
 
@@ -693,7 +565,7 @@ router.get('/outlet/sales', async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-});
+}); */
 
 
 module.exports = router;
