@@ -469,7 +469,8 @@
       <!-- ==================== SALES RECORDS ==================== -->
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
-      
+      <div id="salesDateContainer" style="width:150px;"></div>
+
       <div id="salesDateDisplay" ></div>
        <div id="salesUnits"></div>
       <div id="salesRevenue"></div>
@@ -1231,6 +1232,7 @@ async function renderWarehouses() {
       const next=document.createElement('button'); next.textContent='Next →'; next.disabled=cur===pages; next.onclick=()=>cb(cur+1); c.appendChild(next);
     }
 
+
   function applySalesFilter() {
   salesFilter.start = $('#filterStart').value;
   salesFilter.end = $('#filterEnd').value;
@@ -1453,11 +1455,13 @@ navigateTo = function(route) {
 
 let salesPicker = null;
 function initSalesDatePicker(){
+  const container = $('#salesDateContainer');
+  container.innerHTML = ''; // clear any existing
   const input = document.createElement('input');
   input.type='text';
   input.placeholder='Pick range';
   input.style.cssText='padding:4px 8px;border-radius:6px;border:1px solid #e6eefb;font-size:12px;width:100%';
-  $('#salesDateDisplay').appendChild(input);
+  container.appendChild(input);
 
   salesPicker = flatpickr(input, {
     mode:'range',
@@ -1465,15 +1469,15 @@ function initSalesDatePicker(){
     onChange: dates => {
       if(dates.length===2){
         const [f,t]=dates;
-        $('#salesDateDisplay').dataset.from=f.toISOString().slice(0,10);
-        $('#salesDateDisplay').dataset.to=t.toISOString().slice(0,10);
-        $('#salesDateDisplay').textContent=`${niceDate(f)} – ${niceDate(t)}`;
+        salesFilter.start = f.toISOString().slice(0,10);
+        salesFilter.end = t.toISOString().slice(0,10);
+        $('#salesDateDisplay').textContent = `${niceDate(f)} – ${niceDate(t)}`;
       } else {
-        delete $('#salesDateDisplay').dataset.from;
-        delete $('#salesDateDisplay').dataset.to;
+        salesFilter.start = null;
+        salesFilter.end = null;
         $('#salesDateDisplay').textContent='All time';
       }
-      renderSalesSummary();
+      renderSales();
     }
   });
 }
@@ -2578,6 +2582,7 @@ async function deleteUser(id) {
       renderQuickStats(); 
       renderTopOutlets(); 
       renderPending();
+      initSalesDatePicker();
       if (document.querySelector('#reportsSection').classList.contains('active')) { reportPage = 1; renderReports(); }
       if (document.querySelector('#salesSection').classList.contains('active')) { renderSales(); }
       if (document.querySelector('#warehousesSection').classList.contains('active')) renderWarehouses();
