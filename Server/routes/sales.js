@@ -10,6 +10,7 @@ const Product = require('../models/Product');
 const Account = require('../models/Account');
 const OutletInventory = require('../models/OutletInventory');
 const OutletService = require('../services/outletService');
+const Outlet = require('../models/Outlet');
 
 
 const router = express.Router();
