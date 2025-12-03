@@ -1308,6 +1308,7 @@ async function renderSales(page = 1) {
 
 function viewSale(groupId) {
   const sale = window.lastSalesData?.data.find(s => s.id === groupId);
+ console.log('sale items:', sale.items);
   if (!sale) return showToast('Sale not found', 'error');
 
   let itemsHTML = '';
