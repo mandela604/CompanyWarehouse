@@ -127,13 +127,21 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
       await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
       await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
       await companyService.incrementRevenue(session, totalAmount, qtySold);
-      console.log("Updating warehouse revenue:", inventory.warehouseId, totalAmount);
+ 
+      const outlet = await Outlet.findOne({ id: outletId }).lean();
+if (!outlet) throw new Error(`Outlet not found: ${outletId}`);
 
-      await Warehouse.updateOne(
-  { id: inventory.warehouseId },
+const warehouseId = outlet.warehouseId;
+
+// Now increment warehouse revenue
+console.log("Updating warehouse revenue:", warehouseId, totalAmount);
+
+await Warehouse.updateOne(
+  { id: warehouseId },
   { $inc: { totalRevenue: totalAmount } },
   { session }
 );
+
 
 
       await Company.updateOne(
