@@ -107,12 +107,6 @@ router.post('/shipments', async (req, res) => {
           { $inc: { inTransit: p.qty } },
           { session }
         );
-
-        await Warehouse.updateOne(
-    { id: fromId },
-    { $inc: { totalStock: -p.qty } },
-    { session }
-  );
       }
     }
 
@@ -378,11 +372,6 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
 let totalQty = 0;
 for (const p of shipment.products) {
   totalQty += p.qty;
-
-  console.error('Total quantity to increment:', totalQty);
-
-  console.log("DEBUG: totalQty =", totalQty);
-process.stdout.write("\n");
 
   // Destination update
   if (shipment.toType === 'Warehouse') {
