@@ -384,6 +384,8 @@ process.stdout.write("\n");
 ); 
 
   } else if (shipment.toType === 'Outlet') {
+  const warehouseId = shipment.fromType === 'Warehouse' ? shipment.from.id : null;
+
    await OutletInventory.updateOne(
   { outletId: shipment.to.id, productId: p.productId },
   { 
@@ -393,7 +395,8 @@ process.stdout.write("\n");
       sku: p.productSku,
       productName: p.name || p.productName,
       unitPrice: p.unitPrice || 0,
-      status: 'inStock'
+      status: 'inStock',
+      ...(warehouseId && { warehouseId })
     },
     $setOnInsert: { createdAt: new Date() }
   },
@@ -415,6 +418,12 @@ process.stdout.write("\n");
       { $inc: { qty: -p.qty, totalShipped: p.qty } },
       { session }
     );
+
+      await Warehouse.updateOne(
+    { id: shipment.from.id },
+    { $inc: { totalShipments: p.qty } },
+    { session }
+  );
   }
 }
 
