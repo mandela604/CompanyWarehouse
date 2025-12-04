@@ -24,6 +24,11 @@ router.post('/shipments', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    if (fromType === 'Warehouse' && toType === 'Warehouse' && fromId === toId) {
+  await session.abortTransaction();
+  return res.status(400).json({ message: 'Warehouse cannot ship to itself' });
+}
+
     // 🔹 Fetch dynamic names safely
     let fromName, toName;
     if (fromType === 'Company') {
@@ -102,6 +107,12 @@ router.post('/shipments', async (req, res) => {
           { $inc: { inTransit: p.qty } },
           { session }
         );
+
+        await Warehouse.updateOne(
+    { id: fromId },
+    { $inc: { totalStock: -p.qty } },
+    { session }
+  );
       }
     }
 
@@ -423,7 +434,7 @@ process.stdout.write("\n");
 
       await Warehouse.updateOne(
     { id: shipment.from.id },
-    { $inc: { totalShipments: p.qty } },
+    { $inc: { totalStock: -p.qty, totalShipments: p.qty } },
     { session }
   );
   }
