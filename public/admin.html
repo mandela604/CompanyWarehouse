@@ -839,7 +839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const items = [
       { title: 'Products Sent', value: company.totalShipments, sub: 'Total shipments' },
-      { title: 'In Transit', value: company.inTransit || 0, sub: 'Awaiting manager approval' }, // assuming backend tracks this
+      { title: 'In Transit', value: company.inTransit || 0, sub: 'Awaiting manager approval' }, 
       { title: 'Total Inventory', value: company.totalStock, sub: 'All warehouses (qty)' }
     ];
 
@@ -1120,7 +1120,7 @@ async function renderWarehouses() {
 
         <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
           <div><div class="stock">${totalStock}</div><div class="badge">In Stock</div></div>
-         <a href="/outlet.html?outletId=${w.id}" 
+         <a href="/warehouse.html?outletId=${w.id}" 
           target="_blank"
           class="btn" 
           style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
