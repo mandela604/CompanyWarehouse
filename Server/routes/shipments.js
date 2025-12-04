@@ -209,21 +209,23 @@ router.get('/test', (req, res) => {
 // GET WAREHOUSE SHIPMENTS
 // GET WAREHOUSE SHIPMENTS
 router.get('/warehouse', ensureAuth, async (req, res) => {
-      console.log('🔥 Route /shipments/warehouse HIT!');
-  console.log('Query params:', req.query);
-  console.log('Session user:', req.session.user);
  
   try {
-    const user = req.session.user;
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;  // default 15
     const skip = (page - 1) * limit;
 
-    const warehouse = await Warehouse.findOne({ managerId: user.id });
-    console.log('Warehouse found:', !!warehouse);
-    console.log('Warehouse ID:', warehouse?.id);
+const user = req.session.user;
+let warehouse;
 
-    if (!warehouse) return res.json([]);
+if (user.role === 'admin' && req.query.warehouseId) {
+  warehouse = await Warehouse.findOne({ id: req.query.warehouseId });
+} else {
+  warehouse = await Warehouse.findOne({ managerId: user.id });
+}
+
+if (!warehouse) return res.json([]);
 
   const query = {
   'to.id': warehouse.id,

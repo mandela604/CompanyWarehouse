@@ -127,7 +127,8 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
       await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
       await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
       await companyService.incrementRevenue(session, totalAmount, qtySold);
-      
+      console.log("Updating warehouse revenue:", inventory.warehouseId, totalAmount);
+
       await Warehouse.updateOne(
   { id: inventory.warehouseId },
   { $inc: { totalRevenue: totalAmount } },
