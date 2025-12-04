@@ -116,8 +116,15 @@ async function getMyWarehouseData(userId) {
 }
 
 
-async function getManagerOverview(managerId) {
-  const warehouse = await Warehouse.findOne({ managerId }).lean();
+async function getManagerOverview({ managerId = null, warehouseId = null }) {
+  let warehouse;
+
+  if (warehouseId) {
+    warehouse = await Warehouse.findOne({ id: warehouseId }).lean();
+  } else if (managerId) {
+    warehouse = await Warehouse.findOne({ managerId }).lean();
+  }
+
   if (!warehouse) return null;
 
   const pendingShipments = await Shipment.countDocuments({
@@ -126,24 +133,23 @@ async function getManagerOverview(managerId) {
     status: { $in: ['In Transit', 'Pending'] }
   });
 
+  const recentShipments = await Shipment.find({
+    $or: [
+      { 'to.id': warehouse.id, toType: 'Warehouse' },
+      { 'from.id': warehouse.id, fromType: 'Warehouse' }
+    ]
+  })
+  .sort({ createdAt: -1 })
+  .limit(6)
+  .lean();
 
-const recentShipments = await Shipment.find({
-  $or: [
-    { 'to.id': warehouse.id, toType: 'Warehouse' },       // incoming
-    { 'from.id': warehouse.id, fromType: 'Warehouse' }    // outgoing
-  ]
-})
-.sort({ createdAt: -1 })
-.limit(6)
-.lean();
-
-const enrichedRecent = recentShipments.map(s => ({
-  date: s.date,
-  from: s.from.name,
-  product: s.products?.[0]?.name || 'Items',
-  qty: s.products?.reduce((a, p) => a + p.qty, 0),
-  status: s.status
-}));
+  const enrichedRecent = recentShipments.map(s => ({
+    date: s.date,
+    from: s.from.name,
+    product: s.products?.[0]?.name || 'Items',
+    qty: s.products?.reduce((a, p) => a + p.qty, 0),
+    status: s.status
+  }));
 
   const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
@@ -158,9 +164,9 @@ const enrichedRecent = recentShipments.map(s => ({
     totalShipments: warehouse.totalShipments,
     pendingShipments,
     recentShipments: enrichedRecent
-
   };
 }
+
 
 
 

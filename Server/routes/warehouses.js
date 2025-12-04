@@ -97,17 +97,21 @@ router.get('/stats/warehouse-stock', ensureAdmin, async (req, res) => {
 router.get('/warehouse/my', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
+    const { warehouseId } = req.query;
 
-    
-   // Allow only admin and manager
     if (!['admin', 'manager'].includes(user.role)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const data = await warehouseService.getMyWarehouseData(user.id);
-    if (!data) {
-      return res.status(404).json({ message: 'No warehouse assigned to you' });
+    let data;
+    if (user.role === 'manager') {
+      data = await warehouseService.getMyWarehouseData(user.id);
+    } else if (user.role === 'admin') {
+      if (!warehouseId) return res.status(400).json({ message: 'warehouseId required for admin' });
+      data = await warehouseService.getWarehouseById(warehouseId);
     }
+
+    if (!data) return res.status(404).json({ message: 'Warehouse not found' });
 
     res.json(data);
   } catch (err) {
@@ -189,17 +193,28 @@ router.get('/warehouses/status/:status', ensureAdmin, async (req, res) => {
 router.get('/manager/overview', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
+    let data;
 
-    if (user.role !== 'manager')
-      return res.status(403).json({ message: 'Only managers can access this' });
+    if (user.role === 'manager') {
+      // For managers, use their ID
+      data = await warehouseService.getManagerOverview({ managerId: user.id });
+    } else if (user.role === 'admin') {
+      // For admins, get warehouseId from query
+      const { warehouseId } = req.query;
+      if (!warehouseId) return res.status(400).json({ message: 'warehouseId required for admin' });
 
-    const data = await warehouseService.getManagerOverview(user.id);
+      data = await warehouseService.getManagerOverview({ warehouseId });
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     res.json(data);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 

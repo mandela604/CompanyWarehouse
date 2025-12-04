@@ -256,12 +256,20 @@ async function loadManagerData() {
     const user = await userRes.json();
     $('#managerName').textContent = user.name || 'Manager';
 
-    const whRes = await fetch('/api/warehouse/my');
-    if (!whRes.ok) throw new Error('Cannot load warehouse');
+    let whRes;
+    if (user.role === 'admin') {
+      // Get warehouseId from URL query
+      const params = new URLSearchParams(window.location.search);
+      const warehouseId = params.get('warehouseId');
+      if (!warehouseId) throw new Error('Warehouse ID not specified in URL');
+      whRes = await fetch(`/api/warehouse/my?warehouseId=${warehouseId}`);
+    } else {
+      whRes = await fetch('/api/warehouse/my');
+    }
+
     myWarehouse = await whRes.json();
 
-    $('#warehouseName').textContent = 
-      `${myWarehouse.name} • ${myWarehouse.location}`;
+    $('#warehouseName').textContent = `${myWarehouse.name} • ${myWarehouse.location}`;
 
     if (myWarehouse.canCreateOutlets) {
       $all('#createOutletBtn, #createOutletBtn2').forEach(b => b.style.display = 'block');
@@ -270,7 +278,7 @@ async function loadManagerData() {
     refreshAll();
   } catch (err) {
     showToast('Failed to load dashboard. Please refresh or contact admin.', 'error');
-       console.error(err);
+    console.error(err);
     if (err.message.includes('Session')) location.href = '/login';
   }
 }
@@ -320,8 +328,11 @@ async function loadManagerData() {
   cards.innerHTML = '<div class="muted">Loading...</div>';
 
   try {
-    const res = await fetch('/api/manager/overview');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const params = new URLSearchParams(window.location.search);
+    const warehouseId = params.get('warehouseId');
+    const res = await fetch(`/api/manager/overview?warehouseId=${warehouseId}`);
+     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();   
 
     cards.innerHTML = `
