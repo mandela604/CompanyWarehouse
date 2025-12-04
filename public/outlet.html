@@ -637,8 +637,10 @@ $('#shipmentsTable').addEventListener('click', async e => {
     if (!res.ok) throw new Error(data.message || 'Failed to update status');
 
     showToast('Shipment marked as received', 'success');
-    renderShipments();
 
+    await renderOutletOverview();
+    await renderShipments();
+    
   } catch (err) {
     console.error(err);
      showToast(err?.message || 'An error occurred', 'error');

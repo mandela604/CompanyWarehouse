@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const salesCard = document.createElement('div');
     salesCard.className = 'card sales-summary';
     salesCard.id = 'salesSummaryCard';
-    salesCard.innerHTML = `
+   /* salesCard.innerHTML = `
       <div class="header">
         <h3>Total Sales</h3>
         <div id="salesDateDisplay" class="small muted">All time</div>
@@ -863,7 +863,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="body">
         <div><strong id="salesUnits">${company.totalUnitsSold || 0}</strong> units</div>
         <div><strong id="salesRevenue">₦${Number(company.totalRevenue || 0).toLocaleString()}</strong></div>
-      </div>`;
+      </div>`; */
+
+      salesCard.innerHTML = `
+  <div class="header">
+    <h3>Total Sales</h3>
+  </div>
+  <div class="body">
+    <div><strong id="salesRevenue">₦${Number(company.totalRevenue || 0).toLocaleString()}</strong></div>
+  </div>`;
+
     cards.appendChild(salesCard);
 
     initSalesDatePicker();
@@ -1049,7 +1058,7 @@ async function renderQuickStats() {
 
     
    async function renderPending() {
-  $('#pendingWidget').style.display = 'block';
+  $('#pendingWidget').style.display = 'none';
   const list = $('#pendingList');
   list.innerHTML = '';
 
@@ -1852,12 +1861,14 @@ const companyId = company.id;
 
       <div class="form-row">
         <select id="targetWh">
+          <option value="" disabled selected>Select an warehouse to ship to</option>
           ${warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
         </select>
       </div>
 
       <div class="form-row">
         <select id="productId">
+          <option value="" disabled selected>Select a product</option>
           ${products.map(p => `<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}
         </select>
       </div>
