@@ -1120,8 +1120,13 @@ async function renderWarehouses() {
 
         <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
           <div><div class="stock">${totalStock}</div><div class="badge">In Stock</div></div>
-          <button class="btn secondary" style="font-size:11px;padding:4px 8px" onclick="openFullSalesPage('${w.id}', 'warehouse')">View Sales</button>
-        </div>
+         <a href="/outlet.html?outletId=${w.id}" 
+          target="_blank"
+          class="btn" 
+          style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
+          Open Dashboard
+         </a>
+   </div>
       `;
       container.appendChild(box);
     });

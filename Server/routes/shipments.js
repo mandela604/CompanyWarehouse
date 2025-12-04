@@ -373,7 +373,7 @@ process.stdout.write("\n");
 
   // Destination update
   if (shipment.toType === 'Warehouse') {
-    await WarehouseInventory.updateOne(
+   await WarehouseInventory.updateOne(
   { warehouseId: shipment.to.id, productId: p.productId },
   { 
     $inc: { qty: p.qty, totalReceived: p.qty },
@@ -381,7 +381,7 @@ process.stdout.write("\n");
     $setOnInsert: { createdAt: new Date() }
   },
   { session, upsert: true }
-);
+); 
 
   } else if (shipment.toType === 'Outlet') {
    await OutletInventory.updateOne(
@@ -418,17 +418,23 @@ process.stdout.write("\n");
   }
 }
 
-console.error("Updating outlet ID:", shipment.to.id, "with +", totalQty);
-const test = await Outlet.findOne({ id: shipment.to.id });
-console.error("Found outlet?", test ? test.name + " | totalStock: " + test.totalStock : "NOT FOUND");
 
 if (shipment.toType === 'Warehouse') {
+  const exists = await WarehouseInventory.findOne(
+      { warehouseId: shipment.to.id, productId: p.productId }
+  ).session(session);
+
+  const inc = { totalStock: totalQty };
+
+  if (!exists) inc.totalProducts = 1;
+
   await Warehouse.updateOne(
-    { id: shipment.to.id },
-    { $inc: { totalStock: totalQty, totalProducts: 1 } },
-    { session }
+      { id: shipment.to.id },
+      { $inc: inc },
+      { session }
   );
-} else if (shipment.toType === 'Outlet') {
+}
+ else if (shipment.toType === 'Outlet') {
   await Outlet.updateOne(
     { id: shipment.to.id },
     { $inc: { totalStock: totalQty, totalProducts: 1 } },
