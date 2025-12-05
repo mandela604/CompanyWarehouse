@@ -120,7 +120,7 @@ router.get('/outlet', ensureAuth, async (req, res) => {
   try {
     const shipments = await Shipment.find({
       'to.id': finalOutletId,
-      'to.type': 'Outlet'
+      toType: 'Outlet'
     })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
