@@ -9,7 +9,7 @@ const router = express.Router();
 const Outlet = require('../models/Outlet');
 
 
-router.get('/api/auth/me', ensureAuth, (req, res) => {
+router.get('/auth/me', ensureAuth, (req, res) => {
   res.json({
     ...req.session.user,
     currentOutletId: req.session.currentOutletId || null
