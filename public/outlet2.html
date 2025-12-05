@@ -60,7 +60,7 @@
         <div class="logo">O</div>
         <div>
           <h2>Outlet Rep</h2>
-          <div class="small" style="color:var(--muted)">Ikeja Outlet • Lagos</div>
+          <div class="small" id="outletDisplay" style="color:var(--muted)"></div>
         </div>
       </div>
       <div class="nav">
@@ -122,8 +122,20 @@
           <button class="btn secondary" onclick="clearSalesFilter()">Clear</button>
         </div>
         <div class="card">
-          <table id="fullSalesTable"><thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead><tbody></tbody></table>
-          <div class="pagination" id="salesPagination"></div>
+          <table id="fullSalesTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Items</th>
+              <th>Total Qty</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="pagination" id="salesPagination"></div>
         </div>
       </section>
 
@@ -141,18 +153,46 @@
     </main>
   </div>
 
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <h3>Record New Sale</h3>
-      <div id="successMsg" class="success">Sale recorded!</div>
-      <div class="form-row"><label>Product</label><select id="productSelect"></select></div>
-      <div class="form-row"><label>Quantity</label><input type="number" id="qtyInput" min="1"></div>
-      <div style="text-align:right;margin-top:20px">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="confirmSale">Record Sale</button>
+<!-- Replace your current modal with this -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" style="min-width:600px;max-width:800px;">
+    <h3>Record Sale (Multiple Products)</h3>
+    <div id="successMsg" class="success" style="display:none;">Sale recorded!</div>
+
+    <table style="width:100%;margin:16px 0;">
+      <thead>
+        <tr style="background:#f8fafc;">
+          <th style="text-align:left;padding:10px;">Product</th>
+          <th style="width:100px;">Qty</th>
+          <th style="width:120px;">Price</th>
+          <th style="width:100px;">Total</th>
+          <th style="width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody id="saleItems"></tbody>
+    </table>
+
+    <div class="form-row">
+      <select id="productSelect" style="width:100%;padding:10px;"></select>
+    </div>
+    <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+      <div style="flex:1;">
+        <label>Quantity</label>
+        <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
       </div>
+      <button class="btn secondary" id="addItemBtn" style="height:42px;">+ Add Item</button>
+    </div>
+
+    <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+      Grand Total: <span id="grandTotal">₦0</span>
+    </div>
+
+    <div style="text-align:right;margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="confirmSale" disabled>Complete Sale</button>
     </div>
   </div>
+</div>
 
  
   
@@ -169,14 +209,92 @@
 "></div>
 
 
+<div class="modal-backdrop" id="viewModal">
+  <div class="modal" style="max-width:700px;">
+    <h3>Sale Details</h3>
+    <div style="margin-bottom:16px;color:#666;">
+      Date: <strong id="saleDate"></strong> | 
+      Items: <strong id="itemCount"></strong>
+    </div>
 
+    <table style="width:100%;margin:16px 0;">
+      <thead style="background:#f0f0f0;">
+        <tr>
+          <th style="text-align:left;padding:10px;">Product</th>
+          <th style="width:80px;">Qty</th>
+          <th style="width:120px;">Unit Price</th>
+          <th style="width:120px;">Line Total</th>
+        </tr>
+      </thead>
+      <tbody id="viewItems"></tbody>
+    </table>
+
+    <div style="text-align:right;margin:20px 0;font-size:20px;font-weight:700;">
+      Grand Total: <span class="grand-total" style="color:var(--blue);">₦0</span>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn secondary" onclick="printSale()">Print Receipt</button>
+      <button class="btn secondary" style="margin-left:8px;" onclick="$('#viewModal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
 
 
 
 
   <script>
+const params = new URLSearchParams(window.location.search);
+if (params.get('select')) {
+  const outlets = JSON.parse(decodeURIComponent(params.get('outlets')));
+  
+  // Get user name from session via API
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(user => {
+      let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
+        <h3>Welcome, ${user.name}!</h3>
+        <p>Select outlet to manage:</p><br>`;
+      
+      outlets.forEach(o => {
+        html += `<button onclick="selectOutlet('${o.id}')" 
+          style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;border-radius:8px;background:var(--blue);color:white;border:none;cursor:pointer;">
+          ${o.name}
+        </button>`;
+      });
+      html += `</div>`;
+      document.body.innerHTML = html;
+    })
+    .catch(() => {
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+        <h3>Session expired</h3>
+        <a href="/login.html">Login again</a>
+      </div>`;
+    });
+}
 
-let OUTLET_ID = null;
+function selectOutlet(id) {
+  fetch('/api/select-outlet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outletId: id })
+  }).then(() => location.href = '/outlet.html');
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+let OUTLET_ID = urlParams.get('outletId'); 
+
+async function loadCurrentOutletId() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) return null;
+    const user = await res.json();
+    return user.currentOutletId;
+  } catch {
+    return null;
+  }
+}
+
 
 function logout() {
   fetch('/api/logout', {
@@ -263,21 +381,64 @@ function showToast(message, type = 'info', duration = 3000) {
 
 
 
-async function loadOutletId() {
+async function loadOutletInfo() {
   try {
-    const res = await fetch('/api/outlet/inventory');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    let url = '/api/outlet/inventory';
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
+    }
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed');
     const data = await res.json();
+
     OUTLET_ID = data.outletId;
+
+    // Dynamically set the outlet name in the sidebar
+    const outletDisplay = document.getElementById('outletDisplay');
+    if (outletDisplay) {
+      outletDisplay.textContent = `${data.outletName} • ${data.location}`;
+    }
+
     return data.products || [];
   } catch (err) {
-    console.error('Failed to get outlet ID:', err);
-    showToast(err?.message || 'Failed to load outlet info', 'error');
+    console.error(err);
+    showToast('Failed to load outlet info', 'error');
     return [];
   }
 }
 
 
+function viewSale(groupId) {
+  const sale = window.lastSalesData?.data.find(s => s.id === groupId);
+  if (!sale) return showToast('Sale not found', 'error');
+
+  // Set date, time, items count, and recorded by (if repName available)
+  $('#saleDate').textContent = `${sale.date} ${sale.time} | Recorded by: ${sale.repName || '—'}`;
+  $('#itemCount').textContent = `${sale.itemCount} item${sale.itemCount > 1 ? 's' : ''}`;
+
+  // Build items table
+  let itemsHTML = '';
+  let grandTotal = 0;
+
+  sale.items.forEach(item => {
+    const lineTotal = item.qty * item.unitPrice;
+    grandTotal += lineTotal;
+
+    itemsHTML += `
+      <tr>
+        <td><strong>${item.productName}</strong></td>
+        <td style="text-align:center;">${item.qty}</td>
+        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
+      </tr>
+    `;
+  });
+
+  $('#viewItems').innerHTML = itemsHTML;
+  $('#viewModal .grand-total').textContent = '₦' + grandTotal.toLocaleString();
+  $('#viewModal').style.display = 'flex';
+}
 
   async function renderOutletOverview() {
   const stockEl = $('#totalStock');
@@ -296,7 +457,13 @@ async function loadOutletId() {
   incomingEl.textContent = '...';
 
   try {
-    const res = await fetch('/api/outlet/overview');
+
+    let url = '/api/outlet/overview';
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
+    }
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
@@ -350,8 +517,12 @@ async function renderOutletInventory(page = 1) {
   const tbody = $('#fullInventoryTable tbody');
 
   try {
+    let url = '/api/outlet/inventory';
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
+    }
     console.log('Fetching shipments, page:', page);
-    const res = await fetch('/api/outlet/inventory');
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
         console.log('Shipments response:', data);
@@ -398,18 +569,21 @@ async function loadSales(page = 1) {
     const res = await fetch(`/api/outlet/sales?${q.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
+    window.lastSalesData = json; 
 
     if (!json.data || json.data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="muted">No sales</td></tr>';
     } else {
       tbody.innerHTML = json.data.map(s => `
-        <tr>
-          <td>${s.date}</td>
-          <td>${s.productName}</td>
-          <td>${s.qty}</td>
-          <td>${formatNGN(s.totalAmount)}</td>
-        </tr>
-      `).join('');
+  <tr>
+    <td>${s.date}</td>
+    <td>${s.time}</td>
+    <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
+    <td>${s.totalQty}</td>
+    <td>${formatNGN(s.totalAmount)}</td>
+    <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+  </tr>
+`).join('');
     }
 
     // render pagination UI using your existing renderPag
@@ -436,9 +610,23 @@ async function renderShipments(page = 1) {
   tbody.innerHTML = `<tr><td colspan="6">Loading...</td></tr>`;
 
   try {
-    const res = await fetch(`/api/outlet?page=${page}&limit=${ITEMS_PER_PAGE}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+   const params = new URLSearchParams({
+      page: page,
+      limit: ITEMS_PER_PAGE
+    });
 
+    if (OUTLET_ID) {
+      params.append('outletId', OUTLET_ID);
+    }
+
+    const url = `/api/outlet?${params.toString()}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    
     const data = await res.json();
     const shipments = data.shipments || [];
     const totalCount = data.totalCount || 0;
@@ -494,7 +682,9 @@ $('#shipmentsTable').addEventListener('click', async e => {
     if (!res.ok) throw new Error(data.message || 'Failed to update status');
 
     showToast('Shipment marked as received', 'success');
-    renderShipments();
+
+    await renderOutletOverview();
+    await renderShipments();
 
   } catch (err) {
     console.error(err);
@@ -546,7 +736,10 @@ function clearSalesFilter() {
 // Open "Record Sale" modal
 $('#recordSaleBtn').onclick = async () => {
   try {
-    const res = await fetch('/api/outlet/inventory');
+    let url = '/api/outlet/inventory';
+    if (OUTLET_ID) url += `?outletId=${OUTLET_ID}`;
+
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
@@ -634,11 +827,218 @@ $('#confirmSale').onclick = async () => {
 
 
 
+
+// Multi-product sale logic
+let saleCart = [];
+
+async function openMultiSaleModal() {
+  saleCart = [];
+  renderCart();
+
+  const id = OUTLET_ID || OUTLET_ID;
+  if (!id) {
+    return showToast('Outlet not selected. Please select an outlet first.', 'error');
+  }
+
+  const res = await fetch(`/api/outlet/inventory?outletId=${encodeURIComponent(id)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return showToast(err.message || `Failed to load products (${res.status})`, 'error');
+  }
+  const data = await res.json();
+  OUTLET_ID = data.outletId;
+
+  const options = (data.products || [])
+    .filter(p => p.qty > 0)
+    .map(p => `
+      <option value="${p.productId}"
+              data-price="${p.price}"
+              data-qty="${p.qty}">
+        ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+      </option>
+    `).join('');
+
+  $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
+  $('#modalBackdrop').style.display = 'flex';
+}
+
+function renderCart() {
+  const tbody = $('#saleItems');
+  if (saleCart.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
+    $('#confirmSale').disabled = true;
+    $('#grandTotal').textContent = '₦0';
+    return;
+  }
+
+  let grandTotal = 0;
+  tbody.innerHTML = saleCart.map((item, i) => {
+    const total = item.qty * item.price;
+    grandTotal += total;
+    return `
+      <tr>
+        <td style="padding:8px;"><strong>${item.name}</strong></td>
+        <td><input type="number" min="1" max="${item.max}" value="${item.qty}" 
+                   onchange="updateQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
+        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
+        <td><button onclick="removeItem(${i})" style="color:var(--dark-red);background:none;border:none;font-size:18px;">×</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  $('#grandTotal').textContent = '₦' + (grandTotal || 0).toLocaleString();
+  $('#confirmSale').disabled = false;
+}
+
+function updateQty(index, newQty) {
+  newQty = parseInt(newQty) || 1;
+  if (newQty > saleCart[index].max) newQty = saleCart[index].max;
+  saleCart[index].qty = newQty;
+  renderCart();
+}
+
+function removeItem(index) {
+  saleCart.splice(index, 1);
+  renderCart();
+}
+
+$('#addItemBtn').onclick = () => {
+  const sel = $('#productSelect');
+  const qty = parseInt($('#qtyInput').value) || 1;
+  if (!sel.value) return showToast('Select a product', 'error');
+
+  const price = parseFloat(sel.selectedOptions[0].dataset.price) || 0;
+  const max = parseInt(sel.selectedOptions[0].dataset.qty);
+  const name = sel.selectedOptions[0].text.split(' (')[0];
+
+  if (qty > max) return showToast(`Only ${max} available`, 'error');
+
+  const existing = saleCart.findIndex(x => x.productId === sel.value);
+  if (existing !== -1) {
+    saleCart[existing].qty += qty;
+    if (saleCart[existing].qty > max) saleCart[existing].qty = max;
+  } else {
+    saleCart.push({ productId: sel.value, name, price, qty, max });
+  }
+
+  $('#qtyInput').value = 1;
+  sel.value = '';
+  renderCart();
+};
+
+$('#confirmSale').onclick = async () => {
+  if (saleCart.length === 0) return;
+
+  $('#confirmSale').disabled = true;
+  $('#confirmSale').textContent = 'Processing...';
+
+  try {
+    const items = saleCart.map(item => ({
+      productId: item.productId,
+      qtySold: item.qty
+    }));
+
+    const res = await fetch('/api/sales/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID, items })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Sale failed');
+
+    showToast('Sale recorded!', 'success');
+    $('#successMsg').style.display = 'block';
+    setTimeout(() => {
+      closeModal();
+      renderOutletOverview();
+      renderOutletInventory();
+      loadSales(1);
+    }, 800);
+
+  } catch (err) {
+    showToast(err.message || 'Error', 'error');
+  } finally {
+    $('#confirmSale').disabled = false;
+    $('#confirmSale').textContent = 'Complete Sale';
+  }
+};
+
+// Change button
+$('#recordSaleBtn').onclick = openMultiSaleModal;
+
+
+function printSale() {
+  const printWindow = window.open('', '_blank');
+  const date = new Date().toLocaleString();
+  const content = `
+    <html>
+      <head><title>Sale Receipt</title></head,var(--blue);font-family:system-ui;</style></head>
+      <body style="padding:20px;">
+        <h2 style="text-align:center;">SALE RECEIPT</h2>
+        <p style="text-align:center;color:#666;">Date: ${date}</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="text-align:left;padding:10px;border:1px solid #ddd;">Product</th>
+              <th style="padding:10px;border:1px solid #ddd;">Qty</th>
+              <th style="padding:10px;border:1px solid #ddd;">Price</th>
+              <th style="padding:10px;border:1px solid #ddd;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${$('#viewItems').innerHTML}
+          </tbody>
+        </table>
+        <div style="text-align:right;font-size:20px;font-weight:bold;">
+          Grand Total: ${$('#viewModal .grand-total').textContent}
+        </div>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(content);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+}
+
+
 (async () => {
-  await loadOutletId();      
+  if (params.get('select')) return; // selector mode active
+
+  // 1️⃣ Priority: URL param (admin/manager)
+  if (urlParams.get('outletId')) {
+    OUTLET_ID = urlParams.get('outletId');
+  } else {
+    // 2️⃣ Otherwise, fetch current outlet from session (for reps)
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) throw new Error('Failed to fetch user');
+      const user = await res.json();
+      OUTLET_ID = user.currentOutletId || null;
+    } catch (err) {
+      console.error('Error fetching current outlet:', err);
+      OUTLET_ID = null;
+    }
+  }
+
+  // 3️⃣ If still no outlet, redirect to select page
+  if (!OUTLET_ID) {
+    document.body.innerHTML = `
+      <div style="text-align:center;padding:80px;background:#f8f9fa;border-radius:12px;">
+        <h3>No outlet selected</h3>
+        <p><a href="/login.html">Back to login</a></p>
+      </div>`;
+    return;
+  }
+
+  // ✅ Load all data now that OUTLET_ID is correct
+  await loadOutletInfo();
   renderOutletOverview();
   renderOutletInventory();
-  loadSales();                
+  loadSales();
   renderShipments();
 })();
 
