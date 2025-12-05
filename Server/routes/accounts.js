@@ -9,10 +9,12 @@ const router = express.Router();
 const Outlet = require('../models/Outlet');
 
 
-
-router.get('/auth/me', ensureAuth, (req,res)=>res.json(req.session.user));
-
-
+router.get('/api/auth/me', ensureAuth, (req, res) => {
+  res.json({
+    ...req.session.user,
+    currentOutletId: req.session.currentOutletId || null
+  });
+});
 
 // REGISTER
 router.post('/register', async (req, res) => {
