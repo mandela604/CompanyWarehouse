@@ -119,9 +119,13 @@ router.post('/login', async (req, res) => {
 };
 
 // Find all outlets this rep manages
-const outlets = await Outlet.find({ repId: user.id }).select('id name location');
-req.session.outlets = outlets.map(o => ({ id: o.id, name: o.name, location: o.location }));
+const outlets = user.role === 'rep' 
+  ? await Outlet.find({ repId: user.id }).select('id name location')
+  : [];
 
+req.session.outlets = user.role === 'rep' 
+  ? outlets.map(o => ({ id: o.id, name: o.name, location: o.location }))
+  : [];
 // Auto-select if only one
 if (outlets.length === 1) {
   req.session.currentOutletId = outlets[0].id;
