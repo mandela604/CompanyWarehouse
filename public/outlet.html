@@ -244,12 +244,57 @@
 
 
   <script>
+const params = new URLSearchParams(window.location.search);
+if (params.get('select')) {
+  const outlets = JSON.parse(decodeURIComponent(params.get('outlets')));
+  
+  // Get user name from session via API
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(user => {
+      let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
+        <h3>Welcome, ${user.name}!</h3>
+        <p>Select outlet to manage:</p><br>`;
+      
+      outlets.forEach(o => {
+        html += `<button onclick="selectOutlet('${o.id}')" 
+          style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;border-radius:8px;background:var(--blue);color:white;border:none;cursor:pointer;">
+          ${o.name}
+        </button>`;
+      });
+      html += `</div>`;
+      document.body.innerHTML = html;
+    })
+    .catch(() => {
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+        <h3>Session expired</h3>
+        <a href="/login.html">Login again</a>
+      </div>`;
+    });
+}
 
+function selectOutlet(id) {
+  fetch('/api/select-outlet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outletId: id })
+  }).then(() => location.href = '/outlet.html');
+}
 
 const urlParams = new URLSearchParams(window.location.search);
-const URL_OUTLET_ID = urlParams.get('outletId'); 
+let OUTLET_ID = urlParams.get('outletId'); 
 
-let OUTLET_ID = null;
+async function loadCurrentOutletId() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) return null;
+    const user = await res.json();
+    return user.currentOutletId;
+  } catch {
+    return null;
+  }
+}
+
 
 function logout() {
   fetch('/api/logout', {
@@ -339,8 +384,8 @@ function showToast(message, type = 'info', duration = 3000) {
 async function loadOutletInfo() {
   try {
     let url = '/api/outlet/inventory';
-    if (URL_OUTLET_ID) {
-      url += `?outletId=${URL_OUTLET_ID}`;
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
     }
 
     const res = await fetch(url);
@@ -414,8 +459,8 @@ function viewSale(groupId) {
   try {
 
     let url = '/api/outlet/overview';
-    if (URL_OUTLET_ID) {
-      url += `?outletId=${URL_OUTLET_ID}`;
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
     }
 
     const res = await fetch(url);
@@ -473,8 +518,8 @@ async function renderOutletInventory(page = 1) {
 
   try {
     let url = '/api/outlet/inventory';
-    if (URL_OUTLET_ID) {
-      url += `?outletId=${URL_OUTLET_ID}`;
+    if (OUTLET_ID) {
+      url += `?outletId=${OUTLET_ID}`;
     }
     console.log('Fetching shipments, page:', page);
     const res = await fetch(url);
@@ -570,8 +615,8 @@ async function renderShipments(page = 1) {
       limit: ITEMS_PER_PAGE
     });
 
-    if (URL_OUTLET_ID) {
-      params.append('outletId', URL_OUTLET_ID);
+    if (OUTLET_ID) {
+      params.append('outletId', OUTLET_ID);
     }
 
     const url = `/api/outlet?${params.toString()}`;
@@ -640,7 +685,7 @@ $('#shipmentsTable').addEventListener('click', async e => {
 
     await renderOutletOverview();
     await renderShipments();
-    
+
   } catch (err) {
     console.error(err);
      showToast(err?.message || 'An error occurred', 'error');
@@ -692,7 +737,7 @@ function clearSalesFilter() {
 $('#recordSaleBtn').onclick = async () => {
   try {
     let url = '/api/outlet/inventory';
-    if (URL_OUTLET_ID) url += `?outletId=${URL_OUTLET_ID}`;
+    if (OUTLET_ID) url += `?outletId=${OUTLET_ID}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -790,7 +835,7 @@ async function openMultiSaleModal() {
   saleCart = [];
   renderCart();
 
-  const id = OUTLET_ID || URL_OUTLET_ID;
+  const id = OUTLET_ID || OUTLET_ID;
   if (!id) {
     return showToast('Outlet not selected. Please select an outlet first.', 'error');
   }
@@ -961,10 +1006,39 @@ function printSale() {
 
 
 (async () => {
- await loadOutletInfo();      
+  if (params.get('select')) return; // selector mode active
+
+  // 1️⃣ Priority: URL param (admin/manager)
+  if (urlParams.get('outletId')) {
+    OUTLET_ID = urlParams.get('outletId');
+  } else {
+    // 2️⃣ Otherwise, fetch current outlet from session (for reps)
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) throw new Error('Failed to fetch user');
+      const user = await res.json();
+      OUTLET_ID = user.currentOutletId || null;
+    } catch (err) {
+      console.error('Error fetching current outlet:', err);
+      OUTLET_ID = null;
+    }
+  }
+
+  // 3️⃣ If still no outlet, redirect to select page
+  if (!OUTLET_ID) {
+    document.body.innerHTML = `
+      <div style="text-align:center;padding:80px;background:#f8f9fa;border-radius:12px;">
+        <h3>No outlet selected</h3>
+        <p><a href="/login.html">Back to login</a></p>
+      </div>`;
+    return;
+  }
+
+  // ✅ Load all data now that OUTLET_ID is correct
+  await loadOutletInfo();
   renderOutletOverview();
   renderOutletInventory();
-  loadSales();                
+  loadSales();
   renderShipments();
 })();
 
