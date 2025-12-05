@@ -1008,13 +1008,23 @@ function printSale() {
 (async () => {
   if (params.get('select')) return; // selector mode active
 
-  // Priority: URL param (admin/manager) > session (rep)
- if (urlParams.get('outletId')) {
-  OUTLET_ID = urlParams.get('outletId');
-} else {
-    OUTLET_ID = await loadCurrentOutletId();
+  // 1️⃣ Priority: URL param (admin/manager)
+  if (urlParams.get('outletId')) {
+    OUTLET_ID = urlParams.get('outletId');
+  } else {
+    // 2️⃣ Otherwise, fetch current outlet from session (for reps)
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) throw new Error('Failed to fetch user');
+      const user = await res.json();
+      OUTLET_ID = user.currentOutletId || null;
+    } catch (err) {
+      console.error('Error fetching current outlet:', err);
+      OUTLET_ID = null;
+    }
   }
 
+  // 3️⃣ If still no outlet, redirect to select page
   if (!OUTLET_ID) {
     document.body.innerHTML = `
       <div style="text-align:center;padding:80px;background:#f8f9fa;border-radius:12px;">
@@ -1024,12 +1034,14 @@ function printSale() {
     return;
   }
 
+  // ✅ Load all data now that OUTLET_ID is correct
   await loadOutletInfo();
   renderOutletOverview();
   renderOutletInventory();
   loadSales();
   renderShipments();
 })();
+
   </script>
 </body>
 </html>
