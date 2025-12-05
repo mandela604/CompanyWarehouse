@@ -235,58 +235,42 @@ router.get('/outlets/rep/:repId', ensureAuth, async (req, res) => {
 router.get('/outlet/overview', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
-    const requestedOutletId = req.query.outletId?.trim(); // e.g. ?outletId=out_123
+    let outletId = req.query.outletId?.trim();
 
-    let targetOutletId;
-
-    // CASE 1: Reps — auto-resolve their own outlet (even if they send outletId, validate it)
+    // REPS: MUST use session currentOutletId — ignore whatever they send in URL
     if (user.role === 'rep') {
-      const repOutlet = await Outlet.findOne({ repId: user.id }).lean();
-      if (!repOutlet) {
-        return res.status(404).json({ message: 'No outlet assigned to you' });
+      outletId = req.session.currentOutletId;
+      if (!outletId) {
+        return res.status(403).json({ message: 'No outlet selected in session' });
       }
-
-      // If rep sends ?outletId=, make sure it's THEIR outlet
-      if (requestedOutletId && requestedOutletId !== repOutlet.id) {
-        return res.status(403).json({ message: 'You can only view your own outlet' });
-      }
-
-      targetOutletId = repOutlet.id;
     }
-
-    // CASE 2: Manager or Admin — outletId is REQUIRED
+    // ADMIN/MANAGER: require outletId in query
     else if (user.role === 'manager' || user.role === 'admin') {
-      if (!requestedOutletId) {
-        return res.status(400).json({ message: 'outletId query parameter is required' });
+      if (!outletId) {
+        return res.status(400).json({ message: 'outletId required' });
       }
-      targetOutletId = requestedOutletId;
-    }
-
-    // Invalid role
-    else {
+    } else {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Final check: does the outlet actually exist?
-    const outlet = await Outlet.findOne({ id: targetOutletId }).lean();
-    if (!outlet) {
-      return res.status(404).json({ message: 'Outlet not found' });
-    }
-   if (user.role === 'manager') {
+    // Now find outlet by your custom 'id' field (not _id)
+    const outlet = await Outlet.findOne({ id: outletId }).lean();
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
+
+    // Manager extra check
+    if (user.role === 'manager') {
       const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
-      if (!warehouse || !outlet.warehouseId || outlet.warehouseId !== warehouse.id) {
-        return res.status(403).json({ message: 'You do not manage this outlet' });
+      if (!warehouse || outlet.warehouseId !== warehouse.id) {
+        return res.status(403).json({ message: 'Access denied' });
       }
     }
 
-    // All good — get overview for the resolved outlet
-    const data = await outletService.getOutletOverview(targetOutletId);
-
+    const data = await outletService.getOutletOverview(outletId);
     res.json(data);
 
   } catch (err) {
-    console.error('Error in /outlet/overview:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+    console.error('Overview error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
