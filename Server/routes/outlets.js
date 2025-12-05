@@ -75,6 +75,16 @@ router.post('/outlets', canCreateOutlet, async (req, res) => {
 });
 
 
+router.post('/api/select-outlet', ensureAuth, (req, res) => {
+  const { outletId } = req.body;
+  if (!req.session.outlets?.some(o => o.id === outletId)) {
+    return res.status(403).json({ message: 'Invalid outlet' });
+  }
+  req.session.currentOutletId = outletId;
+  res.json({ success: true });
+});
+
+
 // ✅ GET ALL OUTLETS (Admin only)
 router.get('/outlets', ensureAdmin, async (req, res) => {
   try {

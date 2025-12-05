@@ -64,14 +64,29 @@ router.post('/register', async (req, res) => {
   };
 }
 
+// Find all outlets this rep manages
+const outlets = await Outlet.find({ repId: user.id }).select('id name location');
+req.session.outlets = outlets.map(o => ({ id: o.id, name: o.name, location: o.location }));
+
+// Auto-select if only one
+if (outlets.length === 1) {
+  req.session.currentOutletId = outlets[0].id;
+}
+
     switch (savedUser.role) {
       case 'admin':
         return res.json({redirect: '/admin.html'});
       case 'manager':
         return res.json({redirect: '/warehouse.html'});
       case 'rep':
-        return res.json({redirect: '/outlet.html'});
-      default:
+      if (outlets.length === 1) {
+        req.session.currentOutletId = outlets[0].id;
+        return res.json({ redirect: '/outlet.html' });
+      } else {
+        // Pass outlets list via query string
+        const outletList = encodeURIComponent(JSON.stringify(outlets.map(o => ({id: o.id, name: o.name}))));
+        return res.json({ redirect: `/outlet.html?select=1&outlets=${outletList}` });
+      }  default:
         return res.status(403).send('Access denied'); 
     }
     
@@ -103,13 +118,29 @@ router.post('/login', async (req, res) => {
       canCreateOutlet: user.canCreateOutlet
 };
 
+// Find all outlets this rep manages
+const outlets = await Outlet.find({ repId: user.id }).select('id name location');
+req.session.outlets = outlets.map(o => ({ id: o.id, name: o.name, location: o.location }));
+
+// Auto-select if only one
+if (outlets.length === 1) {
+  req.session.currentOutletId = outlets[0].id;
+}
+
     switch (user.role) {
       case 'admin':
         return res.json({ redirect: '/admin.html' });
       case 'manager':
         return res.json({redirect: '/warehouse.html'});
       case 'rep':
-        return res.json({redirect: '/outlet.html'});
+      if (outlets.length === 1) {
+        req.session.currentOutletId = outlets[0].id;
+        return res.json({ redirect: '/outlet.html' });
+      } else {
+        // Pass outlets list via query string 
+        const outletList = encodeURIComponent(JSON.stringify(outlets.map(o => ({id: o.id, name: o.name}))));
+        return res.json({ redirect: `/outlet.html?select=1&outlets=${outletList}` });
+      }
       default:
         return res.status(403).send('Access denied'); 
     }

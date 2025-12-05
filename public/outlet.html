@@ -244,7 +244,30 @@
 
 
   <script>
+// Check if we need to show outlet selector
+const Params = new URLSearchParams(window.location.search);
+if (Params.get('select')) {
+  const outlets = JSON.parse(decodeURIComponent(Params.get('outlets')));
+  let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
+    <h3>Welcome, ${currentUser.name}!</h3>
+    <p>Select outlet to manage:</p><br>`;
+  outlets.forEach(o => {
+    html += `<button onclick="selectOutlet('${o.id}')" 
+      style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;">
+      ${o.name}
+    </button>`;
+  });
+  html += `</div>`;
+  document.body.innerHTML = html;
+}
 
+function selectOutlet(id) {
+  fetch('/api/select-outlet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outletId: id })
+  }).then(() => location.href = '/outlet.html');
+}
 
 const urlParams = new URLSearchParams(window.location.search);
 const URL_OUTLET_ID = urlParams.get('outletId'); 
@@ -640,7 +663,7 @@ $('#shipmentsTable').addEventListener('click', async e => {
 
     await renderOutletOverview();
     await renderShipments();
-    
+
   } catch (err) {
     console.error(err);
      showToast(err?.message || 'An error occurred', 'error');
