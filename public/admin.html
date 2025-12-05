@@ -1160,7 +1160,7 @@ async function renderWarehouses() {
 
     outlets.forEach(o => {
       const totalStock = o.totalStock || 0;
-      const totalSales = o.totalSales || 0;
+      const revenue = o.revenue || 0;
 
       const box = document.createElement('div');
       box.className = 'box';
