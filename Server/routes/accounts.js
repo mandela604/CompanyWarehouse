@@ -151,6 +151,7 @@ if (outlets.length === 1) {
 
     
   } catch (err) {
+     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
