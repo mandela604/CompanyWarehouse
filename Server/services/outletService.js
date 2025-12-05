@@ -23,16 +23,18 @@ async function getAll() {
       const rep = await Account.findOne({ id: o.repId });
       if (rep) {
         o.repName = rep.name;
-        o.phone = rep.phone; // add phone here
+        o.phone = rep.phone || '';
       } else {
         o.repName = null;
         o.phone = null;
       }
+    } else {
+      o.repName = null;
+      o.phone = null;
     }
-    return o;
+    return o.toObject();
   }));
 }
-
 
 // Get single outlet by ID
 async function getById(id) {
