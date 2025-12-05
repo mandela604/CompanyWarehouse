@@ -486,20 +486,21 @@ async function renderMyOutlets() {
         </div>
 
         <p style="margin:4px 0; color:var(--muted); font-size:13px">${o.location || '—'}</p>
-        <p style="margin:4px 0; font-size:13px">
-          Rep: <strong>${o.repName || 'Not assigned'}</strong>
-        </p>
-        <p style="margin:4px 0; font-size:13px">
-          Phone: <strong>${o.phone || '—'}</strong>
-        </p>
-
+        ${o.repName 
+          ? `<p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName}</strong></p>` 
+          : `<p class="small muted" style="margin:4px 0">Rep: <strong>No rep assigned</strong></p>`
+        }
+        ${o.phone 
+          ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
+          : ''
+        }
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:14px">
           <div>
             <strong>${o.totalStock || 0}</strong><br>
             <small style="color:var(--muted)">In Stock</small>
           </div>
           <div>
-            <strong>${formatNGN(o.totalSales || 0)}</strong><br>
+            <strong>${formatNGN(o.revenue || 0)}</strong><br>
             <small style="color:var(--muted)">Total Sales</small>
           </div>
           <a href="/outlet.html?outletId=${o.id}" 

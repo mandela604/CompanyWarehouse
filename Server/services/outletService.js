@@ -64,13 +64,16 @@ async function getByWarehouse(warehouseId) {
       const rep = await Account.findOne({ id: o.repId });
       if (rep) {
         o.repName = rep.name;
-        o.phone = rep.phone;
+        o.phone = rep.phone || '';
       } else {
         o.repName = null;
         o.phone = null;
       }
+    } else {
+      o.repName = null;
+      o.phone = null;
     }
-    return o;
+    return o.toObject();  // ← THIS LINE MAKES IT BULLETPROOF
   }));
 }
 
