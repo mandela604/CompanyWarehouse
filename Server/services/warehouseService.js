@@ -77,26 +77,11 @@ async function decrementTotalOutlets(warehouseId, session) {
 
 
 async function getWarehouseStockSummary() {
-  return await Warehouse.aggregate([
-    {
-      $lookup: {
-        from: 'warehouseinventories',
-        localField: 'id',
-        foreignField: 'warehouseId',
-        as: 'inventory'
-      }
-    },
-    {
-      $project: {
-        name: 1,
-        stock: {
-          $sum: '$inventory.qty'
-        }
-      }
-    },
-    { $sort: { stock: -1 } }
-  ]);
+  return await Warehouse.find({}, { name: 1, location: 1, totalStock: 1 })
+    .sort({ totalStock: -1 })
+    .lean();
 }
+
 
 
 // warehouseService.js – delete getWarehouseByManagerId, use this instead
