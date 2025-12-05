@@ -282,7 +282,7 @@ function selectOutlet(id) {
 }
 
 const urlParams = new URLSearchParams(window.location.search);
-const OUTLET_ID = urlParams.get('outletId'); 
+let OUTLET_ID = urlParams.get('outletId'); 
 
 async function loadCurrentOutletId() {
   try {
