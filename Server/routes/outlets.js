@@ -99,25 +99,53 @@ router.get('/outlets', ensureAdmin, async (req, res) => {
   }
 });
 
+
 // ✅ GET SINGLE OUTLET (Admin, Manager, or Rep)
-router.get('/outlets/:id', ensureAuth, async (req, res) => {
+router.get('/outlet', ensureAuth, async (req, res) => {
+  const { page = 1, limit = 10, outletId } = req.query;
+  const user = req.session.user;
+
+  let finalOutletId = outletId?.trim();
+
+  if (user.role === 'rep') {
+    finalOutletId = req.session.currentOutletId;
+    if (!finalOutletId) return res.status(403).json({ message: 'No outlet selected' });
+  }
+
+  // Admin/Manager: require outletId
+  if ((user.role === 'admin' || user.role === 'manager') && !finalOutletId) {
+    return res.status(400).json({ message: 'outletId required' });
+  }
+
   try {
-    const outlet = await outletService.getById(req.params.id);
-    if (!outlet) return res.status(404).json({ message: 'Outlet not found.' });
+    const shipments = await Shipment.find({
+      'to.id': finalOutletId,
+      'to.type': 'Outlet'
+    })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean();
 
-    const user = req.session.user;
-    if (
-      user.role !== 'admin' &&
-      user.id !== outlet.managerId &&
-      user.id !== outlet.repId
-    ) return res.status(403).json({ message: 'Access denied.' });
+    const totalCount = await Shipment.countDocuments({
+      'to.id': finalOutletId,
+      'to.type': 'Outlet'
+    });
 
-    res.json(outlet);
+    const enriched = shipments.map(s => ({
+      id: s.id,
+      date: s.createdAt,
+      fromName: s.from?.name || 'Warehouse',
+      productNames: s.items.map(i => i.productName).join(', '),
+      qty: s.items.reduce((sum, i) => sum + i.qty, 0),
+      status: s.status
+    }));
+
+    res.json({ shipments: enriched, totalCount });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 
 // GET top outlets by stock OR revenue (default: stock)
