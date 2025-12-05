@@ -87,6 +87,7 @@ router.get('/stats/warehouse-stock', ensureAdmin, async (req, res) => {
     const stats = await warehouseService.getWarehouseStockSummary(); // you will add this method
     res.json(stats);
   } catch (err) {
+    console.error("WAREHOUSE STOCK ERROR:", err);
     res.status(500).json({ message: 'Server error' });
   }
 });
