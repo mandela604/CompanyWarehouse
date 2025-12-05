@@ -73,7 +73,7 @@ async function getByWarehouse(warehouseId) {
       o.repName = null;
       o.phone = null;
     }
-    return o.toObject();  // ← THIS LINE MAKES IT BULLETPROOF
+    return o.toObject();
   }));
 }
 
