@@ -6,6 +6,7 @@ const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 const accountService = require('../services/accountService');
 const Account = require('../models/Account');
 const router = express.Router();
+const Outlet = require('../models/Outlet');
 
 
 
