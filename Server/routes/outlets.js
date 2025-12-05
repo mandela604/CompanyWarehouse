@@ -75,13 +75,17 @@ router.post('/outlets', canCreateOutlet, async (req, res) => {
 });
 
 
-router.post('/api/select-outlet', ensureAuth, (req, res) => {
+router.post('/select-outlet', ensureAuth, (req, res) => {
   const { outletId } = req.body;
   if (!req.session.outlets?.some(o => o.id === outletId)) {
     return res.status(403).json({ message: 'Invalid outlet' });
   }
   req.session.currentOutletId = outletId;
-  res.json({ success: true });
+
+  req.session.save(err => {
+    if (err) return res.status(500).json({ error: 'Session save failed' });
+    res.json({ success: true });
+  });
 });
 
 

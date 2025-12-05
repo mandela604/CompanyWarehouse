@@ -1009,9 +1009,9 @@ function printSale() {
   if (params.get('select')) return; // selector mode active
 
   // Priority: URL param (admin/manager) > session (rep)
-  if (OUTLET_ID) {
-    OUTLET_ID = OUTLET_ID;
-  } else {
+ if (urlParams.get('outletId')) {
+  OUTLET_ID = urlParams.get('outletId');
+} else {
     OUTLET_ID = await loadCurrentOutletId();
   }
 
