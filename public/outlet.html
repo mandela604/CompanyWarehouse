@@ -245,20 +245,34 @@
 
   <script>
 // Check if we need to show outlet selector
-const Params = new URLSearchParams(window.location.search);
-if (Params.get('select')) {
-  const outlets = JSON.parse(decodeURIComponent(Params.get('outlets')));
-  let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
-    <h3>Welcome, ${currentUser.name}!</h3>
-    <p>Select outlet to manage:</p><br>`;
-  outlets.forEach(o => {
-    html += `<button onclick="selectOutlet('${o.id}')" 
-      style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;">
-      ${o.name}
-    </button>`;
-  });
-  html += `</div>`;
-  document.body.innerHTML = html;
+// Check if we need to show outlet selector
+const params = new URLSearchParams(window.location.search);
+if (params.get('select')) {
+  const outlets = JSON.parse(decodeURIComponent(params.get('outlets')));
+  
+  // Get user name from session via API
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(user => {
+      let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
+        <h3>Welcome, ${user.name}!</h3>
+        <p>Select outlet to manage:</p><br>`;
+      
+      outlets.forEach(o => {
+        html += `<button onclick="selectOutlet('${o.id}')" 
+          style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;border-radius:8px;background:var(--blue);color:white;border:none;cursor:pointer;">
+          ${o.name}
+        </button>`;
+      });
+      html += `</div>`;
+      document.body.innerHTML = html;
+    })
+    .catch(() => {
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+        <h3>Session expired</h3>
+        <a href="/login.html">Login again</a>
+      </div>`;
+    });
 }
 
 function selectOutlet(id) {
