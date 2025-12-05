@@ -1173,12 +1173,17 @@ async function renderWarehouses() {
           </div>
         </h4>
         <p class="location">${o.location}</p>
-        <p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName || '—'}</strong></p>
-        <p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone || '—'}</strong></p>
-
+      ${o.repName 
+          ? `<p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName}</strong></p>` 
+          : `<p class="small muted" style="margin:4px 0">Rep: <strong>No rep assigned</strong></p>`
+        }
+        ${o.phone 
+          ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
+          : ''
+        }
         <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
           <div><div class="stock">${Number(totalStock || 0).toLocaleString()}</div><div class="badge">In Stock</div></div>
-          <div><div class="stock">${formatNGN(totalSales)}</div><div class="badge">Sales</div></div>
+          <div><div class="stock">${formatNGN(revenue)}</div><div class="badge">Sales</div></div>
                   <a href="/outlet.html?outletId=${o.id}" 
      target="_blank"
      class="btn" 
