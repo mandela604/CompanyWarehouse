@@ -431,28 +431,55 @@ for (const p of shipment.products) {
 }
 
 
+// After the FOR loop
 if (shipment.toType === 'Warehouse') {
-  const exists = await WarehouseInventory.findOne(
+
+  let newProducts = 0;
+
+  for (const p of shipment.products) {
+    const exists = await WarehouseInventory.findOne(
       { warehouseId: shipment.to.id, productId: p.productId }
-  ).session(session);
+    ).session(session);
 
-  const inc = { totalStock: totalQty };
-
-  if (!exists) inc.totalProducts = 1;
+    if (!exists) newProducts++;
+  }
 
   await Warehouse.updateOne(
-      { id: shipment.to.id },
-      { $inc: inc },
-      { session }
-  );
-}
- else if (shipment.toType === 'Outlet') {
-  await Outlet.updateOne(
     { id: shipment.to.id },
-    { $inc: { totalStock: totalQty, totalProducts: 1 } },
+    { 
+      $inc: { 
+        totalStock: totalQty,
+        totalProducts: newProducts
+      }
+    },
     { session }
   );
 }
+
+else if (shipment.toType === 'Outlet') {
+
+  let newProducts = 0;
+
+  for (const p of shipment.products) {
+    const exists = await OutletInventory.findOne(
+      { outletId: shipment.to.id, productId: p.productId }
+    ).session(session);
+
+    if (!exists) newProducts++;
+  }
+
+  await Outlet.updateOne(
+    { id: shipment.to.id },
+    { 
+      $inc: { 
+        totalStock: totalQty,
+        totalProducts: newProducts
+      } 
+    },
+    { session }
+  );
+}
+
 
 
 
