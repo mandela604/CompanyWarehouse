@@ -440,7 +440,8 @@ $('#shipmentsTable').addEventListener('click', e => {
 async function approveShipment(id) {
   const res = await fetch(`/api/shipments/approve/${id}`, { method: 'PUT' });
   const data = await res.json();
-  if (res.ok) renderShipments();
+  if (res.ok)  { showToast('Shipped!', 'success');
+                renderShipments();}
   else     showToast( data?.message || 'Failed to approve. Please refresh.', 'error');
 }
 
@@ -498,7 +499,7 @@ async function renderMyOutlets() {
           <div>
             <strong>${o.totalStock || 0}</strong><br>
             <small style="color:var(--muted)">In Stock</small>
-          </div>
+          </div>  
           <div>
             <strong>${formatNGN(o.revenue || 0)}</strong><br>
             <small style="color:var(--muted)">Total Sales</small>
