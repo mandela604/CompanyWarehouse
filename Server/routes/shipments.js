@@ -562,7 +562,11 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
 // GET ALL SHIPMENTS 
 router.get('/shipments', async (req, res) => {
   try {
-    const shipments = await Shipment.find().sort({ date: -1 });
+
+    const shipments = await Shipment.find({
+  fromType: 'Company',
+  toType: 'Warehouse'
+}).sort({ date: -1 });
 
     const enriched = await Promise.all(
       shipments.map(async (s) => {

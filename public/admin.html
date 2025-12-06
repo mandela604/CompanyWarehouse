@@ -915,7 +915,7 @@ async function renderShipments() {
         <td>${niceDate(new Date(s.date))}</td>
         <td>${s.productName}</td>
         <td>${s.qty}</td>
-        <td>${s.warehouseName || s.outletName || '—'}</td>
+        <td>${s.warehouseName  || '—'}</td>
         <td>${formatNGN(s.unitPrice)}</td>
         <td><span class="pill">${s.status}</span></td>
          <td>
