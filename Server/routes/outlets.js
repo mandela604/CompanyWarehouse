@@ -147,6 +147,33 @@ router.get('/outlet', ensureAuth, async (req, res) => {
   }
 });
 
+// GET /api/outlets/:id — used by admin dashboard to edit outlet
+router.get('/outlets/:id', ensureAuth, async (req, res) => {
+  try {
+    const outletId = req.params.id?.trim();
+    if (!outletId) return res.status(400).json({ message: 'Outlet ID required' });
+
+    const outlet = await Outlet.findOne({ id: outletId }).lean();
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
+
+    const user = req.session.user;
+
+    // Same permission logic you already trust
+    if (user.role === 'rep') {
+      if (outlet.repId !== user.id) return res.status(403).json({ message: 'Access denied' });
+    } else if (user.role === 'manager') {
+      const warehouse = await Warehouse.findOne({ id: outlet.warehouseId, managerId: user.id }).lean();
+      if (!warehouse) return res.status(403).json({ message: 'Access denied' });
+    }
+    // admin can see all
+
+    res.json(outlet);
+  } catch (err) {
+    console.error('GET /outlets/:id error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // GET top outlets by stock OR revenue (default: stock)
 router.get('/stats/top-outlets', ensureAdmin, async (req, res) => {
