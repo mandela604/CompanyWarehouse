@@ -48,9 +48,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" id="modal"></div>
-</div>
+
 </head>
 <body>
   <button class="hamburger" id="hambBtn">Menu</button>
@@ -1070,20 +1068,7 @@ function printManagerSales() {
 // CONNECT THE BUTTON
 document.getElementById('printManagerSalesBtn')?.addEventListener('click', printManagerSales);
 
-// MAKE PRINT BUTTON WORK — PASTE THIS!
-function showModal(html) {
-  const modal = document.getElementById('modal');
-  const backdrop = document.getElementById('modalBackdrop');
-  modal.innerHTML = html;
-  backdrop.style.display = 'flex';
-}
 
-function closeModal() {
-  document.getElementById('modalBackdrop').style.display = 'none';
-}
-
-// THIS MAKES THE PRINT BUTTON WORK
-document.getElementById('printOutletSalesBtn')?.addEventListener('click', printOutletSales);
 
 async function start() {
   await loadManagerData();
