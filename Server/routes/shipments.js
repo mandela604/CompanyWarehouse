@@ -345,6 +345,7 @@ router.get('/outlet', ensureAuth, async (req, res) => {
 // Approve shipment
 // Approve shipment
 router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
+     console.error('Shipments :', req.body);
   const session = await mongoose.startSession();
   session.startTransaction();
 
