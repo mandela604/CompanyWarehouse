@@ -286,7 +286,44 @@
   border-color: var(--blue);
 }
 
+/* GIVE MORE SPACE TO THE RIGHT OF RECENT SHIPMENTS TABLE */
+#shipmentTable {
+  table-layout: fixed;     /* Forces columns to respect width */
+  width: 100%;
+}
 
+#shipmentTable th:nth-child(1),  /* Date */
+#shipmentTable td:nth-child(1) { width: 12%; }
+
+#shipmentTable th:nth-child(2),  /* Product */
+#shipmentTable td:nth-child(2) { width: 22%; }
+
+#shipmentTable th:nth-child(3),  /* Qty */
+#shipmentTable td:nth-child(3) { width: 8%; text-align: center; }
+
+#shipmentTable th:nth-child(4),  /* To */
+#shipmentTable td:nth-child(4) { width: 18%; }
+
+#shipmentTable th:nth-child(5),  /* Price */
+#shipmentTable td:nth-child(5) { width: 12%; text-align: right; }
+
+#shipmentTable th:nth-child(6),  /* Status */
+#shipmentTable td:nth-child(6) { width: 12%; }
+
+#shipmentTable th:nth-child(7),  /* Action - BIGGEST SPACE */
+#shipmentTable td:nth-child(7) { 
+  width: 16%; 
+  text-align: right; 
+  padding-right: 16px !important;
+}
+
+/* Make buttons in Action column look better */
+#shipmentTable .view-details,
+#shipmentTable .cancel-shipment {
+  font-size: 11px;
+  padding: 6px 10px;
+  margin: 0 4px;
+}
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
