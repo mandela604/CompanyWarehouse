@@ -678,6 +678,27 @@
 
   <script>
 
+// Close mobile sidebar when clicking outside
+document.addEventListener('click', (e) => {
+  const sidebar = document.getElementById('sidebar');
+  const hambBtn = document.getElementById('hambBtn');
+  const clicked = e.target;
+
+  // If sidebar is open AND click is NOT on the hamburger button AND NOT inside the sidebar → close it
+  if (sidebar.classList.contains('open') &&
+      !hambBtn.contains(clicked) &&
+      !sidebar.contains(clicked)) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// Optional: Close with Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+});
+
 
 function logout() {
   fetch('/api/logout', {
@@ -2793,7 +2814,9 @@ renderOverviewCards();
 
 //navigateTo('overview');
 
-$('#hambBtn').addEventListener('click', () => {
+// Mobile menu – open/close + click outside to close
+$('#hambBtn').addEventListener('click', (e) => {
+  e.stopPropagation(); // This is the crucial fix
   document.getElementById('sidebar').classList.toggle('open');
 });
 
