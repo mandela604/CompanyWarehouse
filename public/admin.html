@@ -326,49 +326,7 @@
 }
 
 
-/* FINAL MOBILE FIX — 100% WORKING */
-@media (max-width: 900px) {
-  .app { padding: 10px; gap: 12px; }
-  .topbar { flex-direction: column; gap: 12px; }
-  .search, .actions { width: 100%; }
-  .search input { width: 100%; min-width: 0; }
-  .grid { grid-template-columns: 1fr; gap: 12px; }
-  .panel { flex-direction: column; }
-  .panel-left, .panel-right { flex: none; }
-  .table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 650px; font-size: 12.5px; }
-  th, td { padding: 10px 6px; }
 
-  /* CRITICAL: Fix Action column buttons (View/Cancel) */
-  #shipmentTable td:last-child,
-  #productTable td:last-child,
-  #accountsTable td:last-child {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  /* Don't override inline styles on View/Cancel buttons */
-  #shipmentTable .view-details,
-  #shipmentTable .cancel-shipment {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  /* Only style normal .btn in tables — not the special ones */
-  .table .btn:not(.view-details):not(.cancel-shipment) {
-    font-size: 11px;
-    padding: 5px 9px;
-    min-width: 65px;
-  }
-
-  .modal { max-width: 95vw; max-height: 95vh; overflow-y: auto; }
-  .inline-list { gap: 12px; }
-  .box { flex: 1 1 100%; }
-}
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
