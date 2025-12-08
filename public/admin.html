@@ -918,14 +918,22 @@ async function renderShipments() {
         <td>${s.warehouseName  || '—'}</td>
         <td>${formatNGN(s.unitPrice)}</td>
         <td><span class="pill">${s.status}</span></td>
-         <td>
-    <button class="view-details btn"  
-          style="font-size:12px; padding:6px 12px; background:var(--blue);
-           color:white; border-radius:8px;"data-id="${s.id}">View</button>
+      <td>
+  <button class="view-details btn"  
+        style="font-size:12px; padding:6px 12px; background:var(--blue);
+         color:white; border-radius:8px;" data-id="${s.id}">
+    View
+  </button>
+
+  ${s.status === 'In Transit' ? `
     <button class="cancel-shipment" 
-          style="font-size:12px; padding:6px 12px; background:var(--blue);
-           color:white; border-radius:8px; data-id="${s.id}">Cancel</button>
-  </td>
+        style="font-size:12px; padding:6px 12px; background:var(--red);
+         color:white; border-radius:8px;" data-id="${s.id}">
+      Cancel
+    </button>
+  ` : ''}
+</td>
+
       `;
       tbody.appendChild(tr);
     });
