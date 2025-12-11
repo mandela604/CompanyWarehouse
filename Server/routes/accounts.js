@@ -63,7 +63,8 @@ router.post('/register', async (req, res) => {
     email: savedUser.email,
     role: savedUser.role,
     phone: savedUser.phone, 
-    canCreateOutlet: savedUser.canCreateOutlet 
+    canCreateOutlet: savedUser.canCreateOutlet ?? true
+
   };
 }
 
@@ -94,6 +95,7 @@ if (outlets.length === 1) {
     }
     
   } catch (err) {
+    console.error('error', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
