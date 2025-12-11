@@ -69,7 +69,7 @@ router.post('/register', async (req, res) => {
 }
 
 // Find all outlets this rep manages
-const outlets = await Outlet.find({ repId: user.id }).select('id name location');
+const outlets = await Outlet.find({ repId: savedUser.id }).select('id name location');
 req.session.outlets = outlets.map(o => ({ id: o.id, name: o.name, location: o.location }));
 
 // Auto-select if only one
