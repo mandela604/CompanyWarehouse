@@ -1627,7 +1627,16 @@ async function renderSalesSummary() {
 
 
    
-    function showModal(html){ $('#modal').innerHTML=html; $('#modalBackdrop').style.display='flex'; }
+  function showModal(html) {
+  const backdrop = $('#modalBackdrop');
+  const modal = $('#modal');
+  if (!backdrop || !modal) {
+    console.error('Modal elements not found!');
+    return;
+  }
+  modal.innerHTML = html;
+  backdrop.style.display = 'flex';
+}
     function closeModal(){ $('#modalBackdrop').style.display='none'; $('#modal').innerHTML=''; }
 
    
@@ -1937,15 +1946,11 @@ let shipmentCart = [];
 
 async function openMultiShipmentModal() {
   shipmentCart = [];
-
-
   try {
-    // Fetch warehouses
     const whRes = await fetch('/api/warehouses');
     if (!whRes.ok) throw new Error('Failed to load warehouses');
     const warehouses = await whRes.json();
 
-    // Fetch company + products in company stock
     const compRes = await fetch('/api/company');
     if (!compRes.ok) throw new Error('Failed to load company');
     const company = await compRes.json();
@@ -1958,27 +1963,25 @@ async function openMultiShipmentModal() {
     if (warehouses.length === 0) return showToast('No warehouses available', 'error');
     if (products.length === 0) return showToast('No products in stock', 'error');
 
-    // Build warehouse dropdown
     const warehouseOptions = warehouses
       .map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`)
       .join('');
 
-    // Build product dropdown
     const productOptions = products
       .filter(p => p.qty > 0)
       .map(p => `
-        <option value="${p.id}" 
-                data-qty="${p.qty}" 
+        <option value="${p.id}"
+                data-qty="${p.qty}"
                 data-price="${p.unitPrice || 0}">
           ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
         </option>
       `)
       .join('');
 
+    // Insert HTML
     showModal(`
       <h3>Ship Multiple Products</h3>
       <div id="successMsg" class="success" style="display:none;">Shipment created successfully!</div>
-
       <div class="form-row">
         <label>Destination Warehouse</label>
         <select id="targetWarehouseSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
@@ -1986,7 +1989,6 @@ async function openMultiShipmentModal() {
           ${warehouseOptions}
         </select>
       </div>
-
       <table style="width:100%;margin:16px 0;">
         <thead style="background:#f8fafc;">
           <tr>
@@ -1999,14 +2001,12 @@ async function openMultiShipmentModal() {
         </thead>
         <tbody id="shipmentItems"></tbody>
       </table>
-
       <div class="form-row">
         <select id="productSelect" style="width:100%;padding:10px;">
           <option value="">Select product to add...</option>
           ${productOptions}
         </select>
       </div>
-
       <div class="form-row" style="display:flex;gap:10px;align-items:end;">
         <div style="flex:1;">
           <label>Quantity</label>
@@ -2014,28 +2014,37 @@ async function openMultiShipmentModal() {
         </div>
         <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
       </div>
-
       <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
         Total Quantity: <span id="shipmentTotalQty">0</span> units
       </div>
-
       <div style="text-align:right;margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="confirmShipmentBtn" disabled>Create Shipment</button>
       </div>
     `);
 
-    // Event listeners inside modal
-    $('#addShipmentItemBtn').onclick = addItemToShipmentCart;
-    $('#confirmShipmentBtn').onclick = confirmMultiShipment;
-    $('#targetWarehouseSelect').onchange = () => {
-      const enabled = !!$('#targetWarehouseSelect').value && shipmentCart.length > 0;
-      $('#confirmShipmentBtn').disabled = !enabled;
-    };
+    // Safe render — use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      renderShipmentCart();
+
+      // Now attach listeners safely
+      const addBtn = $('#addShipmentItemBtn');
+      const confirmBtn = $('#confirmShipmentBtn');
+      const warehouseSelect = $('#targetWarehouseSelect');
+
+      if (addBtn) addBtn.onclick = addItemToShipmentCart;
+      if (confirmBtn) confirmBtn.onclick = confirmMultiShipment;
+      if (warehouseSelect) {
+        warehouseSelect.onchange = () => {
+          const enabled = !!warehouseSelect.value && shipmentCart.length > 0;
+          if (confirmBtn) confirmBtn.disabled = !enabled;
+        };
+      }
+    }, 0);
 
   } catch (err) {
-    console.error(err);
-    showToast('Failed to load data: ' + err.message, 'error');
+    console.error('Modal error:', err);
+    showToast('Failed to open shipment modal: ' + err.message, 'error');
   }
 }
 
