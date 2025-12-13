@@ -1931,107 +1931,246 @@ $('#addUserBtn').addEventListener('click', async () => {
 });
 
 
-$('#shipToWarehouseBtn').addEventListener('click', async () => {
+$('#shipToWarehouseBtn').addEventListener('click', openMultiShipmentModal);
+
+let shipmentCart = [];
+
+async function openMultiShipmentModal() {
+  shipmentCart = [];
+  renderShipmentCart();
+
   try {
-    // Get warehouses
-    const resWh = await fetch('/api/warehouses');
-    const warehouses = await resWh.json();
+    // Fetch warehouses
+    const whRes = await fetch('/api/warehouses');
+    if (!whRes.ok) throw new Error('Failed to load warehouses');
+    const warehouses = await whRes.json();
 
-    // Get company data
-    const resCompany = await fetch('/api/company');
-    const company = await resCompany.json();
-const companyId = company.id; 
+    // Fetch company + products in company stock
+    const compRes = await fetch('/api/company');
+    if (!compRes.ok) throw new Error('Failed to load company');
+    const company = await compRes.json();
 
-    // Get products in company stock
-  const resProducts = await fetch(`/api/products/company/${companyId}`);    console.log('Fetched products from backend:', resProducts);
-    const resData = await resProducts.json();
-    const products = Array.isArray(resData) ? resData : (resData.products || []);
-    console.log('Fetched products from backend:', products);
+    const prodRes = await fetch(`/api/products/company/${company.id}`);
+    if (!prodRes.ok) throw new Error('Failed to load products');
+    const prodData = await prodRes.json();
+    const products = Array.isArray(prodData) ? prodData : (prodData.products || []);
 
-    //await checkAuth();
+    if (warehouses.length === 0) return showToast('No warehouses available', 'error');
+    if (products.length === 0) return showToast('No products in stock', 'error');
 
-    // Show modal
+    // Build warehouse dropdown
+    const warehouseOptions = warehouses
+      .map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`)
+      .join('');
+
+    // Build product dropdown
+    const productOptions = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option value="${p.id}" 
+                data-qty="${p.qty}" 
+                data-price="${p.unitPrice || 0}">
+          ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+        </option>
+      `)
+      .join('');
+
     showModal(`
-      <h4>Ship Stock to Warehouse</h4>
+      <h3>Ship Multiple Products</h3>
+      <div id="successMsg" class="success" style="display:none;">Shipment created successfully!</div>
 
       <div class="form-row">
-        <select id="targetWh">
-          <option value="" disabled selected>Select an warehouse to ship to</option>
-          ${warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+        <label>Destination Warehouse</label>
+        <select id="targetWarehouseSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
+          <option value="">Select warehouse...</option>
+          ${warehouseOptions}
         </select>
       </div>
 
+      <table style="width:100%;margin:16px 0;">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Unit Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="shipmentItems"></tbody>
+      </table>
+
       <div class="form-row">
-        <select id="productId">
-          <option value="" disabled selected>Select a product</option>
-          ${products.map(p => `<option value="${p.id}">${p.name} (${p.qty} left)</option>`).join('')}
+        <select id="productSelect" style="width:100%;padding:10px;">
+          <option value="">Select product to add...</option>
+          ${productOptions}
         </select>
       </div>
 
-      <div class="form-row">
-        <input id="pqty" type="number" placeholder="Quantity" />
+      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+        <div style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
+        </div>
+        <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
       </div>
 
-      <div style="text-align:right">
+      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+        Total Quantity: <span id="shipmentTotalQty">0</span> units
+      </div>
+
+      <div style="text-align:right;margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveShipWh">Ship</button>
+        <button class="btn" id="confirmShipmentBtn" disabled>Create Shipment</button>
       </div>
     `);
 
-
-    const saveBtn = document.getElementById('saveShipWh');
-if (!saveBtn) return console.error('Save button not found');
-
-   saveBtn.onclick = async () => {
-       saveBtn.disabled = true;
-
-      const whId = $('#targetWh').value;
-      const productId = $('#productId').value;
-      const qty = Number($('#pqty').value);
-
-
-      if (qty <= 0)
-        return showToast('Fill all fields', 'error');
-
-      const payload = {
-        fromId: company.id,
-        toId: whId,
-        fromType: 'Company',
-        toType: 'Warehouse',
-        products: [{ productId, qty }],
-        senderId: currentUser.id,
-        senderPhone: currentUser.phone
-      };
-
-      try {
-        const res = await fetch('/api/shipments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) 
-          return showToast(data?.message || 'Failed to create shipment', 'error');
-
-        closeModal();
-        showToast('Shipment created!', 'success');
-        renderShipments?.();
-      } catch (err) {
-        console.error(err);
-        showToast('Error creating shipment', 'error');
-      } finally {
-        saveBtn.disabled = false;
-      }
+    // Event listeners inside modal
+    $('#addShipmentItemBtn').onclick = addItemToShipmentCart;
+    $('#confirmShipmentBtn').onclick = confirmMultiShipment;
+    $('#targetWarehouseSelect').onchange = () => {
+      const enabled = !!$('#targetWarehouseSelect').value && shipmentCart.length > 0;
+      $('#confirmShipmentBtn').disabled = !enabled;
     };
 
   } catch (err) {
     console.error(err);
-    showToast('Failed to load data', 'error');
+    showToast('Failed to load data: ' + err.message, 'error');
   }
-});
+}
 
+function renderShipmentCart() {
+  const tbody = $('#shipmentItems');
+  if (shipmentCart.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added yet</td></tr>';
+    $('#confirmShipmentBtn').disabled = true;
+    $('#shipmentTotalQty').textContent = '0';
+    return;
+  }
+
+  let totalQty = 0;
+  tbody.innerHTML = shipmentCart.map((item, i) => {
+    const lineTotal = item.qty * item.price;
+    totalQty += item.qty;
+    return `
+      <tr>
+        <td style="padding:8px;"><strong>${item.name}</strong></td>
+        <td>
+          <input type="number" min="1" max="${item.max}" value="${item.qty}"
+                 onchange="updateShipmentQty(${i}, this.value)" style="width:70px;padding:6px;">
+        </td>
+        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
+        <td><button onclick="removeShipmentItem(${i})" style="color:#b71c1c;background:none;border:none;font-size:18px;">×</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  $('#shipmentTotalQty').textContent = totalQty.toLocaleString();
+  const warehouseSelected = !!$('#targetWarehouseSelect')?.value;
+  $('#confirmShipmentBtn').disabled = !(warehouseSelected && shipmentCart.length > 0);
+}
+
+function addItemToShipmentCart() {
+  const select = $('#productSelect');
+  const qtyInput = $('#qtyInput');
+  if (!select.value) return showToast('Select a product', 'error');
+
+  let qty = parseInt(qtyInput.value) || 1;
+  const option = select.selectedOptions[0];
+  const max = parseInt(option.dataset.qty);
+  const price = parseFloat(option.dataset.price) || 0;
+  const name = option.text.split(' (')[0];
+
+  if (qty > max) return showToast(`Only ${max} available`, 'error');
+
+  const existingIndex = shipmentCart.findIndex(it => it.productId === select.value);
+  if (existingIndex > -1) {
+    const newQty = shipmentCart[existingIndex].qty + qty;
+    if (newQty > max) {
+      shipmentCart[existingIndex].qty = max;
+      showToast(`Quantity capped at ${max}`, 'info');
+    } else {
+      shipmentCart[existingIndex].qty = newQty;
+    }
+  } else {
+    shipmentCart.push({
+      productId: select.value,
+      name,
+      price,
+      qty,
+      max
+    });
+  }
+
+  qtyInput.value = 1;
+  select.value = '';
+  renderShipmentCart();
+}
+
+function updateShipmentQty(index, newVal) {
+  let qty = parseInt(newVal) || 1;
+  if (qty > shipmentCart[index].max) {
+    qty = shipmentCart[index].max;
+    showToast(`Maximum available: ${qty}`, 'info');
+  }
+  shipmentCart[index].qty = qty;
+  renderShipmentCart();
+}
+
+function removeShipmentItem(index) {
+  shipmentCart.splice(index, 1);
+  renderShipmentCart();
+}
+
+async function confirmMultiShipment() {
+  const warehouseId = $('#targetWarehouseSelect').value;
+  if (!warehouseId) return showToast('Select a destination warehouse', 'error');
+  if (shipmentCart.length === 0) return showToast('Add at least one item', 'error');
+
+  $('#confirmShipmentBtn').disabled = true;
+  $('#confirmShipmentBtn').textContent = 'Creating...';
+
+  const items = shipmentCart.map(item => ({
+    productId: item.productId,
+    qty: item.qty
+  }));
+
+  const payload = {
+    fromId: (await fetch('/api/company').then(r => r.json())).id,
+    toId: warehouseId,
+    fromType: 'Company',
+    toType: 'Warehouse',
+    products: items,
+    senderId: currentUser.id,
+    senderPhone: currentUser.phone || ''
+  };
+
+  try {
+    const res = await fetch('/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed');
+
+    $('#successMsg').style.display = 'block';
+    showToast('Shipment created successfully!', 'success');
+
+    setTimeout(() => {
+      closeModal();
+      refreshAll(); // refreshes overview, recent shipments, etc.
+    }, 1000);
+
+  } catch (err) {
+    showToast(err.message || 'Failed to create shipment', 'error');
+  } finally {
+    $('#confirmShipmentBtn').disabled = false;
+    $('#confirmShipmentBtn').textContent = 'Create Shipment';
+  }
+}
 
 
 
