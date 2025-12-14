@@ -576,33 +576,47 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
 // GET ALL SHIPMENTS 
 router.get('/shipments', async (req, res) => {
   try {
-
+    // Find shipments from Company to Warehouse, newest first
     const shipments = await Shipment.find({
-  fromType: 'Company',
-  toType: 'Warehouse'
-}).sort({ date: -1 });
+      fromType: 'Company',
+      toType: 'Warehouse'
+    })
+    .populate('to', 'name location')  // populate warehouse name
+    .sort({ date: -1 });
 
+    // Group and enrich properly
     const enriched = await Promise.all(
       shipments.map(async (s) => {
-        const product = await Product.findOne({ sku: s.products[0]?.productSku });
+        // Populate all products in this shipment
+        const populatedProducts = await Promise.all(
+          s.products.map(async (p) => {
+            const product = await Product.findOne({ sku: p.productSku });
+            return {
+              productName: product?.name || 'Unknown Product',
+              productSku: p.productSku,
+              qty: p.qty,
+              unitPrice: p.unitPrice || 0
+            };
+          })
+        );
+
         return {
-          id: s.id,
-          date: s.date.toISOString().slice(0, 10),
-          productName: product?.name || '—',
-          qty: s.products[0]?.qty || 0,
-          unitPrice: s.products[0]?.unitPrice || 0,
-          warehouseName: s.to.name,
-          outletName: s.toType === 'Outlet' ? s.to.name : null,
+          id: s._id,
+          date: s.date,
+          products: populatedProducts,        // ← NOW AN ARRAY
+          to: {
+            name: s.to?.name || 'Unknown Warehouse'
+          },
           status: s.status,
-          fromType: s.fromType,
-          toType: s.toType
+          warehouseName: s.to?.name || '—'
         };
       })
     );
 
-    res.json({ totalShipments: enriched.length, data: enriched });
+    res.json({ data: enriched });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Failed to fetch shipments', error: err.message });
   }
 });
