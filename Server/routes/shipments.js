@@ -601,7 +601,7 @@ router.get('/shipments', async (req, res) => {
         );
 
         return {
-          id: s._id,
+          id: s.id,
           date: s.date,
           products: populatedProducts,        // ← NOW AN ARRAY
           to: {
