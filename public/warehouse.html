@@ -261,6 +261,8 @@ async function loadManagerData() {
     const user = await userRes.json();
     $('#managerName').textContent = user.name || 'Manager';
 
+    window.currentUser = user;
+    
     let whRes;
     if (user.role === 'admin') {
       // Get warehouseId from URL query
