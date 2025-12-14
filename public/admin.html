@@ -287,37 +287,23 @@
 }
 
 /* GIVE MORE SPACE TO THE RIGHT OF RECENT SHIPMENTS TABLE */
+/* Updated column widths for grouped Recent Shipments */
 #shipmentTable {
-  table-layout: fixed;     /* Forces columns to respect width */
+  table-layout: fixed;
   width: 100%;
 }
-
-#shipmentTable th:nth-child(1),  /* Date */
-#shipmentTable td:nth-child(1) { width: 12%; }
-
-#shipmentTable th:nth-child(2),  /* Product */
-#shipmentTable td:nth-child(2) { width: 22%; }
-
-#shipmentTable th:nth-child(3),  /* Qty */
-#shipmentTable td:nth-child(3) { width: 8%; text-align: center; }
-
-#shipmentTable th:nth-child(4),  /* To */
-#shipmentTable td:nth-child(4) { width: 18%; }
-
-#shipmentTable th:nth-child(5),  /* Price */
-#shipmentTable td:nth-child(5) { width: 12%; text-align: right; }
-
-#shipmentTable th:nth-child(6),  /* Status */
-#shipmentTable td:nth-child(6) { width: 12%; }
-
-#shipmentTable th:nth-child(7),  /* Action - BIGGEST SPACE */
-#shipmentTable td:nth-child(7) { 
-  width: 16%; 
-  text-align: right; 
+#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 12%; } /* Date */
+#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 10%; text-align: center; } /* Items */
+#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; text-align: center; } /* Qty */
+#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; } /* To */
+#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 14%; text-align: right; } /* Total Value */
+#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; } /* Status */
+#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) {
+  width: 24%;
+  text-align: right;
   padding-right: 16px !important;
 }
-
-/* Make buttons in Action column look better */
+/* Buttons */
 #shipmentTable .view-details,
 #shipmentTable .cancel-shipment {
   font-size: 11px;
@@ -392,7 +378,15 @@
               <h3 style="margin:0 0 16px;padding:0 16px">Recent Shipments</h3>
               <table id="shipmentTable">
                 <thead>
-                  <tr><th>Date</th><th>Product</th><th>Qty</th><th>To</th><th>Price</th><th>Status</th><th>Action</th></tr>
+                  <tr>
+  <th>Date</th>
+  <th>Items</th>
+  <th>Qty</th>
+  <th>To</th>
+  <th>Total Value</th>
+  <th>Status</th>
+  <th>Action</th>
+</tr>
                 </thead>
                 <tbody></tbody>
               </table>
@@ -964,59 +958,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 async function renderShipments() {
-  const tbody = $('#shipmentTable tbody'); 
+  const tbody = $('#shipmentTable tbody');
   tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
-
   try {
-    // ✅ Fetch shipments from backend
     const res = await fetch('/api/shipments');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const shipments = await res.json();
-    console.log('Shipments:', shipments);
-    console.log(shipments.data[0]);
 
     tbody.innerHTML = '';
+    if (shipments.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No shipments found</td></tr>';
+      return;
+    }
 
     shipments.data.slice(0, 6).forEach(s => {
+      const itemCount = s.products.length;
+      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${niceDate(new Date(s.date))}</td>
-        <td>${s.productName}</td>
-        <td>${s.qty}</td>
-        <td>${s.warehouseName  || '—'}</td>
-        <td>${formatNGN(s.unitPrice)}</td>
+        <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+        <td style="text-align:center;"><strong>${totalQty}</strong></td>
+        <td>${s.to?.name || s.warehouseName || '—'}</td>
+        <td style="text-align:right;">${formatNGN(totalValue)}</td>
         <td><span class="pill">${s.status}</span></td>
-  <td>
-  <button class="view-details btn"  
-        style="font-size:12px; padding:6px 12px; background:var(--blue);
-         color:white; border-radius:8px;" data-id="${s.id}">
-    View
-  </button>
-
-  ${s.status === 'In Transit' ? `
-    <button class="cancel-shipment" 
-        style="font-size:12px; padding:6px 12px; background:#dc3545;
-         color:white; border-radius:8px; border : none;" data-id="${s.id}">
-      Cancel
-    </button>
-  ` : ''}
-</td>
-
+        <td style="text-align:right;">
+          <button class="view-details btn"
+                  style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; border-radius:8px;"
+                  data-id="${s.id}">
+            View
+          </button>
+          ${s.status === 'In Transit' ? `
+            <button class="cancel-shipment"
+                    style="font-size:12px; padding:6px 12px; background:#dc3545; color:white; border-radius:8px; border:none;"
+                    data-id="${s.id}">
+              Cancel
+            </button>
+          ` : ''}
+        </td>
       `;
       tbody.appendChild(tr);
     });
-
-    if (shipments.data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="muted">No shipments found</td></tr>';
-    }
-
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="error">Failed: ${err.message}</td></tr>`;
-      showToast('server error: ' + (err?.message || 'Failed'), 'error');
-    
+    tbody.innerHTML = `<tr><td colspan="7" class="error">Failed: ${err.message}</td></tr>`;
+    showToast('server error: ' + (err?.message || 'Failed'), 'error');
   }
 }
-
 
    const ITEMS_PER_PAGE = 10;
 let currentPage = 1;
@@ -2204,64 +2193,62 @@ $('#shipmentTable').addEventListener('click', async (e) => {
     }
   }
 
- if (!e.target.classList.contains('view-details')) return;
-
+if (!e.target.classList.contains('view-details')) return;
   const id = e.target.dataset.id;
   try {
     const res = await fetch(`/api/shipments/${id}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const shipment = await res.json();
 
-    // Create backdrop
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
-    backdrop.style.display = 'flex'; 
+    backdrop.style.display = 'flex';
 
-    // Create modal content
     const modal = document.createElement('div');
     modal.className = 'modal';
+    modal.style.maxWidth = '700px';
     modal.innerHTML = `
       <h4>Shipment Details</h4>
       <p><strong>Date:</strong> ${niceDate(shipment.date)}</p>
-      <p><strong>From:</strong> ${shipment.from?.name} (${shipment.fromType})</p>
-      <p><strong>To:</strong> ${shipment.to?.name} (${shipment.toType})</p>
+      <p><strong>To:</strong> ${shipment.to?.name || shipment.warehouseName || '—'}</p>
       <p><strong>Status:</strong> <span class="pill">${shipment.status}</span></p>
-      
-      <h4 style="margin-top:16px;">Products</h4>
+
+      <h4 style="margin-top:20px;">Products Shipped</h4>
       <table class="inner-table">
         <thead>
           <tr>
-            <th>SKU</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Total</th>
+            <th>Product</th>
+            <th style="text-align:center;">Qty</th>
+            <th style="text-align:right;">Unit Price</th>
+            <th style="text-align:right;">Line Total</th>
           </tr>
         </thead>
         <tbody>
-          ${shipment.products.map(p => `
-            <tr>
-              <td>${p.productSku}</td>
-              <td>${p.qty}</td>
-              <td>${formatNGN(p.unitPrice)}</td>
-              <td>${formatNGN(p.qty * p.unitPrice)}</td>
-            </tr>`).join('')}
+          ${shipment.products.map(p => {
+            const lineTotal = p.qty * p.unitPrice;
+            return `
+              <tr>
+                <td><strong>${p.productName || p.product?.name}</strong></td>
+                <td style="text-align:center;">${p.qty}</td>
+                <td style="text-align:right;">${formatNGN(p.unitPrice)}</td>
+                <td style="text-align:right;font-weight:600;">${formatNGN(lineTotal)}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
 
-      <div style="text-align:right;margin-top:14px;">
-        <button id="closeModal" class="btn secondary">Close</button>
+      <div style="text-align:right; margin-top:16px;">
+        <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
       </div>
     `;
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
-    // Close modal on click
-    $('#closeModal').onclick = () => backdrop.remove();
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
     });
-
   } catch (err) {
     showToast('Failed to load shipment details: ' + err.message, 'error');
   }
