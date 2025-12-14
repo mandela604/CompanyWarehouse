@@ -2195,6 +2195,20 @@ $('#shipmentTable').addEventListener('click', async (e) => {
 
 if (!e.target.classList.contains('view-details')) return;
   const id = e.target.dataset.id;
+
+  console.log('=== VIEW SHIPMENT CLICKED ===');
+    console.log('Button element:', e.target);
+    console.log('data-id attribute:', e.target.getAttribute('data-id'));
+    console.log('Extracted id:', id);
+    console.log('Type:', typeof id);
+    console.log('Length:', id?.length);
+    console.log('Full URL will be:', `/api/shipments/${id}`);
+
+    if (!id) {
+      showToast('No shipment ID found on button', 'error');
+      return;
+    }
+    
   try {
     const res = await fetch(`/api/shipments/${id}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -2243,8 +2257,7 @@ if (!e.target.classList.contains('view-details')) return;
       </div>
     `;
 
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
+    backdrop.appendChild(modal);    document.body.appendChild(backdrop);
 
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
