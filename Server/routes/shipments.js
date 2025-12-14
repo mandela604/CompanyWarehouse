@@ -103,7 +103,7 @@ router.post('/shipments', async (req, res) => {
         );
       } else if (fromType === 'Warehouse') {
         await WarehouseInventory.updateOne(
-          { warehouseId: fromId, id: p.productId },
+          { warehouseId: fromId, productId: p.productId },
           { $inc: { inTransit: p.qty } },
           { session }
         );
