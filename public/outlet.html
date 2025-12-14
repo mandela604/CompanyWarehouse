@@ -1206,7 +1206,43 @@ document.addEventListener('click', async (e) => {
 
       window.printShipment = function() {
         const printWin = window.open('', '', 'width=800,height=700');
-        printWin.document.write(/* same print HTML as manager */);
+       printWin.document.write(`
+  <!DOCTYPE html>
+  <html>
+    <head><title>Shipment Receipt</title>
+    <style>
+      body{font-family:system-ui,sans-serif;padding:40px;color:#111}
+      h2{text-align:center;color:#0b5ed7;margin-bottom:30px}
+      .info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:30px;font-size:15px}
+      table{width:100%;border-collapse:collapse;margin:20px 0}
+      th,td{border:1px solid #ddd;padding:12px;text-align:left}
+      th{background:#f8fafc}
+      .total-row{font-weight:bold;background:#f0f7ff}
+      .grand{font-size:20px;text-align:right;margin-top:30px}
+    </style>
+    </head>
+    <body>
+      <h2>SHIPMENT RECEIPT</h2>
+      <div class="info">
+        <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
+        <div><strong>Status:</strong> ${shipment.status}</div>
+        <div><strong>From:</strong> ${shipment.from?.name || 'Warehouse'}</div>
+      </div>
+      <table>
+        <thead><tr><th>Product</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Line Total</th></tr></thead>
+        <tbody>
+          ${modal.querySelectorAll('table.inner-table tbody tr:not(:last-child)').innerHTML}
+          <tr class="total-row">
+            <td><strong>Total</strong></td>
+            <td style="text-align:center;"><strong>${totalQty}</strong></td>
+            <td colspan="2" style="text-align:right;"><strong>${formatNGN(grandTotal)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="grand">Grand Total: ${formatNGN(grandTotal)}</div>
+    </body>
+  </html>
+`);
         printWin.document.close();
         printWin.focus();
         printWin.print();
