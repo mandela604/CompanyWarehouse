@@ -18,7 +18,7 @@ router.post('/shipments', async (req, res) => {
   session.startTransaction();
   try {
     const { fromId, toId, fromType, toType, products, senderId, senderPhone } = req.body;
-    console.log('req received:', req.body);
+   
     if (!fromId || !toId || !fromType || !toType || !products?.length) {
       await session.abortTransaction();
       return res.status(400).json({ message: 'Missing required fields' });
@@ -58,21 +58,35 @@ router.post('/shipments', async (req, res) => {
     }
 
 
-    // 🔹 Add unitPrice from product document
-   for (const p of products) {
+    // 🔹 Add unitPrice from product/wareInventory document
+for (const p of products) {
+  
+  if (fromType === 'Company') {
   const prod = await Product.findOne({ id: p.productId }).session(session);
-  if (!prod) throw new Error(`Product with id ${p.productId} not found`);
-
-  if (p.qty > prod.qty) {
-    throw new Error(`Cannot ship ${p.qty} units of ${prod.name}. Only ${prod.qty} in stock.`);
+  if (!prod || p.qty > prod.qty) {
+    throw new Error('Not enough company stock');
   }
 
-  // attach unitPrice, sku, name
   p.unitPrice = prod.unitPrice;
   p.productSku = prod.sku;
   p.name = prod.name;
+
+} else if (fromType === 'Warehouse') {
+  const whInv = await WarehouseInventory.findOne({
+    warehouseId: fromId,
+    productId: p.productId
+  }).session(session);
+
+  if (!whInv || p.qty > whInv.qty) {
+    throw new Error('Not enough warehouse stock');
+  }
+
+  p.unitPrice = whInv.unitPrice;
+  p.productSku = whInv.sku;
+  p.name = whInv.productName;
 }
 
+}
 
     // 🔹 Create shipment
     const shipment = new Shipment({
@@ -104,7 +118,7 @@ router.post('/shipments', async (req, res) => {
       } else if (fromType === 'Warehouse') {
         await WarehouseInventory.updateOne(
           { warehouseId: fromId, productId: p.productId },
-          { $inc: { inTransit: p.qty } },
+          { $inc: { qty: -p.qty, inTransit: p.qty } },
           { session }
         );
       }
@@ -418,7 +432,7 @@ for (const p of shipment.products) {
   } else if (shipment.fromType === 'Warehouse') {
     await WarehouseInventory.updateOne(
       { warehouseId: shipment.from.id, productId: p.productId },
-      { $inc: { qty: -p.qty, totalShipped: p.qty } },
+      { $inc: {  inTransit: -p.qty, totalShipped: p.qty } },
       { session }
     );
 
