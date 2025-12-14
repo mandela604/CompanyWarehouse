@@ -322,6 +322,29 @@
   min-width: 60px;
 }
 
+
+/* ADDITIONAL CSS STYLING FOR TABLES*/
+/* Fix header alignment to match data cells */
+#shipmentTable th {
+  text-align: center; /* default for most columns */
+  white-space: nowrap;
+}
+
+#shipmentTable th:nth-child(1) { text-align: left; }   /* Date: left */
+#shipmentTable th:nth-child(4) { text-align: left; }   /* To: left (long names) */
+#shipmentTable th:nth-child(5) { text-align: right; }  /* Total Value: right */
+#shipmentTable th:nth-child(7) { text-align: right; }  /* Action: right */
+
+/* Keep your existing column widths */
+#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 13%; }
+#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; }
+#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; }
+#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 20%; }
+#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 16%; }
+#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }
+#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 17%; padding-right: 16px; }
+
+
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

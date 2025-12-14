@@ -259,20 +259,17 @@ if (!warehouse) return res.json([]);
       .limit(limit);
       console.log('Shipments found:', shipments.length);
 
-    const enriched = await Promise.all(shipments.map(async s => {
-     const product = await Product.findOne({ id: s.products[0]?.productId });
-
-      return {
-        id: s.id,
-        date: s.date,
-        direction: s.to.id === warehouse.id ? 'Incoming' : 'Outgoing',
-        fromName: s.from.name,
-        toName: s.to.name,
-        productName: product?.name || 'Items',
-        qty: s.products.reduce((s, p) => s + p.qty, 0),
-        status: s.status
-      };
-    }));
+    const enriched = shipments.map(s => ({
+  id: s.id,
+  date: s.date,
+  fromName: s.from?.name || 'Head Office',
+  status: s.status,
+  products: s.products.map(p => ({
+    name: p.name || p.productName || 'Unknown',
+    qty: p.qty,
+    unitPrice: p.unitPrice || 0   // ← this is what frontend needs
+  }))
+}));
 
     res.json(enriched);
   } catch (err) {

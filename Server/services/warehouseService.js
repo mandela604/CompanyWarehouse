@@ -128,13 +128,17 @@ async function getManagerOverview({ managerId = null, warehouseId = null }) {
   .limit(6)
   .lean();
 
-  const enrichedRecent = recentShipments.map(s => ({
-    date: s.date,
-    from: s.from.name,
-    product: s.products?.[0]?.name || 'Items',
-    qty: s.products?.reduce((a, p) => a + p.qty, 0),
-    status: s.status
-  }));
+const enrichedRecent = recentShipments.map(s => ({
+  id: s.id, 
+  date: s.date,
+  fromName: s.from?.name || 'Head Office',
+  status: s.status,
+  products: s.products.map(p => ({
+    name: p.name || p.productName,
+    qty: p.qty,
+    unitPrice: p.unitPrice || 0 
+  }))
+}));
 
   const totalOutlets = await Outlet.countDocuments({ warehouseId: warehouse.id });
 
