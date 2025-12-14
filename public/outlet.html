@@ -646,21 +646,29 @@ async function renderShipments(page = 1) {
       return;
     }
 
-    tbody.innerHTML = shipments.map(s => `
-      <tr>
-        <td>${niceDate(s.date)}</td>
-        <td>${s.fromName}</td>
-        <td>${s.productNames}</td>
-        <td>${s.qty}</td>
-        <td>${s.status}</td>
-        <td>
-          ${s.status === 'In Transit'
-            ? `<button class="btn tiny receive-btn" data-id="${s.id}">Receive</button>`
-            : '—'
-          }
-        </td>
-      </tr>
-    `).join('');
+   tbody.innerHTML = shipments.map(s => {
+  const itemCount = s.products?.length || 1;
+  const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || s.qty || 0;
+  const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0) || 0;
+
+  return `
+    <tr>
+      <td>${niceDate(s.date)}</td>
+      <td>${s.fromName}</td>
+      <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+      <td style="text-align:center;"><strong>${totalQty}</strong></td>
+      <td style="text-align:right;">${formatNGN(totalValue)}</td>
+      <td><span class="pill">${s.status}</span></td>
+      <td style="text-align:center;">
+        <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
+        ${s.status === 'In Transit'
+          ? `<button class="btn receive-btn" data-id="${s.id}">Receive</button>`
+          : ''
+        }
+      </td>
+    </tr>
+  `;
+}).join('');
 
     renderPag($('#shipmentsPagination'), totalCount, page, renderShipments);
 
@@ -1129,6 +1137,95 @@ document.getElementById('printOutletSalesBtn')?.addEventListener('click', printO
   loadSales();
   renderShipments();
 })();
+
+
+document.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('view-details')) {
+    const id = e.target.dataset.id;
+    if (!id) return showToast('No shipment ID', 'error');
+
+    try {
+      const res = await fetch(`/api/shipments/${id}`);
+      if (!res.ok) throw new Error('Not found');
+      const shipment = await res.json();
+
+      const totalQty = shipment.products.reduce((sum, p) => sum + p.qty, 0);
+      const grandTotal = shipment.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.style.display = 'flex';
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.style.maxWidth = '720px';
+
+      modal.innerHTML = `
+        <h3 style="margin:0 0 16px;color:var(--blue);">Shipment Details</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;font-size:14px;">
+          <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
+          <div><strong>Status:</strong> <span class="pill">${shipment.status}</span></div>
+          <div><strong>From:</strong> ${shipment.from?.name || 'Head Office'}</div>
+        </div>
+
+        <h4 style="margin:20px 0 10px;">Products Shipped</h4>
+        <table class="inner-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th style="text-align:center;">Qty</th>
+              <th style="text-align:right;">Unit Price</th>
+              <th style="text-align:right;">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${shipment.products.map(p => {
+              const lineTotal = p.qty * (p.unitPrice || 0);
+              return `
+                <tr>
+                  <td><strong>${p.name || p.productName || 'Unknown'}</strong></td>
+                  <td style="text-align:center;">${p.qty}</td>
+                  <td style="text-align:right;">${formatNGN(p.unitPrice || 0)}</td>
+                  <td style="text-align:right;font-weight:600;">${formatNGN(lineTotal)}</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr style="font-weight:700;background:#f8fafc;">
+              <td>Total</td>
+              <td style="text-align:center;">${totalQty}</td>
+              <td colspan="2" style="text-align:right;">${formatNGN(grandTotal)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align:right;margin-top:20px;">
+          <button class="btn" onclick="printShipment(this)">Print Receipt</button>
+          <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+        </div>
+      `;
+
+      window.printShipment = function() {
+        const printWin = window.open('', '', 'width=800,height=700');
+        printWin.document.write(/* same print HTML as manager */);
+        printWin.document.close();
+        printWin.focus();
+        printWin.print();
+        printWin.close();
+      };
+
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+      backdrop.onclick = (ev) => {
+        if (ev.target === backdrop) {
+          backdrop.remove();
+          delete window.printShipment;
+        }
+      };
+    } catch (err) {
+      showToast('Failed to load shipment details', 'error');
+    }
+  }
+});
 
   </script>
 </body>

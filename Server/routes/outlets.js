@@ -107,42 +107,49 @@ router.get('/outlet', ensureAuth, async (req, res) => {
 
   let finalOutletId = outletId?.trim();
 
+  // Rep: use session outlet
   if (user.role === 'rep') {
-    finalOutletId = req.session.currentOutletId;
+    finalOutletId = req.session.currentOutletId || user.currentOutletId;
     if (!finalOutletId) return res.status(403).json({ message: 'No outlet selected' });
   }
 
-  // Admin/Manager: require outletId
+  // Admin/Manager: require outletId param
   if ((user.role === 'admin' || user.role === 'manager') && !finalOutletId) {
     return res.status(400).json({ message: 'outletId required' });
   }
 
   try {
+    const skip = (page - 1) * Number(limit);
+
     const shipments = await Shipment.find({
       'to.id': finalOutletId,
       toType: 'Outlet'
     })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+      .sort({ date: -1 })  // use 'date' field like other routes
+      .skip(skip)
       .limit(Number(limit))
       .lean();
 
     const totalCount = await Shipment.countDocuments({
       'to.id': finalOutletId,
-      'to.type': 'Outlet'
+      toType: 'Outlet'
     });
 
     const enriched = shipments.map(s => ({
-      id: s.id,
-      date: s.createdAt,
+      id: s.id || s.id,
+      date: s.date,
       fromName: s.from?.name || 'Warehouse',
-      productNames: s.items.map(i => i.productName).join(', '),
-      qty: s.items.reduce((sum, i) => sum + i.qty, 0),
-      status: s.status
+      status: s.status,
+      products: s.products.map(p => ({
+        name: p.name || p.productName || 'Unknown Product',
+        qty: p.qty,
+        unitPrice: p.unitPrice || 0   // ← essential for Total Value
+      }))
     }));
 
-    res.json({ shipments: enriched, totalCount });
+    res.json({ shipments: enriched, totalCount, page: Number(page), limit: Number(limit) });
   } catch (err) {
+    console.error('Outlet shipments error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
