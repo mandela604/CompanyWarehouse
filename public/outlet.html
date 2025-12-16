@@ -254,6 +254,9 @@
 
 
   <script>
+    let currentUser = { role: 'rep' }; // default fallback
+
+
 const params = new URLSearchParams(window.location.search);
 if (params.get('select')) {
   const outlets = JSON.parse(decodeURIComponent(params.get('outlets')));
@@ -320,6 +323,7 @@ async function loadUserInfo() {
     const res = await fetch('/api/auth/me');
     if (!res.ok) throw new Error('Failed to get user');
     const user = await res.json();
+    currentUser = user;
     const userInfo = document.querySelector('.user-info');
     userInfo.innerHTML = `Signed in as<br><strong>${user.name}</strong>`;
   } catch (err) {
@@ -591,7 +595,13 @@ async function loadSales(page = 1) {
     <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
     <td>${s.totalQty}</td>
     <td>${formatNGN(s.totalAmount)}</td>
-    <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+   <td style="white-space:nowrap;">
+  <button class="btn secondary" style="margin-right:4px;padding:6px 10px;font-size:11px;" onclick="viewSale('${s.id}')">View</button>
+  ${currentUser.role === 'admin' ? `
+    <button class="btn" style="background:#f59e0b;color:white;margin-right:4px;padding:6px 10px;font-size:11px;" onclick="editSale('${s.id}')">Edit</button>
+    <button class="btn" style="background:#dc3545;color:white;padding:6px 10px;font-size:11px;" onclick="confirmDeleteSale('${s.id}')">Delete</button>
+  ` : ''}
+</td>
   </tr>
 `).join('');
     }
@@ -1262,6 +1272,117 @@ document.addEventListener('click', async (e) => {
     }
   }
 });
+
+
+// Edit Sale - Open modal with current items
+async function editSale(transactionId) {
+  const sale = window.lastSalesData?.data.find(s => s.id === transactionId);
+  if (!sale) return showToast('Sale not found', 'error');
+
+  // Reuse the multi-sale modal
+  saleCart = sale.items.map(item => ({
+    productId: item.productId || item.sku, // fallback if needed
+    name: item.productName,
+    price: item.unitPrice,
+    qty: item.qty,
+    max: item.qty + 999 // large enough, stock check will happen on save
+  }));
+
+  renderCart();
+
+  // Pre-fill product dropdown
+  await openMultiSaleModal(); // reload products just in case
+
+  // Change modal title and button
+  document.querySelector('#modalBackdrop h3').textContent = 'Edit Sale';
+  $('#confirmSale').textContent = 'Update Sale';
+  $('#confirmSale').onclick = () => updateSale(transactionId); // override temporarily
+}
+
+// Update Sale (called when clicking "Update Sale")
+async function updateSale(transactionId) {
+  if (saleCart.length === 0) return showToast('No items to save', 'error');
+
+  $('#confirmSale').disabled = true;
+  $('#confirmSale').textContent = 'Updating...';
+
+  try {
+    const items = saleCart.map(item => ({
+      productId: item.productId,
+      qtySold: item.qty
+    }));
+
+    const res = await fetch(`/api/transactions/${transactionId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID, items })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Update failed');
+
+    showToast('Sale updated successfully!', 'success');
+    closeModal();
+    loadSales(curSales); // refresh current page
+    renderOutletOverview();
+    renderOutletInventory();
+
+  } catch (err) {
+    showToast(err.message || 'Failed to update sale', 'error');
+  } finally {
+    $('#confirmSale').disabled = false;
+    $('#confirmSale').textContent = 'Complete Sale';
+    // Restore original confirm button
+    $('#confirmSale').onclick = () => $('#confirmSale').onclick(); // reset to multi-sale logic
+  }
+}
+
+// Confirm before delete
+function confirmDeleteSale(transactionId) {
+  const sale = window.lastSalesData?.data.find(s => s.id === transactionId);
+  if (!sale) return;
+
+  const total = formatNGN(sale.totalAmount);
+
+  showModal(`
+    <h3 style="color:#dc3545;">Delete Sale?</h3>
+    <p>Are you sure you want to <strong>permanently delete</strong> this sale?</p>
+    <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
+      <strong>Date:</strong> ${sale.date}<br>
+      <strong>Items:</strong> ${sale.itemCount}<br>
+      <strong>Total:</strong> ${total}
+    </div>
+    <p style="color:#dc3545;font-size:13px;"><strong>This cannot be undone.</strong></p>
+    <div style="text-align:right;margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" onclick="deleteSale('${transactionId}')">Yes, Delete</button>
+    </div>
+  `);
+}
+
+// Actually delete the sale
+async function deleteSale(transactionId) {
+  try {
+    const res = await fetch(`/api/transactions/${transactionId}`, {
+      method: 'DELETE'
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Delete failed');
+    }
+
+    showToast('Sale deleted permanently', 'success');
+    closeModal();
+    loadSales(curSales);
+    renderOutletOverview();
+    renderOutletInventory();
+
+  } catch (err) {
+    showToast(err.message || 'Failed to delete sale', 'error');
+  }
+}
+
 
   </script>
 </body>
