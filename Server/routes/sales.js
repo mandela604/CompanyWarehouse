@@ -591,4 +591,172 @@ router.get('/sales/full', ensureAuth, async (req, res) => {
 }); */
 
 
+// 🔴 EDIT ENTIRE TRANSACTION (Admin only) - Replace all items in a sale
+router.put('/transactions/:transactionId', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const transactionId = req.params.transactionId;
+    const { outletId, items } = req.body; // items: [{ productId, qtySold }, ...]
+
+    if (!outletId || !items?.length) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'outletId and items array required' });
+    }
+
+    // Fetch all existing line items for this transaction
+    const oldSales = await Sale.find({ transactionId }).session(session);
+    if (!oldSales.length) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    // Reverse all old effects (return stock, deduct revenue)
+    for (const oldSale of oldSales) {
+      const inventory = await OutletInventory.findOne({
+        outletId: oldSale.outletId,
+        productId: oldSale.productId
+      }).session(session);
+
+      if (inventory) {
+        // Return qty and revenue
+        await OutletService.updateInventory(session, oldSale.outletId, oldSale.productId, -oldSale.qtySold, -oldSale.totalAmount);
+        await OutletService.incrementOutlet(session, oldSale.outletId, -oldSale.qtySold, -oldSale.totalAmount);
+        await OutletService.incrementWarehouse(session, inventory.warehouseId, oldSale.productId, -oldSale.totalAmount);
+
+        // Warehouse revenue
+        await Warehouse.updateOne(
+          { id: inventory.warehouseId },
+          { $inc: { totalRevenue: -oldSale.totalAmount } },
+          { session }
+        );
+      }
+
+      await companyService.incrementRevenue(session, -oldSale.totalAmount, -oldSale.qtySold);
+      await Company.updateOne({}, { $inc: { totalStock: oldSale.qtySold } }).session(session); // return stock
+    }
+
+    // Delete old line items
+    await Sale.deleteMany({ transactionId }).session(session);
+
+    // Apply new items (same logic as bulk create)
+    let totalSaleAmount = 0;
+    const itemCount = items.length;
+
+    for (const item of items) {
+      const { productId, qtySold } = item;
+
+      const inventory = await OutletInventory.findOne({ outletId, productId }).session(session);
+      if (!inventory || inventory.qty < qtySold) {
+        throw new Error(`Insufficient stock for product ${productId}`);
+      }
+
+      const product = await Product.findOne({ id: productId }).lean();
+      if (!product) throw new Error(`Product not found: ${productId}`);
+
+      const totalAmount = qtySold * product.unitPrice;
+      totalSaleAmount += totalAmount;
+
+      // Deduct stock and add revenue
+      await OutletService.updateInventory(session, outletId, productId, qtySold, totalAmount);
+      await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
+      await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
+
+      await Warehouse.updateOne(
+        { id: inventory.warehouseId },
+        { $inc: { totalRevenue: totalAmount } },
+        { session }
+      );
+
+      await companyService.incrementRevenue(session, totalAmount, qtySold);
+      await Company.updateOne({}, { $inc: { totalStock: -qtySold } }).session(session);
+
+      // Create new sale line
+      const newSale = new Sale({
+        id: uuidv4(),
+        outletId,
+        productId,
+        qtySold,
+        totalAmount,
+        soldBy: req.session.user.id,
+        transactionId,
+        itemCount
+      });
+      await newSale.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({
+      message: 'Transaction edited successfully',
+      transactionId,
+      totalAmount: totalSaleAmount,
+      itemCount
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Edit transaction error:', err);
+    res.status(500).json({ message: err.message || 'Failed to edit transaction' });
+  }
+});
+
+
+// 🔴 DELETE ENTIRE TRANSACTION (Admin only) - Hard delete + reverse all effects
+router.delete('/transactions/:transactionId', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const transactionId = req.params.transactionId;
+
+    const sales = await Sale.find({ transactionId }).session(session);
+    if (!sales.length) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    const outletId = sales[0].outletId;
+
+    // Reverse all effects
+    for (const sale of sales) {
+      const inventory = await OutletInventory.findOne({
+        outletId,
+        productId: sale.productId
+      }).session(session);
+
+      if (inventory) {
+        await OutletService.updateInventory(session, outletId, sale.productId, -sale.qtySold, -sale.totalAmount);
+        await OutletService.incrementOutlet(session, outletId, -sale.qtySold, -sale.totalAmount);
+        await OutletService.incrementWarehouse(session, inventory.warehouseId, sale.productId, -sale.totalAmount);
+
+        await Warehouse.updateOne(
+          { id: inventory.warehouseId },
+          { $inc: { totalRevenue: -sale.totalAmount } },
+          { session }
+        );
+      }
+
+      await companyService.incrementRevenue(session, -sale.totalAmount, -sale.qtySold);
+      await Company.updateOne({}, { $inc: { totalStock: sale.qtySold } }).session(session); // return stock
+    }
+
+    // Delete all line items
+    await Sale.deleteMany({ transactionId }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Transaction deleted permanently and all effects reversed' });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Delete transaction error:', err);
+    res.status(500).json({ message: 'Failed to delete transaction', error: err.message });
+  }
+});
+
+
 module.exports = router;

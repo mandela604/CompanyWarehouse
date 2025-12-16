@@ -223,63 +223,70 @@ if (company.inTransit > 0) {
 // 🔴 DELETE PRODUCT (Admin only)
 // 🔴 DELETE PRODUCT (Admin only)
 // 🔴 DELETE PRODUCT (Admin only)
+// 🔴 DELETE PRODUCT (Admin only) - TRUE FORCE CASCADE (Deletes EVERYTHING, no checks except product exists)
 router.delete('/products/:id', ensureAdmin, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    // 1️⃣ Fetch product
-    const product = await productService.getProductById(req.params.id, session);
+    const productId = req.params.id;
+
+    // Only check if product exists
+    const product = await productService.getProductById(productId, session);
     if (!product) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-    // 2️⃣ Fetch company
-    const company = await Company.findOne({ id: product.companyId }).session(session);
-    if (!company) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ message: 'Company not found.' });
-    }
+    // NO OTHER CHECKS — DELETE EVERYTHING NO MATTER WHAT
 
-    // 3️⃣ Prevent deletion if it would cause negative total stock
-    if (product.qty > company.totalStock) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: 'Cannot delete product: would cause negative total stock.' });
-    }
+    // Delete from warehouse inventory (even if qty > 0)
+    await WarehouseInventory.deleteMany({ productId }, { session });
 
-    // 4️⃣ Prevent deletion if company has items in transit
-    if (company.inTransit > 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ message: 'Cannot delete product while items are in transit.' });
-    }
+    // Delete from outlet inventory (even if qty > 0)
+    await OutletInventory.deleteMany({ productId }, { session });
 
-    // 5️⃣ Delete product
-    await productService.removeProductById(req.params.id, session);
+    // Delete ALL sales history
+    await Sale.deleteMany({ productId }, { session });
 
-    // 6️⃣ Update company totals
+    // Remove product from all shipments
+    await Shipment.updateMany(
+      { 'products.productId': productId },
+      { $pull: { products: { productId } } },
+      { session }
+    );
+
+    // Delete any shipments that became empty
+    await Shipment.deleteMany({ products: { $size: 0 } }, { session });
+
+    // Remove from Company and adjust totals (even if stock was > 0)
     await Company.updateOne(
       { id: product.companyId },
       {
-        $pull: { products: { productId: product.id } },
-        $inc: { totalProducts: -1, totalStock: -product.qty },
+        $pull: { products: { productId } },
+        $inc: { 
+          totalProducts: -1, 
+          totalStock: -product.qty 
+        },
         $set: { lastUpdated: new Date() }
       },
       { session }
     );
 
-    // 7️⃣ Commit transaction
+    // Delete the product itself
+    await productService.removeProductById(productId, session);
+
     await session.commitTransaction();
     session.endSession();
 
-    res.json({ message: 'Product deleted successfully.' });
+    res.json({ 
+      message: 'Product completely deleted from everywhere — including warehouse, outlet, sales, shipments, and company records.' 
+    });
+
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error('Delete product error:', err);
+    console.error('Force cascade delete error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
