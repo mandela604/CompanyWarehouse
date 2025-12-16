@@ -860,7 +860,6 @@ $('#confirmSale').onclick = async () => {
 let saleCart = [];
 
 async function openMultiSaleModal() {
-  saleCart = [];
   renderCart();
 
   const id = OUTLET_ID || OUTLET_ID;
@@ -1288,7 +1287,6 @@ async function editSale(transactionId) {
     max: item.qty + 999 // large enough, stock check will happen on save
   }));
 
-  renderCart();
 
   // Pre-fill product dropdown
   await openMultiSaleModal(); // reload products just in case
@@ -1300,7 +1298,10 @@ async function editSale(transactionId) {
 }
 
 // Update Sale (called when clicking "Update Sale")
-async function updateSale(transactionId) {
+async function updateSale() {
+  const transactionId = window.currentEditTransactionId;
+  if (!transactionId) return showToast('No sale to update', 'error');
+  // ... rest same
   if (saleCart.length === 0) return showToast('No items to save', 'error');
 
   $('#confirmSale').disabled = true;
@@ -1332,6 +1333,7 @@ async function updateSale(transactionId) {
   } finally {
     $('#confirmSale').disabled = false;
     $('#confirmSale').textContent = 'Complete Sale';
+    delete window.currentEditTransactionId;
     // Restore original confirm button
     $('#confirmSale').onclick = () => $('#confirmSale').onclick(); // reset to multi-sale logic
   }
@@ -1344,22 +1346,39 @@ function confirmDeleteSale(transactionId) {
 
   const total = formatNGN(sale.totalAmount);
 
-  showModal(`
-    <h3 style="color:#dc3545;">Delete Sale?</h3>
-    <p>Are you sure you want to <strong>permanently delete</strong> this sale?</p>
-    <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
-      <strong>Date:</strong> ${sale.date}<br>
-      <strong>Items:</strong> ${sale.itemCount}<br>
-      <strong>Total:</strong> ${total}
+  // Use a separate small modal — NOT the big one
+  const confirmHTML = `
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h3 style="color:#dc3545;margin:0 0 16px;">Delete Sale?</h3>
+      <p>Are you sure you want to <strong>permanently delete</strong> this sale?</p>
+      <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
+        <strong>Date:</strong> ${sale.date}<br>
+        <strong>Items:</strong> ${sale.itemCount}<br>
+        <strong>Total:</strong> ${total}
+      </div>
+      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
+      <div style="margin-top:20px;">
+        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" onclick="deleteSale('${transactionId}'); closeConfirmModal()">Yes, Delete</button>
+      </div>
     </div>
-    <p style="color:#dc3545;font-size:13px;"><strong>This cannot be undone.</strong></p>
-    <div style="text-align:right;margin-top:20px;">
-      <button class="btn secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" onclick="deleteSale('${transactionId}')">Yes, Delete</button>
-    </div>
-  `);
-}
+  `;
 
+  // Create temporary backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = confirmHTML;
+  backdrop.onclick = (e) => {
+    if (e.target === backdrop) closeConfirmModal();
+  };
+
+  document.body.appendChild(backdrop);
+
+  window.closeConfirmModal = () => {
+    backdrop.remove();
+    delete window.closeConfirmModal;
+  };
+}
 // Actually delete the sale
 async function deleteSale(transactionId) {
   try {
