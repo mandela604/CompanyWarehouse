@@ -12,7 +12,7 @@ const OutletInventory = require('../models/OutletInventory');
 const OutletService = require('../services/outletService');
 const Outlet = require('../models/Outlet');
 const Company = require('../models/Company'); 
-
+const { ensureAuth, ensureAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
