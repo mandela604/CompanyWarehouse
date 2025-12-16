@@ -1,7 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
-const { ensureAuth } = require('../middlewares/auth');
 const InventoryService = require('../services/inventoryService');
 const Warehouse = require('../models/Warehouse');
 const companyService = require('../services/companyService');
