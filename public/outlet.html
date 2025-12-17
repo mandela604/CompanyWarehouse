@@ -137,7 +137,7 @@
             <tr>
               <th>Date</th>
               <th>Time</th>
-              <th>Items</th>
+              <th>products</th>
               <th>Total Qty</th>
               <th>Amount</th>
               <th>Action</th>
@@ -597,22 +597,44 @@ async function loadSales(page = 1) {
     if (!json.data || json.data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="muted">No sales</td></tr>';
     } else {
-      tbody.innerHTML = json.data.map(s => `
-  <tr>
-    <td>${s.date}</td>
-    <td>${s.time}</td>
-    <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
-    <td>${s.totalQty}</td>
-    <td>${formatNGN(s.totalAmount)}</td>
-   <td style="white-space:nowrap;">
-  <button class="btn secondary" style="margin-right:4px;padding:6px 10px;font-size:11px;" onclick="viewSale('${s.id}')">View</button>
-  ${currentUser.role === 'admin' ? `
-    <button class="btn" style="background:#f59e0b;color:white;margin-right:4px;padding:6px 10px;font-size:11px;" onclick="editSale('${s.id}')">Edit</button>
-    <button class="btn" style="background:#dc3545;color:white;padding:6px 10px;font-size:11px;" onclick="confirmDeleteSale('${s.id}')">Delete</button>
-  ` : ''}
-</td>
-  </tr>
-`).join('');
+let pageGrandTotal = 0; // Calculate grand total for current page
+
+tbody.innerHTML = json.data.map(s => {
+  pageGrandTotal += s.totalAmount || 0;
+
+  // Build product names, each on a new line with <br>
+  const productLines = s.items && s.items.length > 0
+    ? s.items.map(item => `<strong>${item.productName}</strong> × ${item.qty}`).join('<br>')
+    : 'No items';
+
+  return `
+    <tr>
+      <td style="vertical-align:top;">${s.date}</td>
+      <td style="vertical-align:top;">${s.time}</td>
+      <td style="vertical-align:top; line-height:1.6;">${productLines}</td>
+      <td style="vertical-align:top;">${s.totalQty}</td>
+      <td style="vertical-align:top;">${formatNGN(s.totalAmount)}</td>
+      <td style="white-space:nowrap; vertical-align:top;">
+        <button class="btn secondary" style="margin-right:4px;padding:6px 10px;font-size:11px;" onclick="viewSale('${s.id}')">View</button>
+        ${currentUser.role === 'admin' ? `
+          <button class="btn" style="background:#f59e0b;color:white;margin-right:4px;padding:6px 10px;font-size:11px;" onclick="editSale('${s.id}')">Edit</button>
+          <button class="btn" style="background:#dc3545;color:white;padding:6px 10px;font-size:11px;" onclick="confirmDeleteSale('${s.id}')">Delete</button>
+        ` : ''}
+      </td>
+    </tr>
+  `;
+}).join('') +
+
+// Grand Total Row (fixed at the bottom)
+`<tr style="background:#e3f2fd; font-weight:700; border-top:3px double #1976d2;">
+  <td colspan="4" style="text-align:right; padding:16px 12px; font-size:15px;">
+    Grand Total (this page):
+  </td>
+  <td style="text-align:left; padding:16px 12px; font-size:15px; color:#0b5ed7;">
+    ${formatNGN(pageGrandTotal)}
+  </td>
+  <td></td>
+</tr>`;
     }
 
     // render pagination UI using your existing renderPag
