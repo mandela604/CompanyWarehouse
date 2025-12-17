@@ -890,6 +890,9 @@ async function openMultiSaleModal() {
 }
 
 function renderCart() {
+console.log('RENDER CART CALLED, items:', saleCart);
+console.log('saleItems tbody:', document.querySelector('#saleItems'));
+
   const tbody = $('#saleItems');
   if (saleCart.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
@@ -1275,7 +1278,12 @@ document.addEventListener('click', async (e) => {
 
 // Edit Sale - Open modal with current items
 async function editSale(transactionId) {
+  console.log('EDIT CLICKED:', transactionId);
+
   const sale = window.lastSalesData?.data.find(s => s.id === transactionId);
+  console.log('FOUND SALE:', sale);
+console.log('SALE ITEMS:', sale?.items);
+
   if (!sale) return showToast('Sale not found', 'error');
 
   // Load existing items into cart
@@ -1287,21 +1295,27 @@ async function editSale(transactionId) {
     max: item.qty + 9999  // allow increasing
   }));
 
+console.log('SALE CART BEFORE RENDER:', saleCart);
 
+renderCart();
 
   // Then: load fresh product list and open modal
   const id = OUTLET_ID;
   if (!id) return showToast('Outlet not selected', 'error');
 
   const res = await fetch(`/api/outlet/inventory?outletId=${encodeURIComponent(id)}`);
+  console.log('INVENTORY RESPONSE STATUS:', res.status);
+
   if (!res.ok) return showToast('Failed to load products', 'error');
 
   const data = await res.json();
+  console.log('INVENTORY DATA:', data.products);
+
   const options = (data.products || [])
     .filter(p => p.qty > 0)
     .map(p => `
       <option value="${p.productId}"
-              data-price="${p.price}"
+              data-price="${p.unitPrice}"
               data-qty="${p.qty}">
         ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
       </option>
@@ -1309,6 +1323,7 @@ async function editSale(transactionId) {
 
   $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
   $('#modalBackdrop').style.display = 'flex';
+console.log('PRODUCT SELECT HTML:', $('#productSelect').innerHTML);
 
   // Update title and button
   document.querySelector('#modalBackdrop h3').textContent = 'Edit Sale';
