@@ -504,6 +504,8 @@ router.get('/outlet/sales', async (req, res) => {
     // Fetch products
     const productIds = [...new Set(rawSales.map(s => s.productId))];
     const products = await Product.find({ id: { $in: productIds } }).lean();
+    console.log('Sample productIds from sales:', productIds.slice(0, 3));
+console.log('Sample products found:', products.map(p => ({ id: p.id, _id: p._id, name: p.name })));
     const productMap = Object.fromEntries(products.map(p => [p.id, { name: p.name, unitPrice: p.unitPrice }]));
 
     // Fetch sellers
