@@ -503,6 +503,7 @@ router.get('/outlet/sales', async (req, res) => {
 
     // Fetch products
     const productIds = [...new Set(rawSales.map(s => s.productId))];
+    console.log('rawSales productIds:', productIds);
     const products = await Product.find({ id: { $in: productIds } }).lean();
     console.log('Sample productIds from sales:', productIds.slice(0, 3));
 console.log('Sample products found:', products.map(p => ({ id: p.id, _id: p._id, name: p.name })));
@@ -528,7 +529,7 @@ console.log('Sample products found:', products.map(p => ({ id: p.id, _id: p._id,
 
       return {
         transactionId: sample.transactionId || null,
-        id: (sample.transactionId || sample._id) + '-group',
+        id: (sample.transactionId || sample.id) + '-group',
         date: new Date(sample.createdAt).toISOString().slice(0, 10),
         time: new Date(sample.createdAt).toTimeString().slice(0, 8),
         repName: sellerMap[sample.soldBy]?.name || '—',   // <-- added repName
