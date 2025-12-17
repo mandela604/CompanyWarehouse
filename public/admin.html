@@ -550,7 +550,7 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Product</th>
+                <th>Products<br><small style="font-weight:normal;color:#888;">(name × qty)</small></th>
                 <th>Total Qty</th>
                 <th>Items</th>
                 <th>Outlet</th>
@@ -1409,23 +1409,45 @@ async function renderSales(page = 1) {
     if (!sales.length) {
       tbody.innerHTML = '<tr><td colspan="9" class="muted">No sales</td></tr>';
     } else {
-      tbody.innerHTML = sales.map(s => `
-        <tr>
-          <td>${s.date}</td>
-          <td>${s.items[0]?.productName}</td>
-          <td><strong>${s.totalQty}</strong></td>
-           <td>${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
-          <td>${s.outletName}</td>
-          <td>${s.repName}</td>
-        
-          <td><span class="pill">${s.status}</span></td>
-          <td>${s.sentFrom} ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}</td>
-          <td>
-         <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
+      let pageGrandTotal = 0;
+
+tbody.innerHTML = sales.map(s => {
+  pageGrandTotal += s.totalAmount || 0;
+
+  // Build product list: each product on new line with quantity
+  const productLines = s.items && s.items.length > 0
+    ? s.items.map(item => `<strong>${item.productName}</strong> × ${item.qty}`).join('<br>')
+    : 'No items';
+
+  return `
+    <tr>
+      <td style="vertical-align:top;">${s.date}</td>
+      <td style="vertical-align:top; line-height:1.6;">${productLines}</td>
+      <td style="vertical-align:top;"><strong>${s.totalQty}</strong></td>
+      <td style="vertical-align:top;">${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
+      <td style="vertical-align:top;">${s.outletName}</td>
+      <td style="vertical-align:top;">${s.repName || '—'}</td>
+      <td style="vertical-align:top;"><span class="pill">${s.status}</span></td>
+      <td style="vertical-align:top;">
+        ${s.sentFrom || '—'}
+        ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}
+      </td>
+      <td style="white-space:nowrap; vertical-align:top;">
+        <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
+      </td>
+    </tr>
+  `;
+}).join('') +
+
+// Grand Total Row
+`<tr style="background:#e3f2fd; font-weight:700; border-top:3px double #1976d2;">
+  <td colspan="8" style="text-align:right; padding:16px 12px; font-size:15px;">
+    Grand Total (this page):
   </td>
-          <td></td>
-        </tr>
-      `).join('');
+  <td style="text-align:left; padding:16px 12px; font-size:15px; color:#0b5ed7;">
+    ${formatNGN(pageGrandTotal)}
+  </td>
+</tr>`;
     }
 
     // render pagination buttons
