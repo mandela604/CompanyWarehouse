@@ -3104,6 +3104,26 @@ $('#hambBtn').addEventListener('click', (e) => {
   document.getElementById('sidebar').classList.toggle('open');
 });
 
+
+// Auto-load Overview on page load ONLY if company exists
+window.addEventListener('load', async () => {
+  try {
+    const res = await fetch('/api/company');
+    if (!res.ok) return; // No company or error → do nothing
+    const company = await res.json();
+    
+    if (company && company.id) {
+      // Company exists → activate Overview and load data
+      document.querySelector('.nav a[data-route="overview"]').click();
+    }
+    // If no company → stay blank (user will see the "Create Company" buttons)
+  } catch (err) {
+    // Silent fail — don't show overview if anything goes wrong
+    console.error('Company check failed:', err);
+  }
+});
+
+
   </script>
 </body>
 </html>
