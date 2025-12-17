@@ -1386,16 +1386,28 @@ async function updateSale() {
 }
 
 // Confirm before delete
-// Confirm before delete — now receives the fake group ID
 function confirmDeleteSale(groupId) {
-  const sale = window.lastSalesData?.data.find(s => s.id === groupId);
+  console.log('Delete clicked for groupId:', groupId); // ← for debugging
+
+  // Safety first
+  if (!window.lastSalesData || !window.lastSalesData.data) {
+    showToast('Sales data not loaded. Please refresh.', 'error');
+    return;
+  }
+
+  const sale = window.lastSalesData.data.find(s => s.id === groupId);
   if (!sale) {
-    showToast('Sale not found', 'error');
+    showToast('Sale not found in current data', 'error');
     return;
   }
 
   const total = formatNGN(sale.totalAmount);
-  const realTransactionId = sale.transactionId; // ← the real one
+  const realTransactionId = sale.transactionId;
+
+  if (!realTransactionId) {
+    showToast('Invalid transaction ID', 'error');
+    return;
+  }
 
   const confirmHTML = `
     <div class="modal" style="max-width:400px;text-align:center;">
@@ -1420,20 +1432,30 @@ function confirmDeleteSale(groupId) {
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = confirmHTML;
+  backdrop.style.display = 'flex'; // ← important: show it immediately
+
   backdrop.onclick = (e) => {
-    if (e.target === backdrop) closeConfirmModal();
+    if (e.target === backdrop) {
+      backdrop.remove();
+    }
   };
 
   document.body.appendChild(backdrop);
 
   window.closeConfirmModal = () => {
-    backdrop.remove();
+    if (backdrop && backdrop.parentNode) {
+      backdrop.remove();
+    }
     delete window.closeConfirmModal;
   };
 }
 
-// Actually delete — now receives the REAL transactionId
 async function deleteSale(realTransactionId) {
+  if (!realTransactionId) {
+    showToast('Invalid transaction', 'error');
+    return;
+  }
+
   try {
     const res = await fetch(`/api/transactions/${realTransactionId}`, {
       method: 'DELETE'
@@ -1445,7 +1467,7 @@ async function deleteSale(realTransactionId) {
     }
 
     showToast('Sale deleted permanently', 'success');
-    loadSales(curSales);
+    loadSales(curSales); // refresh list
     renderOutletOverview();
     renderOutletInventory();
 
@@ -1453,7 +1475,6 @@ async function deleteSale(realTransactionId) {
     showToast(err.message || 'Failed to delete sale', 'error');
   }
 }
-
   </script>
 </body>
 </html>
