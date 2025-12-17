@@ -535,6 +535,11 @@
       <!-- ==================== SALES RECORDS ==================== -->
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
+        <div style="margin:16px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+  <div id="salesDateContainer" style="min-width:220px;"></div>
+  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filter</button>
+  <div class="small muted" id="salesDateDisplay">All time</div>
+</div>
         <div style="margin-bottom: 12px; text-align: right;">
   <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
     Print This Page
@@ -565,7 +570,7 @@
           </table>
         <div class="pagination" id="salesPagination"></div>
         <div style="margin-bottom: 12px; text-align: right;">
-  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
+  <button style="display: none;" id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
     Print This Page
   </button>
 </div>
@@ -3113,17 +3118,23 @@ $('#hambBtn').addEventListener('click', (e) => {
 
 
 // Auto-load Overview on page load ONLY if company exists
-window.addEventListener('load', async () => {
+// Auto-load Overview on page load ONLY if company exists (improved)
+document.addEventListener('DOMContentLoaded', async () => {
   try {
     const res = await fetch('/api/company');
-    if (!res.ok) return; 
+    if (!res.ok) {
+      console.log('No company or API error');
+      return;
+    }
     const company = await res.json();
     
     if (company && company.id) {
-      document.querySelector('.nav a[data-route="overview"]').click();
+      // Force Overview to load
+      const overviewLink = document.querySelector('.nav a[data-route="overview"]');
+      if (overviewLink) overviewLink.click();
     }
-    } catch (err) {
-      console.error('Company check failed:', err);
+  } catch (err) {
+    console.error('Failed to check company on load:', err);
   }
 });
 
