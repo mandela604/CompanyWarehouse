@@ -1058,7 +1058,7 @@ function printOutletSales() {
   const tableHTML = $('#fullSalesTable').outerHTML;
 
   const printableContent = `
-    <div style="padding:20px; font-family:system-ui,Arial,sans-serif; background:white; color:#111;">
+    <div style="padding:30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111;">
       <h2 style="text-align:center; color:#0b5ed7; margin:0 0 20px; font-size:24px;">
         SALES REPORT
       </h2>
@@ -1072,7 +1072,6 @@ function printOutletSales() {
         th, td { border:1px solid #ddd; padding:10px; text-align:left; }
         th { background:#f0f7ff; color:#111; font-weight:600; }
         tr:nth-child(even) { background:#fafafa; }
-        @media print { body { padding: 10px; } }
       </style>
 
       ${tableHTML}
@@ -1083,11 +1082,14 @@ function printOutletSales() {
     </div>
   `;
 
-  // Use dedicated print modal
+  // ← USE THE DEDICATED PRINT MODAL
   document.getElementById('printPreviewContent').innerHTML = printableContent;
   document.getElementById('printPreviewBackdrop').style.display = 'flex';
 }
 
+function closePrintPreview() {
+  document.getElementById('printPreviewBackdrop').style.display = 'none';
+}
 function closePrintPreview() {
   document.getElementById('printPreviewBackdrop').style.display = 'none';
 }
