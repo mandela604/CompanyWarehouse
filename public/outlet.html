@@ -849,6 +849,17 @@ $('#confirmSale').onclick = async () => {
 };
 
 
+function closeModal() {
+  $('#modalBackdrop').style.display = 'none';
+
+  // Reset to normal "Record Sale" mode
+  saleCart = [];
+  renderCart();
+  document.querySelector('#modalBackdrop h3').textContent = 'Record Sale (Multiple Products)';
+  $('#confirmSale').textContent = 'Complete Sale';
+  $('#confirmSale').style.background = '';
+  delete window.currentEditTransactionId;
+}
     function closeModal(){$('#modalBackdrop').style.display='none';}
     $('#modalBackdrop').onclick=e=>e.target.id==='modalBackdrop'&&closeModal();
 
@@ -890,9 +901,6 @@ async function openMultiSaleModal() {
 }
 
 function renderCart() {
-console.log('RENDER CART CALLED, items:', saleCart);
-console.log('saleItems tbody:', document.querySelector('#saleItems'));
-
   const tbody = $('#saleItems');
   if (saleCart.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
@@ -1279,61 +1287,57 @@ document.addEventListener('click', async (e) => {
 // Edit Sale - Open modal with current items
 async function editSale(transactionId) {
   console.log('EDIT CLICKED:', transactionId);
-
   const sale = window.lastSalesData?.data.find(s => s.id === transactionId);
   console.log('FOUND SALE:', sale);
-console.log('SALE ITEMS:', sale?.items);
+  if (!sale || !sale.items) return showToast('Sale not found or no items', 'error');
 
-  if (!sale) return showToast('Sale not found', 'error');
-
-  // Load existing items into cart
+  // Load the sold items into cart
   saleCart = sale.items.map(item => ({
     productId: item.productId || item.sku,
     name: item.productName,
-    price: item.unitPrice,
+    price: item.unitPrice || item.price,
     qty: item.qty,
-    max: item.qty + 9999  // allow increasing
+    max: 99999  // allow any qty during edit
   }));
 
-console.log('SALE CART BEFORE RENDER:', saleCart);
+  console.log('Loaded into saleCart:', saleCart);
 
-renderCart();
+  // Load product dropdown (for adding more items if needed)
+  try {
+    const res = await fetch(`/api/outlet/inventory?outletId=${encodeURIComponent(OUTLET_ID)}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
 
-  // Then: load fresh product list and open modal
-  const id = OUTLET_ID;
-  if (!id) return showToast('Outlet not selected', 'error');
+    const options = (data.products || [])
+      .filter(p => p.qty >= 0)
+      .map(p => `
+        <option value="${p.productId}"
+                data-price="${p.unitPrice}"
+                data-qty="${p.qty}">
+          ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+        </option>
+      `).join('');
 
-  const res = await fetch(`/api/outlet/inventory?outletId=${encodeURIComponent(id)}`);
-  console.log('INVENTORY RESPONSE STATUS:', res.status);
+    $('#productSelect').innerHTML = '<option value="">Select product to add...</option>' + options;
+  } catch (err) {
+    console.error('Failed to load products for dropdown');
+  }
 
-  if (!res.ok) return showToast('Failed to load products', 'error');
-
-  const data = await res.json();
-  console.log('INVENTORY DATA:', data.products);
-
-  const options = (data.products || [])
-    .filter(p => p.qty > 0)
-    .map(p => `
-      <option value="${p.productId}"
-              data-price="${p.unitPrice}"
-              data-qty="${p.qty}">
-        ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
-      </option>
-    `).join('');
-
-  $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
+  // NOW OPEN THE MODAL FIRST
   $('#modalBackdrop').style.display = 'flex';
-console.log('PRODUCT SELECT HTML:', $('#productSelect').innerHTML);
 
-  // Update title and button
+  // THEN RENDER THE CART — now #saleItems exists in DOM
+  renderCart();
+
+  // Update UI for edit mode
   document.querySelector('#modalBackdrop h3').textContent = 'Edit Sale';
   $('#confirmSale').textContent = 'Update Sale';
+  $('#confirmSale').style.background = '#f59e0b'; // orange to show it's edit
 
-  // Store transaction ID and override confirm
+  // Save ID and override button
   window.currentEditTransactionId = transactionId;
   $('#confirmSale').onclick = updateSale;
 }
-
 
 
 // Update Sale (called when clicking "Update Sale")
