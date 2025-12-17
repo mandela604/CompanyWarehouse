@@ -1291,6 +1291,7 @@ async function editSale(transactionId) {
   console.log('FOUND SALE:', sale);
   if (!sale || !sale.items) return showToast('Sale not found or no items', 'error');
 
+  
   // Load the sold items into cart
   saleCart = sale.items.map(item => ({
     productId: item.productId || item.sku,
@@ -1335,14 +1336,14 @@ async function editSale(transactionId) {
   $('#confirmSale').style.background = '#f59e0b'; // orange to show it's edit
 
   // Save ID and override button
-  window.currentEditTransactionId = transactionId;
+  window.currentRealTransactionId = sale.transactionId;
   $('#confirmSale').onclick = updateSale;
 }
 
 
 // Update Sale (called when clicking "Update Sale")
 async function updateSale() {
-  const transactionId = window.currentEditTransactionId;
+  const transactionId = window.currentRealTransactionId;
   if (!transactionId) return showToast('No sale to update', 'error');
 
   if (saleCart.length === 0) return showToast('No items to save', 'error');
@@ -1383,6 +1384,7 @@ async function updateSale() {
     $('#confirmSale').onclick = $('#confirmSale').onclick;
   }
 }
+
 // Confirm before delete
 function confirmDeleteSale(transactionId) {
   const sale = window.lastSalesData?.data.find(s => s.id === transactionId);
