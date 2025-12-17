@@ -1888,6 +1888,9 @@ async function renderSalesSummary() {
 
       closeModal();
       showToast('Product created successfully', 'success');
+      renderProducts();
+      refreshAll();
+      navigateTo('products');
     } catch (err) {
       console.error(err);
       showToast('Server error: ' + err?.message, 'error');
@@ -2210,7 +2213,8 @@ async function confirmMultiShipment() {
 
     $('#successMsg').style.display = 'block';
     showToast('Shipment created successfully!', 'success');
-
+    refreshAll();
+    navigateTo('overview');
     setTimeout(() => {
       closeModal();
       refreshAll(); // refreshes overview, recent shipments, etc.
@@ -2675,6 +2679,7 @@ async function editProduct(id) {
         const updated = await updateRes.json();
         closeModal();
         renderProducts();
+        refreshAll();
         showToast(`Product "${updated.product.name}" updated successfully`, 'success');
       } catch (err) {
         console.error('Update failed:', err);
@@ -2750,7 +2755,9 @@ async function deleteWarehouse(id) {
     }
 
     showToast('Product deleted successfully', 'error');
-    renderProducts(); // refresh the product table from backend
+    refreshAll();
+    renderProducts(); 
+    navigateTo('products');
   } catch (err) {
     showToast('Delete failed: ' + err.message, 'error');
   }
@@ -3109,17 +3116,14 @@ $('#hambBtn').addEventListener('click', (e) => {
 window.addEventListener('load', async () => {
   try {
     const res = await fetch('/api/company');
-    if (!res.ok) return; // No company or error → do nothing
+    if (!res.ok) return; 
     const company = await res.json();
     
     if (company && company.id) {
-      // Company exists → activate Overview and load data
       document.querySelector('.nav a[data-route="overview"]').click();
     }
-    // If no company → stay blank (user will see the "Create Company" buttons)
-  } catch (err) {
-    // Silent fail — don't show overview if anything goes wrong
-    console.error('Company check failed:', err);
+    } catch (err) {
+      console.error('Company check failed:', err);
   }
 });
 
