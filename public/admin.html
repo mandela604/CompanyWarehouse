@@ -350,9 +350,9 @@
 
 
 
-/* CENTERED & PERFECTLY ALIGNED RECENT SHIPMENTS TABLE (Admin Dashboard) */
+/* FINAL: PERFECTLY ALIGNED & CENTERED RECENT SHIPMENTS TABLE (Admin Overview) */
 #shipmentTable {
-  table-layout: fixed;  /* Forces columns to stay aligned */
+  table-layout: fixed;
   width: 100%;
 }
 
@@ -366,15 +366,26 @@
   text-overflow: ellipsis;
 }
 
-/* Balanced column widths (adds up to 100%) */
-#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 14%; } /* Date */
-#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; } /* Items */
-#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; } /* Qty */
-#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; } /* To */
-#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; } /* Total Value */
-#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; } /* Status */
-#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 19%; } /* Action */
-  </style>
+/* Column widths — balanced and add up to 100% */
+#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 14%; text-align: left; }     /* Date - left aligned */
+#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; }                      /* Items */
+#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; }                      /* Qty */
+#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; text-align: left; }    /* To - left for long names */
+#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; text-align: right; }   /* Total Value - right */
+#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }                      /* Status */
+#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 19%; text-align: center; } /* Action */
+
+/* Special: make Action buttons look nice */
+#shipmentTable .view-details,
+#shipmentTable .cancel-shipment {
+  font-size: 11px;
+  padding: 6px 12px;
+  margin: 0 4px;
+  min-width: 60px;
+  border-radius: 8px;
+}
+
+</style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
