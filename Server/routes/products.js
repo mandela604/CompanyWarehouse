@@ -8,6 +8,9 @@ const Product = require('../models/Product');
 const Company = require('../models/Company');
 const Warehouse = require('../models/Warehouse');
 const WarehouseInventory = require('../models/WarehouseInventory');
+const Sale = require('../models/Sale');
+const Shipment = require('../models/Shipment');
+const OutletInventory = require('../models/OutletInventory');
 
 
 const router = express.Router();
@@ -15,30 +18,44 @@ const router = express.Router();
 /// 🟢 CREATE PRODUCT (Admin only)
 /// 🟢 CREATE PRODUCT (Admin only)
 router.post('/products', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  
   try {
     let { sku, name, qty, companyId, companyName, unitPrice, status } = req.body;
 
-    // Validate required fields
-    if (!name || qty <= 0 || !companyId || !companyName || unitPrice <= 0)
+    if (!name || qty <= 0 || !companyId || !companyName || unitPrice <= 0) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'Missing required fields.' });
+    }
 
-    // Sanitize inputs
     name = validator.escape(name.trim());
     companyName = validator.escape(companyName.trim());
     status = status ? validator.escape(status.trim()) : 'inStock';
     sku = sku ? validator.escape(sku.trim()) : uuidv4();
 
-    // Validate numeric fields
     qty = Number(qty);
     unitPrice = parseFloat(unitPrice);
-    if (isNaN(qty) || qty <= 0) return res.status(400).json({ message: 'Quantity must be a positive number.' });
-    if (isNaN(unitPrice) || unitPrice <= 0) return res.status(400).json({ message: 'Unit price must be a positive number.' });
 
-    // Check for duplicate SKU
-    const existingProduct = await productService.getProductBySKU(sku);
-    if (existingProduct) return res.status(400).json({ message: 'SKU already exists.' });
+    if (isNaN(qty) || qty <= 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Quantity must be a positive number.' });
+    }
+
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Unit price must be a positive number.' });
+    }
+
+    const existingProduct = await Product.findOne({ sku }).session(session);
+    if (existingProduct) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'SKU already exists.' });
+    }
 
     const id = uuidv4();
 
@@ -55,35 +72,45 @@ router.post('/products', ensureAdmin, async (req, res) => {
       lastUpdated: new Date()
     };
 
-    const saved = await productService.createProduct(newProduct);
-    res.status(201).json({ message: 'Product created successfully.', product: saved });
+    const saved = await Product.create([newProduct], { session });
 
-   await Company.findOneAndUpdate(
-  {},
-  {
-    $push: {
-      products: {
-        productId: newProduct.id,
-        productSku: newProduct.sku,
-        name: newProduct.name,
-        unitPrice: newProduct.unitPrice,
-        qty: newProduct.qty
-      }
-    },
-    $inc: {
-      totalProducts: 1,
-      totalStock: newProduct.qty 
-    },
-    $set: { lastUpdated: new Date() }
-  }
-);
+    await Company.findOneAndUpdate(
+      {},
+      {
+        $push: {
+          products: {
+            productId: newProduct.id,
+            productSku: newProduct.sku,
+            name: newProduct.name,
+            unitPrice: newProduct.unitPrice,
+            qty: newProduct.qty
+          }
+        },
+        $inc: {
+          totalProducts: 1,
+          totalStock: newProduct.qty
+        },
+        $set: { lastUpdated: new Date() }
+      },
+      { session }
+    );
 
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({
+      message: 'Product created successfully.',
+      product: saved[0]
+    });
 
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('Create product error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
-  } 
+  }
 });
+
 
 
 
