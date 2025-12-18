@@ -345,6 +345,35 @@
 #shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 17%; padding-right: 16px; }
 
 
+
+
+
+
+
+/* CENTERED & PERFECTLY ALIGNED RECENT SHIPMENTS TABLE (Admin Dashboard) */
+#shipmentTable {
+  table-layout: fixed;  /* Forces columns to stay aligned */
+  width: 100%;
+}
+
+#shipmentTable th,
+#shipmentTable td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Balanced column widths (adds up to 100%) */
+#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 14%; } /* Date */
+#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; } /* Items */
+#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; } /* Qty */
+#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; } /* To */
+#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; } /* Total Value */
+#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; } /* Status */
+#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 19%; } /* Action */
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
