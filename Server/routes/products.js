@@ -267,39 +267,49 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-    // --- OUTLET INVENTORY ---
-    const outletInventories = await OutletInventory.find({ productId }).session(session);
-    for (const ol of outletInventories) {
-      await Outlet.updateOne(
-        { id: ol.outletId },
-        { 
-          $inc: { 
-            totalStock: -ol.qty,       // Reduce outlet total stock
-            revenue: -ol.revenue        // Reduce outlet total revenue
-          },
-          $set: { lastUpdated: new Date() }
-        },
-        { session }
-      );
-    }
-    await OutletInventory.deleteMany({ productId }, { session });
+   // --- OUTLET INVENTORY ---
+const outletInventories = await OutletInventory.find({ productId }).session(session);
+let outletQty = 0;
+for (const ol of outletInventories) {
+  outletQty += ol.qty;
+  await Outlet.updateOne(
+    { id: ol.outletId },
+    { 
+      $inc: { totalStock: -ol.qty, revenue: -ol.revenue },
+      $set: { lastUpdated: new Date() }
+    },
+    { session }
+  );
+}
+await OutletInventory.deleteMany({ productId }, { session });
 
-    // --- WAREHOUSE INVENTORY ---
-    const warehouseInventories = await WarehouseInventory.find({ productId }).session(session);
-    for (const wh of warehouseInventories) {
-      await Warehouse.updateOne(
-        { id: wh.warehouseId },
-        { 
-          $inc: { 
-            totalStock: -wh.qty,       // Reduce warehouse total stock
-            totalRevenue: -wh.revenue   // Reduce warehouse total revenue
-          },
-          $set: { lastUpdated: new Date() }
-        },
-        { session }
-      );
-    }
-    await WarehouseInventory.deleteMany({ productId }, { session });
+// --- WAREHOUSE INVENTORY ---
+const warehouseInventories = await WarehouseInventory.find({ productId }).session(session);
+let warehouseQty = 0;
+for (const wh of warehouseInventories) {
+  warehouseQty += wh.qty;
+  await Warehouse.updateOne(
+    { id: wh.warehouseId },
+    { 
+      $inc: { totalStock: -wh.qty, totalRevenue: -wh.revenue },
+      $set: { lastUpdated: new Date() }
+    },
+    { session }
+  );
+}
+await WarehouseInventory.deleteMany({ productId }, { session });
+
+// --- COMPANY ---
+const totalQtyToRemove = (product.qty || 0) + outletQty + warehouseQty;
+await Company.updateOne(
+  { id: product.companyId },
+  {
+    $pull: { products: { productId } },
+    $inc: { totalProducts: -1, totalStock: -totalQtyToRemove },
+    $set: { lastUpdated: new Date() }
+  },
+  { session }
+);
 
     // --- SALES ---
     await Sale.deleteMany({ productId }, { session });
@@ -315,19 +325,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       { session }
     );
 
-    // --- COMPANY ---
-    await Company.updateOne(
-      { id: product.companyId },
-      {
-        $pull: { products: { productId } },
-        $inc: { 
-          totalProducts: -1, 
-          totalStock: -(product.qty || 0)
-        },
-        $set: { lastUpdated: new Date() }
-      },
-      { session }
-    );
+  
 
     // Delete the product itself
     await productService.removeProductById(productId, session);
