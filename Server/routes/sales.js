@@ -116,7 +116,7 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
         throw new Error(`Insufficient stock for product ${productId}`);
       }
 
-      const product = await Product.findOne({ id: productId }).lean();
+      const product = await Product.findOne({ id: productId }).session(session);
       if (!product) throw new Error(`Product not found: ${productId}`);
 
       const totalAmount = qtySold * product.unitPrice;
@@ -127,13 +127,13 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
       await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
       await companyService.incrementRevenue(session, totalAmount, qtySold);
  
-      const outlet = await Outlet.findOne({ id: outletId }).lean();
-if (!outlet) throw new Error(`Outlet not found: ${outletId}`);
+
+      const outlet = await Outlet.findOne({ id: outletId }).session(session);
+      if (!outlet) throw new Error(`Outlet not found: ${outletId}`);
 
 const warehouseId = outlet.warehouseId;
 
 // Now increment warehouse revenue
-console.log("Updating warehouse revenue:", warehouseId, totalAmount);
 
 await Warehouse.updateOne(
   { id: warehouseId },
