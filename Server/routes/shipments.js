@@ -318,23 +318,35 @@ router.get('/outlet', ensureAuth, async (req, res) => {
       .limit(limit)
       .lean();
 
-    const enriched = await Promise.all(
-      shipments.map(async (s) => {
-        const productIds = s.products.map(p => p.productId);
-        const products = await Product.find({ id: { $in: productIds } }).lean();
-        const productNames = products.map(p => p.name).join(', ');
-        const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+   const enriched = await Promise.all(
+  shipments.map(async (s) => {
+    const productIds = s.products.map(p => p.productId);
+    const products = await Product.find({ id: { $in: productIds } }).lean();
 
-        return {
-          id: s.id,
-          date: s.date.toISOString().slice(0, 10),
-          fromName: s.from?.name || 'Unknown',
-          productNames,
-          qty: totalQty,
-          status: s.status
-        };
-      })
-    );
+    // Build enriched products array with name + price
+    const enrichedProducts = s.products.map(sp => {
+      const fullProduct = products.find(p => p.id === sp.productId);
+      return {
+        productName: fullProduct?.name || 'Unknown',
+        qty: sp.qty,
+        unitPrice: fullProduct?.unitPrice || 0
+      };
+    });
+
+    const totalQty = enrichedProducts.reduce((sum, p) => sum + p.qty, 0);
+    const totalValue = enrichedProducts.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
+
+    return {
+      id: s.id,
+      date: s.date.toISOString().slice(0, 10),
+      fromName: s.from?.name || 'Unknown',
+      products: enrichedProducts,        // ← THIS IS THE KEY: send full product details
+      totalQty,
+      totalValue,                        // ← optional: pre-calculate on backend
+      status: s.status
+    };
+  })
+);
 
     const totalCount = await Shipment.countDocuments({ 'to.id': outletId, toType: 'Outlet' });
 
