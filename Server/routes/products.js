@@ -254,10 +254,11 @@ if (company.inTransit > 0) {
 router.delete('/products/:id', ensureAdmin, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
+
   try {
     const productId = req.params.id;
 
-    // Only check if product exists
+    // Get product
     const product = await productService.getProductById(productId, session);
     if (!product) {
       await session.abortTransaction();
@@ -265,31 +266,55 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-
-    // Delete from warehouse inventory (even if qty > 0)
-    await WarehouseInventory.deleteMany({ productId }, { session });
-
-    // Delete from outlet inventory (even if qty > 0)
+    // --- OUTLET INVENTORY ---
+    const outletInventories = await OutletInventory.find({ productId }).session(session);
+    for (const ol of outletInventories) {
+      await Outlet.updateOne(
+        { id: ol.outletId },
+        { 
+          $inc: { 
+            totalStock: -ol.qty,       // Reduce outlet total stock
+            revenue: -ol.revenue        // Reduce outlet total revenue
+          },
+          $set: { lastUpdated: new Date() }
+        },
+        { session }
+      );
+    }
     await OutletInventory.deleteMany({ productId }, { session });
 
-    // Delete ALL sales history
+    // --- WAREHOUSE INVENTORY ---
+    const warehouseInventories = await WarehouseInventory.find({ productId }).session(session);
+    for (const wh of warehouseInventories) {
+      await Warehouse.updateOne(
+        { id: wh.warehouseId },
+        { 
+          $inc: { 
+            totalStock: -wh.qty,       // Reduce warehouse total stock
+            totalRevenue: -wh.revenue   // Reduce warehouse total revenue
+          },
+          $set: { lastUpdated: new Date() }
+        },
+        { session }
+      );
+    }
+    await WarehouseInventory.deleteMany({ productId }, { session });
+
+    // --- SALES ---
     await Sale.deleteMany({ productId }, { session });
 
-    // Remove product from all shipments
+    // --- SHIPMENTS ---
     await Shipment.updateMany(
       { 'products.productId': productId },
       { $pull: { products: { productId } } },
       { session }
     );
-
-    // Delete any shipments that became empty
     await Shipment.deleteMany(
-  { products: { $exists: true, $eq: [] } },
-  { session }
-);
+      { products: { $exists: true, $eq: [] } },
+      { session }
+    );
 
-
-    // Remove from Company and adjust totals (even if stock was > 0)
+    // --- COMPANY ---
     await Company.updateOne(
       { id: product.companyId },
       {
@@ -310,7 +335,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
     session.endSession();
 
     res.json({ 
-      message: 'Product completely deleted from everywhere — including warehouse, outlet, sales, shipments, and company records.' 
+      message: 'Product completely deleted — inventory and revenue adjusted for company, warehouse, and outlet.' 
     });
 
   } catch (err) {
@@ -320,6 +345,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 
 
