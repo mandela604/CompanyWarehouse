@@ -1285,7 +1285,7 @@ async function renderWarehouses() {
           <span>${o.name}</span>
           <div>
             <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editOutlet('${o.id}')">Edit</button>
-            <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="deleteOutlet('${o.id}')">Delete</button>
+            <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="confirmDeleteOutlet('${o.id}')">Delete</button>
           </div>
         </h4>
         <p class="location">${o.location}</p>
@@ -1340,7 +1340,7 @@ async function renderWarehouses() {
         <td><span class="pill" style="background:rgba(34,197,94,0.1);color:#166534">Active</span></td>
         <td>
           <button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editUser('${acc.id}')">Edit</button>
-          <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="deleteUser('${acc.id}')">Delete</button>
+          <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="confirmDeleteUser('${acc.id}')">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -2744,28 +2744,48 @@ async function deleteWarehouse(id) {
   }
 }
 
-  async function deleteOutlet(id) {
-  if (!confirm('Delete this outlet?')) return;
+function confirmDeleteOutlet(id) {
+  const confirmHTML = `
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h3 style="color:#dc3545;margin:0 0 16px;">Delete Outlet?</h3>
+      <p>Are you sure you want to <strong>permanently delete</strong> this outlet?</p>
+      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
+      <div style="margin-top:20px;">
+        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
+                onclick="deleteOutlet('${id}'); closeConfirmModal()">
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  `;
 
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = confirmHTML;
+  backdrop.style.display = 'flex';
+  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
+  document.body.appendChild(backdrop);
+
+  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
+}
+
+async function deleteOutlet(id) {
   try {
     const res = await fetch(`/api/outlets/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const errData = await res.json();
       throw new Error(errData.message || 'Delete failed');
     }
-
-    showToast('Outlet deleted successfully', 'error');
-
-    // Re-render UI after backend deletion
+    showToast('Outlet deleted successfully', 'success');
     renderOutlets();
     renderWarehouses();
-    renderProducts();  
+    renderProducts();
     refreshAll();
   } catch (err) {
     showToast('Delete failed: ' + err.message, 'error');
   }
 }
-
 
 function confirmDeleteProduct(id) {
   const confirmHTML = `
@@ -2871,26 +2891,45 @@ async function deleteProduct(id) {
 }
 
 
+function confirmDeleteUser(id) {
+  const confirmHTML = `
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h3 style="color:#dc3545;margin:0 0 16px;">Delete User?</h3>
+      <p>Are you sure you want to <strong>permanently delete</strong> this user account?</p>
+      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
+      <div style="margin-top:20px;">
+        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
+                onclick="deleteUser('${id}'); closeConfirmModal()">
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  `;
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = confirmHTML;
+  backdrop.style.display = 'flex';
+  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
+  document.body.appendChild(backdrop);
+
+  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
+}
+
 async function deleteUser(id) {
-  if (!confirm('Delete this user?')) return;
-
   try {
-    const res = await fetch(`/api/accounts/${id}`, {
-      method: 'DELETE'
-    });
-
+    const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.message || `Failed to delete user: ${res.status}`);
     }
-    
     showToast('User deleted successfully', 'success');
-      renderAccounts();
+    renderAccounts();
   } catch (err) {
-  showToast('Error: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   }
 }
-
 
    async function saveLowStockThreshold() {
   const thresh = Number($('#lowStockThreshold').value);
