@@ -238,7 +238,6 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found.' });
     }
 
-    // NO OTHER CHECKS — DELETE EVERYTHING NO MATTER WHAT
 
     // Delete from warehouse inventory (even if qty > 0)
     await WarehouseInventory.deleteMany({ productId }, { session });
@@ -257,7 +256,11 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
     );
 
     // Delete any shipments that became empty
-    await Shipment.deleteMany({ products: { $size: 0 } }, { session });
+    await Shipment.deleteMany(
+  { products: { $exists: true, $eq: [] } },
+  { session }
+);
+
 
     // Remove from Company and adjust totals (even if stock was > 0)
     await Company.updateOne(
@@ -266,7 +269,7 @@ router.delete('/products/:id', ensureAdmin, async (req, res) => {
         $pull: { products: { productId } },
         $inc: { 
           totalProducts: -1, 
-          totalStock: -product.qty 
+          totalStock: -(product.qty || 0)
         },
         $set: { lastUpdated: new Date() }
       },

@@ -15,9 +15,10 @@ async function getAllProducts() {
   return await Product.find().sort({ createdAt: -1 });
 }
 
-async function getProductById(id) {
-  return await Product.findOne({ id }); // Use your UUID field
+async function getProductById(id, session) {
+  return await Product.findOne({ id }).session(session);
 }
+
 
 async function updateProductById(id, updates, session) {
   updates.lastUpdated = new Date();
@@ -26,18 +27,9 @@ async function updateProductById(id, updates, session) {
 
 
 async function removeProductById(id, session) {
-  const deleted = await Product.findOneAndDelete({ id }, { session });
-  if (!deleted) return null;
-  await WarehouseInventory.deleteMany({ productId: id }, { session });
-  await OutletInventory.deleteMany({ productId: id }, { session });
-  await Company.updateOne(
-    { id: deleted.companyId },
-    { $inc: { totalProducts: -1 }, $set: { lastUpdated: new Date() } },
-    { session }
-  );
-
-  return deleted;
+  return await Product.findOneAndDelete({ id }, { session });
 }
+
 
 
 async function getProductsByCompany(companyId) {
