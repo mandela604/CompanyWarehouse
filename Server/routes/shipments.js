@@ -367,7 +367,7 @@ router.get('/outlet', ensureAuth, async (req, res) => {
 
 // Approve shipment
 // Approve shipment
-router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
+/*router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
      console.error('Shipments :', req.body);
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -457,15 +457,31 @@ for (const p of shipment.products) {
 // After the FOR loop
 if (shipment.toType === 'Warehouse') {
 
-  let newProducts = 0;
+ let newProducts = 0;
 
-  for (const p of shipment.products) {
-    const exists = await WarehouseInventory.findOne(
-      { warehouseId: shipment.to.id, productId: p.productId }
-    ).session(session);
+for (const p of shipment.products) {
+  const existed = await WarehouseInventory.findOne(
+    { warehouseId: shipment.to.id, productId: p.productId }
+  ).session(session);
 
-    if (!exists) newProducts++;
-  }
+  if (!existed) newProducts++;
+
+  await WarehouseInventory.updateOne(
+    { warehouseId: shipment.to.id, productId: p.productId },
+    {
+      $inc: { qty: p.qty, totalReceived: p.qty },
+      $set: {
+        sku: p.productSku,
+        productName: p.name || p.productName,
+        unitPrice: p.unitPrice || 0,
+        status: 'inStock'
+      },
+      $setOnInsert: { createdAt: new Date() }
+    },
+    { session, upsert: true }
+  );
+}
+
 
   await Warehouse.updateOne(
     { id: shipment.to.id },
@@ -510,6 +526,141 @@ else if (shipment.toType === 'Outlet') {
     session.endSession();
 
     res.json({ message: 'Shipment approved and inventory updated', shipment });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Shipment approval failed:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+}); */
+
+router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // 🔒 Atomic approval (prevents double approve)
+    const shipment = await Shipment.findOneAndUpdate(
+      { id: req.params.id, status: 'In Transit' },
+      { $set: { status: 'Received' } },
+      { session, new: true }
+    );
+
+    if (!shipment) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Shipment already approved or invalid' });
+    }
+
+    let totalQty = 0;
+    let newProducts = 0;
+
+    for (const p of shipment.products) {
+      totalQty += p.qty;
+
+      // ================= DESTINATION =================
+      if (shipment.toType === 'Warehouse') {
+        const existed = await WarehouseInventory.findOne(
+          { warehouseId: shipment.to.id, productId: p.productId }
+        ).session(session);
+
+        if (!existed) newProducts++;
+
+        await WarehouseInventory.updateOne(
+          { warehouseId: shipment.to.id, productId: p.productId },
+          {
+            $inc: { qty: p.qty, totalReceived: p.qty },
+            $set: {
+              sku: p.productSku,
+              productName: p.name || p.productName,
+              unitPrice: p.unitPrice || 0,
+              status: 'inStock'
+            },
+            $setOnInsert: { createdAt: new Date() }
+          },
+          { session, upsert: true }
+        );
+      }
+
+      if (shipment.toType === 'Outlet') {
+        const existed = await OutletInventory.findOne(
+          { outletId: shipment.to.id, productId: p.productId }
+        ).session(session);
+
+        if (!existed) newProducts++;
+
+        const warehouseId =
+          shipment.fromType === 'Warehouse' ? shipment.from.id : null;
+
+        await OutletInventory.updateOne(
+          { outletId: shipment.to.id, productId: p.productId },
+          {
+            $inc: { qty: p.qty, totalReceived: p.qty },
+            $set: {
+              sku: p.productSku,
+              productName: p.name || p.productName,
+              unitPrice: p.unitPrice || 0,
+              status: 'inStock',
+              ...(warehouseId && { warehouseId }),
+              lastUpdated: new Date()
+            },
+            $setOnInsert: { createdAt: new Date() }
+          },
+          { session, upsert: true }
+        );
+      }
+
+      // ================= SOURCE =================
+      if (shipment.fromType === 'Company') {
+        await Company.updateOne(
+          { id: shipment.from.id, 'products.productId': p.productId },
+          {
+            $inc: {
+              inTransit: -p.qty,
+              'products.$.qty': -p.qty,
+              totalShipments: 1
+            }
+          },
+          { session }
+        );
+      }
+
+      if (shipment.fromType === 'Warehouse') {
+        await WarehouseInventory.updateOne(
+          { warehouseId: shipment.from.id, productId: p.productId },
+          { $inc: { inTransit: -p.qty, totalShipped: p.qty } },
+          { session }
+        );
+
+        await Warehouse.updateOne(
+          { id: shipment.from.id },
+          { $inc: { totalStock: -p.qty, totalShipments: p.qty } },
+          { session }
+        );
+      }
+    }
+
+    // ================= TOTALS =================
+    if (shipment.toType === 'Warehouse') {
+      await Warehouse.updateOne(
+        { id: shipment.to.id },
+        { $inc: { totalStock: totalQty, totalProducts: newProducts } },
+        { session }
+      );
+    }
+
+    if (shipment.toType === 'Outlet') {
+      await Outlet.updateOne(
+        { id: shipment.to.id },
+        { $inc: { totalStock: totalQty, totalProducts: newProducts } },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Shipment approved successfully', shipment });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
