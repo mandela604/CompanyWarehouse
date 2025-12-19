@@ -374,20 +374,23 @@
 #shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; text-align: right; }   /* Total Value - right */
 #shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }                      /* Status */
 /* Action column: right-aligned, with space for two buttons */
+/* Fix Action column in Recent Shipments (Overview) */
 #shipmentTable th:nth-child(7),
 #shipmentTable td:nth-child(7) {
-  width: 19%;
-  text-align: right !important;
-  padding-right: 16px;
+  width: 22% !important;           /* Give more space */
+  text-align: right !important;     /* Align buttons to the right */
+  padding-right: 20px !important;
+  white-space: nowrap;
+  overflow: visible !important;     /* Prevent "..." cutting off buttons */
 }
 
-/* buttons have some spacing */
+/* Style the buttons nicely */
 #shipmentTable .view-details,
 #shipmentTable .cancel-shipment {
-  font-size: 11px;
-  padding: 6px 12px;
-  margin: 0 4px;
-  border-radius: 8px;
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  margin: 0 4px !important;
+  border-radius: 8px !important;
   min-width: 60px;
 }
 
@@ -1067,20 +1070,21 @@ async function renderShipments() {
         <td>${s.to?.name || s.warehouseName || '—'}</td>
         <td style="text-align:right;">${formatNGN(totalValue)}</td>
         <td><span class="pill">${s.status}</span></td>
-        <td style="text-align:right;">
-          <button class="view-details btn"
-                  style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; border-radius:8px;"
-                  data-id="${s.id}">
-            View
-          </button>
-          ${s.status === 'In Transit' ? `
-            <button class="cancel-shipment"
-                    style="font-size:12px; padding:6px 12px; background:#dc3545; color:white; border-radius:8px; border:none;"
-                    data-id="${s.id}">
-              Cancel
-            </button>
-          ` : ''}
-        </td>
+        <td style="text-align: right; white-space: nowrap; padding-right: 20px;">
+  <button class="view-details btn"
+          style="font-size:11px; padding:6px 12px; background:var(--blue); color:white; border-radius:8px; margin-right:6px;"
+          data-id="${s.id}">
+    View
+  </button>
+  ${s.status === 'In Transit' ? 
+    `<button class="cancel-shipment btn"
+            style="font-size:11px; padding:6px 12px; background:#dc3545; color:white; border-radius:8px;"
+            data-id="${s.id}">
+      Cancel
+    </button>` 
+    : ''
+  }
+</td>
       `;
       tbody.appendChild(tr);
     });

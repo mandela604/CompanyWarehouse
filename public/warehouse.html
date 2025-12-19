@@ -86,23 +86,31 @@
 #recentShipments th:nth-child(7), #recentShipments td:nth-child(7),
 #shipmentsTable th:nth-child(7), #shipmentsTable td:nth-child(7) { width: 19%; } /* Action */
 
-
-/* Fix for tiny buttons in shipments table */
-.btn.tiny {
-  font-size: 11px !important;
-  padding: 5px 10px !important;
-  margin: 0 4px !important;
-  min-width: 70px;
-  border-radius: 8px;
+/* FINAL FIX: Make sure Action column shows both buttons fully */
+#shipmentsTable th,
+#shipmentsTable td {
+  text-align: center !important;  /* keep centering for other columns */
 }
 
-/* Making Action column wider and right-aligned so both buttons fit */
+/* Override specifically for the Action column (7th) */
 #shipmentsTable th:nth-child(7),
 #shipmentsTable td:nth-child(7) {
-  width: 22% !important;        /* increased from ~19% */
-  text-align: right !important; /* align buttons to the right */
-  padding-right: 16px !important;
-  white-space: nowrap;
+  width: 25% !important;           /* Give plenty of space */
+  text-align: right !important;    /* Align buttons to the right */
+  padding-right: 20px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;    /* Critical: prevents "..." clipping */
+  text-overflow: unset !important;
+}
+
+/* Style the tiny buttons properly */
+#shipmentsTable .btn.tiny {
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  margin: 0 4px !important;
+  border-radius: 8px !important;
+  min-width: 70px;
+  display: inline-block;
 }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -519,14 +527,28 @@ async function renderShipments() {
       <td style="text-align:center;"><strong>${totalQty}</strong></td>
       <td style="text-align:right;">${formatNGN(totalValue)}</td>
       <td><span class="pill">${s.status}</span></td>
-      <td>
-        <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
-        ${s.status.toLowerCase() === 'in transit'
-          ? `<button class="btn tiny" data-id="${s.id}" data-action="approve">Approve</button>
-             <button class="btn tiny" style="background:#dc3545;" data-id="${s.id}" data-action="reject">Reject</button>`
-          : ''
-        }
-      </td>
+      <td style="text-align: right; white-space: nowrap; padding-right: 20px;">
+  <button class="btn view-details" 
+          style="font-size:11px;padding:6px 12px;background:var(--blue);color:white;border-radius:8px;margin-right:6px;"
+          data-id="${s.id}">
+    View
+  </button>
+  ${s.status.toLowerCase() === 'in transit' ? 
+    `<button class="btn tiny" 
+             style="margin-right:6px;" 
+             data-id="${s.id}" 
+             data-action="approve">
+      Approve
+    </button>
+    <button class="btn tiny" 
+             style="background:#dc3545;color:white;" 
+             data-id="${s.id}" 
+             data-action="reject">
+      Reject
+    </button>` 
+    : ''
+  }
+</td>
     </tr>
   `;
 });
