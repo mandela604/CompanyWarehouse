@@ -85,7 +85,26 @@
 
 #recentShipments th:nth-child(7), #recentShipments td:nth-child(7),
 #shipmentsTable th:nth-child(7), #shipmentsTable td:nth-child(7) { width: 19%; } /* Action */
-  </style>
+
+
+/* Fix for tiny buttons in shipments table */
+.btn.tiny {
+  font-size: 11px !important;
+  padding: 5px 10px !important;
+  margin: 0 4px !important;
+  min-width: 70px;
+  border-radius: 8px;
+}
+
+/* Making Action column wider and right-aligned so both buttons fit */
+#shipmentsTable th:nth-child(7),
+#shipmentsTable td:nth-child(7) {
+  width: 22% !important;        /* increased from ~19% */
+  text-align: right !important; /* align buttons to the right */
+  padding-right: 16px !important;
+  white-space: nowrap;
+}
+</style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
@@ -504,7 +523,7 @@ async function renderShipments() {
         <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
         ${s.status.toLowerCase() === 'in transit'
           ? `<button class="btn tiny" data-id="${s.id}" data-action="approve">Approve</button>
-             <button class="btn tiny" data-id="${s.id}" data-action="reject">Reject</button>`
+             <button class="btn tiny" style="background:#dc3545;" data-id="${s.id}" data-action="reject">Reject</button>`
           : ''
         }
       </td>

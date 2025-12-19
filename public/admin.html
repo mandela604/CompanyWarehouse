@@ -373,16 +373,22 @@
 #shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; text-align: left; }    /* To - left for long names */
 #shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; text-align: right; }   /* Total Value - right */
 #shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }                      /* Status */
-#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 19%; text-align: center; } /* Action */
+/* Action column: right-aligned, with space for two buttons */
+#shipmentTable th:nth-child(7),
+#shipmentTable td:nth-child(7) {
+  width: 19%;
+  text-align: right !important;
+  padding-right: 16px;
+}
 
-/* Special: make Action buttons look nice */
+/* buttons have some spacing */
 #shipmentTable .view-details,
 #shipmentTable .cancel-shipment {
   font-size: 11px;
   padding: 6px 12px;
   margin: 0 4px;
-  min-width: 60px;
   border-radius: 8px;
+  min-width: 60px;
 }
 
 </style>
