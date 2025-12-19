@@ -235,12 +235,18 @@ router.get('/warehouse/inventory', ensureAuth, async (req, res) => {
 
     // Find warehouse for this manager (admins can specify warehouseId later if needed)
     let warehouse;
+    const query = {};
+
     if (user.role === 'manager') {
       warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
       if (!warehouse) return res.status(404).json({ message: 'No warehouse assigned' });
     }
 
-    const query = {};
+    // After checking role
+    if (req.query.warehouseId) {
+      query.warehouseId = req.query.warehouseId;
+    }
+
     if (user.role === 'manager') query.warehouseId = warehouse.id;
 
     const total = await WarehouseInventory.countDocuments(query);
