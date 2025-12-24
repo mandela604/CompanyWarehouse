@@ -23,7 +23,8 @@ router.post('/outlets', canCreateOutlet, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    let { name, location, warehouseId, warehouseName, managerId, managerName, repId, repName, address, phone, status } = req.body;
+    let { name, location, warehouseId, warehouseName, managerId, managerName, repIds = [],       // new: array
+  repNames = [],address, phone, status } = req.body;
 
     if (!name || !location || !warehouseId || !warehouseName)
       return res.status(400).json({ message: 'Missing required fields.' });
@@ -43,8 +44,8 @@ router.post('/outlets', canCreateOutlet, async (req, res) => {
       warehouseName,
       managerId: managerId || null,
       managerName: managerName || '',
-      repId: repId || null,
-      repName: repName || '',
+      repIds: Array.isArray(repIds) ? repIds : [],
+      repNames: Array.isArray(repNames) ? repNames : [],
       location,
       address,
       phone,

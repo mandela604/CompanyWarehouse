@@ -18,22 +18,29 @@ async function create(data) {
 async function getAll() {
   const outlets = await Outlet.find().sort({ createdAt: -1 });
 
-  return Promise.all(outlets.map(async o => {
-    if (o.repId) {
-      const rep = await Account.findOne({ id: o.repId });
-      if (rep) {
-        o.repName = rep.name;
-        o.phone = rep.phone || '';
+  const processedOutlets = await Promise.all(
+    outlets.map(async (o) => {
+      const outletObj = o.toObject(); // convert Mongoose doc to plain object
+
+      // Support both new multi-rep (repIds array) and old single rep (repId)
+      const repIdList = Array.isArray(outletObj.repIds)
+        ? outletObj.repIds
+        : (outletObj.repId ? [outletObj.repId] : []);
+
+      if (repIdList.length > 0) {
+        const reps = await Account.find({ id: { $in: repIdList } }).lean();
+        outletObj.repNames = reps.map(r => r.name);
+        outletObj.phone = reps[0]?.phone || '';
       } else {
-        o.repName = null;
-        o.phone = null;
+        outletObj.repNames = [];
+        outletObj.phone = '';
       }
-    } else {
-      o.repName = null;
-      o.phone = null;
-    }
-    return o.toObject();
-  }));
+
+      return outletObj; // ← THIS IS REQUIRED
+    })
+  );
+
+  return processedOutlets;
 }
 
 // Get single outlet by ID
@@ -59,22 +66,28 @@ async function remove(id, session) {
 async function getByWarehouse(warehouseId) {
   const outlets = await Outlet.find({ warehouseId });
 
-  return Promise.all(outlets.map(async o => {
-    if (o.repId) {
-      const rep = await Account.findOne({ id: o.repId });
-      if (rep) {
-        o.repName = rep.name;
-        o.phone = rep.phone || '';
+  const processed = await Promise.all(
+    outlets.map(async (o) => {
+      const outletObj = o.toObject();
+
+      const repIdList = Array.isArray(outletObj.repIds)
+        ? outletObj.repIds
+        : (outletObj.repId ? [outletObj.repId] : []);
+
+      if (repIdList.length > 0) {
+        const reps = await Account.find({ id: { $in: repIdList } }).lean();
+        outletObj.repNames = reps.map(r => r.name);
+        outletObj.phone = reps[0]?.phone || '';
       } else {
-        o.repName = null;
-        o.phone = null;
+        outletObj.repNames = [];
+        outletObj.phone = '';
       }
-    } else {
-      o.repName = null;
-      o.phone = null;
-    }
-    return o.toObject();
-  }));
+
+      return outletObj;
+    })
+  );
+
+  return processed;
 }
 
 
