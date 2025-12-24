@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sales Manager — WareAdmin</title>
+  <style>
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
+    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03))}
+    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40}
+    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40} .sidebar.open{left:0} .hamburger{display:block}}
+    main{padding:6px 0}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+    .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+    .card .value{font-size:24px;font-weight:700}
+    .table{background:var(--card);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;border:1px solid #e5e7eb}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px}
+    td{padding:14px 12px;border-bottom:1px solid #eef3fb}
+    tr:hover{background:rgba(11,94,215,0.03)}
+    .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);color:var(--blue);font-weight:600;display:inline-block}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:800px;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+    .form-row{margin:12px 0;display:flex;gap:12px;align-items:end}
+    .form-row label{display:block;margin-bottom:6px;font-weight:600}
+    .form-row select,.form-row input{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd}
+    .section{display:none}
+    .section.active{display:block}
+    .inline-list{display:flex;flex-wrap:wrap;gap:16px}
+    .box{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);flex:1 1 300px;border:1px solid #e5e7eb;position:relative;overflow:hidden}
+    .box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
+    .box:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
+  </style>
+</head>
+<body>
+  <button class="hamburger" id="hambBtn">Menu</button>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">S</div>
+        <div>
+          <h2>Sales Manager</h2>
+          <div class="small" style="color:var(--muted)" id="managerName">Loading...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a href="#" class="active" data-route="outlets">My Outlets</a>
+        <a href="#" data-route="sales">All Sales</a>
+      </div>
+      <div style="margin-top:auto;padding-top:20px;">
+        <button class="btn" id="recordSaleBtn">+ Record Sale</button>
+        <button class="btn secondary" onclick="logout()" style="width:100%;margin-top:8px;">Logout</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search outlets, sales...">
+        </div>
+      </div>
+
+      <!-- OUTLETS -->
+      <section id="outletsSection" class="section active">
+        <h2>My Outlets</h2>
+        <div class="inline-list" id="myOutletsList">Loading...</div>
+      </section>
+
+      <!-- SALES -->
+      <section id="salesSection" class="section">
+        <h2>All Sales (My Outlets)</h2>
+        <button id="printSalesBtn" class="btn" style="background:var(--blue);color:white;margin-bottom:16px;">
+          Print This Page
+        </button>
+        <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="date" id="filterStart">
+          <input type="date" id="filterEnd">
+          <button class="btn secondary" id="applyFilter">Apply Filter</button>
+          <button class="btn secondary" id="clearFilter">Clear</button>
+        </div>
+        <div class="table">
+          <table id="salesTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Outlet</th>
+                <th>Rep</th>
+                <th>Products</th>
+                <th>Qty</th>
+                <th>Amount</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3>Record Sale</h3>
+      <div id="successMsg" style="display:none;background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin-bottom:16px;">
+        Sale recorded successfully!
+      </div>
+
+      <div class="form-row">
+        <label>Select Outlet</label>
+        <select id="outletSelect"></select>
+      </div>
+
+      <table style="width:100%;margin:16px 0;">
+        <thead style="background:#f8fafc;">
+          <tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr>
+        </thead>
+        <tbody id="saleItems"></tbody>
+      </table>
+
+      <div class="form-row">
+        <select id="productSelect"></select>
+        <input type="number" id="qtyInput" min="1" value="1" placeholder="Qty">
+        <button class="btn secondary" id="addItemBtn">+ Add</button>
+      </div>
+
+      <div style="text-align:right;margin:20px 0;font-size:18px;font-weight:600;">
+        Grand Total: <span id="grandTotal">₦0</span>
+      </div>
+
+      <div style="text-align:right;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmSaleBtn" disabled>Complete Sale</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:8px;z-index:1000;pointer-events:none;"></div>
+
+  <script>
+    let currentUser = {};
+    let myOutlets = [];
+    let saleCart = [];
+
+    function $(s) { return document.querySelector(s); }
+    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
+    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(new Date(d)); }
+
+    function showToast(msg, type='info') {
+      const colors = {info:'#0b5ed7', success:'#10b981', error:'#b71c1c'};
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = `background:${colors[type]};color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin:4px;`;
+      $('#toastContainer').appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function navigateTo(route) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      $(`#${route}Section`).classList.add('active');
+      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
+    }
+
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      navigateTo(a.dataset.route);
+      if (a.dataset.route === 'outlets') loadOutlets();
+      if (a.dataset.route === 'sales') loadSales();
+    }));
+
+    async function loadManagerData() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) throw new Error();
+        currentUser = await res.json();
+        $('#managerName').textContent = currentUser.name || 'Sales Manager';
+        loadOutlets();
+      } catch (err) {
+        showToast('Session expired. Redirecting...', 'error');
+        setTimeout(() => location.href = '/login', 2000);
+      }
+    }
+
+    async function loadOutlets() {
+      const container = $('#myOutletsList');
+      container.innerHTML = '<div class="muted">Loading outlets...</div>';
+      try {
+        const res = await fetch('/api/outlets/manager'); // backend endpoint for manager's outlets
+        if (!res.ok) throw new Error();
+        myOutlets = await res.json();
+
+        container.innerHTML = '';
+        myOutlets.forEach(o => {
+          const box = document.createElement('div');
+          box.className = 'box';
+          box.innerHTML = `
+            <h4 style="margin:0 0 8px;display:flex;justify-content:space-between;">
+              <span>${o.name}</span>
+            </h4>
+            <p style="color:var(--muted);margin:4px 0">${o.location || '—'}</p>
+            <p style="margin:4px 0">Rep: <strong>${o.repName || '—'}</strong></p>
+            <div style="display:flex;gap:12px;margin-top:16px;">
+              <div><strong>${o.totalStock || 0}</strong><br><small style="color:var(--muted)">Stock</small></div>
+              <div><strong>${formatNGN(o.revenue || 0)}</strong><br><small style="color:var(--muted)">Sales</small></div>
+            </div>
+            <a href="/outlet.html?outletId=${o.id}" target="_blank" class="btn" style="margin-top:16px;width:100%;text-align:center;">
+              Open Outlet
+            </a>
+          `;
+          container.appendChild(box);
+        });
+      } catch (err) {
+        container.innerHTML = '<div class="error">Failed to load outlets</div>';
+      }
+    }
+
+    async function loadSales(page=1) {
+      const tbody = $('#salesTable tbody');
+      tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+      try {
+        const q = new URLSearchParams({ page, limit: 20 });
+        if ($('#filterStart').value) q.set('start', $('#filterStart').value);
+        if ($('#filterEnd').value) q.set('end', $('#filterEnd').value);
+
+        const res = await fetch(`/api/sales/manager?${q}`);
+        const data = await res.json();
+
+        tbody.innerHTML = data.sales.map(s => `
+          <tr>
+            <td>${niceDate(s.date)}</td>
+            <td>${s.outletName}</td>
+            <td>${s.repName || '—'}</td>
+            <td>${s.products.map(p => `${p.name} × ${p.qty}`).join('<br>')}</td>
+            <td>${s.totalQty}</td>
+            <td>${formatNGN(s.amount)}</td>
+            <td style="white-space:nowrap;">
+              <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
+              <button class="btn" style="background:#f59e0b;" onclick="editSale('${s.id}')">Edit</button>
+              <button class="btn" style="background:#dc3545;" onclick="deleteSale('${s.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7">Failed to load sales</td></tr>';
+      }
+    }
+
+    // Record Sale Modal Logic
+    let selectedOutletId = null;
+    $('#recordSaleBtn').onclick = async () => {
+      try {
+        const res = await fetch('/api/outlets/manager');
+        myOutlets = await res.json();
+
+        $('#outletSelect').innerHTML = myOutlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+        selectedOutletId = myOutlets[0]?.id || null;
+
+        $('#outletSelect').onchange = () => {
+          selectedOutletId = $('#outletSelect').value;
+          loadProductsForOutlet(selectedOutletId);
+        };
+
+        loadProductsForOutlet(selectedOutletId);
+        saleCart = [];
+        renderSaleCart();
+        $('#modalBackdrop').style.display = 'flex';
+      } catch (err) {
+        showToast('Failed to load outlets', 'error');
+      }
+    };
+
+    async function loadProductsForOutlet(outletId) {
+      if (!outletId) return;
+      const res = await fetch(`/api/outlet/inventory?outletId=${outletId}`);
+      const data = await res.json();
+      const products = data.products || [];
+      $('#productSelect').innerHTML = '<option value="">Select product...</option>' +
+        products.filter(p => p.qty > 0).map(p => `
+          <option value="${p.productId}" data-price="${p.unitPrice}" data-max="${p.qty}">
+            ${p.productName} (${p.qty} left)
+          </option>
+        `).join('');
+    }
+
+    function renderSaleCart() {
+      const tbody = $('#saleItems');
+      if (saleCart.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888;">No items added</td></tr>';
+        $('#confirmSaleBtn').disabled = true;
+        $('#grandTotal').textContent = '₦0';
+        return;
+      }
+      let total = 0;
+      tbody.innerHTML = saleCart.map((item, i) => {
+        const lineTotal = item.qty * item.price;
+        total += lineTotal;
+        return `<tr>
+          <td><strong>${item.name}</strong></td>
+          <td><input type="number" min="1" max="${item.max}" value="${item.qty}" onchange="updateQty(${i},this.value)"></td>
+          <td>₦${item.price.toLocaleString()}</td>
+          <td>₦${lineTotal.toLocaleString()}</td>
+          <td><button onclick="removeItem(${i})" style="background:none;border:none;color:#b71c1c;">×</button></td>
+        </tr>`;
+      }).join('');
+      $('#grandTotal').textContent = '₦' + total.toLocaleString();
+      $('#confirmSaleBtn').disabled = false;
+    }
+
+    $('#addItemBtn').onclick = () => {
+      const sel = $('#productSelect');
+      if (!sel.value) return;
+      const opt = sel.selectedOptions[0];
+      const existing = saleCart.findIndex(x => x.id === sel.value);
+      const qty = parseInt($('#qtyInput').value) || 1;
+      const max = parseInt(opt.dataset.max);
+      if (qty > max) return showToast('Not enough stock', 'error');
+
+      if (existing >= 0) {
+        saleCart[existing].qty += qty;
+        if (saleCart[existing].qty > max) saleCart[existing].qty = max;
+      } else {
+        saleCart.push({
+          id: sel.value,
+          name: opt.text.split(' (')[0],
+          price: parseFloat(opt.dataset.price),
+          qty,
+          max
+        });
+      }
+      $('#qtyInput').value = 1;
+      sel.value = '';
+      renderSaleCart();
+    };
+
+    function updateQty(i, val) {
+      saleCart[i].qty = Math.min(parseInt(val) || 1, saleCart[i].max);
+      renderSaleCart();
+    }
+
+    function removeItem(i) {
+      saleCart.splice(i, 1);
+      renderSaleCart();
+    }
+
+    $('#confirmSaleBtn').onclick = async () => {
+      if (!selectedOutletId || saleCart.length === 0) return;
+      $('#confirmSaleBtn').disabled = true;
+      try {
+        const items = saleCart.map(item => ({ productId: item.id, qtySold: item.qty }));
+        const res = await fetch('/api/sales/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outletId: selectedOutletId, items })
+        });
+        if (!res.ok) throw new Error();
+        $('#successMsg').style.display = 'block';
+        showToast('Sale recorded!', 'success');
+        setTimeout(() => {
+          closeModal();
+          loadSales();
+        }, 1000);
+      } catch (err) {
+        showToast('Failed to record sale', 'error');
+      } finally {
+        $('#confirmSaleBtn').disabled = false;
+      }
+    };
+
+    function closeModal() {
+      $('#modalBackdrop').style.display = 'none';
+    }
+
+    $('#modalBackdrop').onclick = e => e.target.id === 'modalBackdrop' && closeModal();
+
+    // Print sales
+    $('#printSalesBtn').onclick = () => {
+      const content = document.querySelector('#salesSection').innerHTML;
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html><head><title>Sales Report</title><style>
+          body{font-family:system-ui;padding:40px;}
+          table{width:100%;border-collapse:collapse;}
+          th,td{border:1px solid #ccc;padding:10px;}
+          th{background:#f0f7ff;}
+        </style></head><body onload="window.print()">
+          <h2 style="text-align:center;color:#0b5ed7;">All Sales Report</h2>
+          ${content}
+        </body></html>
+      `);
+      win.document.close();
+    };
+
+    // View, Edit, Delete placeholders
+    function viewSale(id) { showToast('View sale: ' + id, 'info'); }
+    function editSale(id) { showToast('Edit sale: ' + id, 'info'); }
+    function deleteSale(id) { if(confirm('Delete this sale?')) showToast('Deleted: ' + id, 'success'); }
+
+    $('#applyFilter').onclick = () => loadSales();
+    $('#clearFilter').onclick = () => { $('#filterStart').value = ''; $('#filterEnd').value = ''; loadSales(); };
+
+    loadManagerData();
+    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
+  </script>
+</body>
+</html>

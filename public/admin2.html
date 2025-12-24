@@ -608,7 +608,7 @@
                 <th>Total Qty</th>
                 <th>Items</th>
                 <th>Outlet</th>
-                <th>Sales Rep (Recorder)</th>
+                <th>Rep (Recorder)</th>
               <!--  <th>Manager (Approver)</th> -->
                 <th>Status</th>
                 <th>Sent From</th>
@@ -642,7 +642,7 @@
           <table id="fullSalesTable">
             <thead>
               <tr>
-                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Sales Rep</th>
+                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Rep</th>
                 <th>Unit Price</th><th>Line Total</th><th>Status</th>
               </tr>
             </thead>
@@ -1339,17 +1339,10 @@ async function renderWarehouses() {
           </div>
         </h4>
         <p class="location">${o.location}</p>
-   ${o.repName || (o.repNames && o.repNames.length > 0)
-  ? `<p class="small muted" style="margin:4px 0">
-       Sales Rep${(Array.isArray(o.repNames) ? o.repNames.length : 1) > 1 ? 's' : ''}: 
-       <strong>
-         ${Array.isArray(o.repNames) 
-           ? o.repNames.join(', ') 
-           : o.repName || '—'}
-       </strong>
-     </p>`
-  : `<p class="small muted" style="margin:4px 0">Sales Rep: <strong>None assigned</strong></p>`
-}
+      ${o.repName 
+          ? `<p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName}</strong></p>` 
+          : `<p class="small muted" style="margin:4px 0">Rep: <strong>No rep assigned</strong></p>`
+        }
         ${o.phone 
           ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
           : ''
@@ -1839,12 +1832,11 @@ async function renderSalesSummary() {
         </select>
       </div>
       <div class="form-row">
-  <label>Sales Rep(s)</label>
-  <select id="outRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-  </select>
-  <small class="muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple reps.<br>Leave empty for no rep.</small>
-</div>
+        <select id="outRep">
+          <option value="">No rep</option>
+          ${reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
+        </select>
+      </div>
       <div style="text-align:right">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveOut">Create</button>
@@ -1855,9 +1847,8 @@ async function renderSalesSummary() {
     $('#saveOut').onclick = async () => {
       const name = $('#outName').value.trim();
       const warehouseId = $('#outWh').value;
-      const selectedOptions = Array.from($('#outRep').selectedOptions);
-      const repIds = selectedOptions.map(opt => opt.value);
-      const repNames = selectedOptions.map(opt => opt.textContent.trim());
+      const repId = $('#outRep').value || null;
+      const repName = reps.find(r => r.id === repId)?.name || '';
 
       if (!name || !warehouseId) return alert('Name and warehouse required');
 
@@ -1873,8 +1864,8 @@ async function renderSalesSummary() {
           warehouseId,
           warehouseName: warehouse.name,
           location: warehouse.location, 
-          repIds,     
-          repNames
+          repId,
+          repName
         })
       });
 
@@ -2637,8 +2628,6 @@ async function editOutlet(id) {
       .map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name}</option>`)
       .join('');
 
-      const currentRepIds = o.repId ? [o.repId] : [];
-
     // 3️⃣ Show modal with backend data
     showModal(`
       <h4>Edit Outlet – ${o.name}</h4>
@@ -2648,12 +2637,9 @@ async function editOutlet(id) {
       </div>
       <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
       <div class="form-row">
-        <label style="font-size:12px; color:var(--muted)">Current Sales Rep: <strong>${o.repName || '—'}</strong></label>
-        <select id="editOutRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${repOptions}
-  </select>
-  <small class="muted">Hold Ctrl/Cmd to select multiple. Leave empty for none.</small>
-</div>
+        <label style="font-size:12px; color:var(--muted)">Current Rep: <strong>${o.repName || '—'}</strong></label>
+        <select id="editOutRep"><option value="">No rep</option>${repOptions}</select>
+      </div>
       <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
       <div style="text-align:right; margin-top:12px">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
@@ -2668,8 +2654,7 @@ async function editOutlet(id) {
         name: $('#editOutName').value.trim(),
         warehouseId: $('#editOutWh').value,
         location: $('#editOutLocation').value.trim(),
-        repIds: Array.from($('#editOutRep').selectedOptions).map(opt => opt.value),
-        repNames: Array.from($('#editOutRep').selectedOptions).map(opt => opt.textContent.trim()),
+        repId: $('#editOutRep').value || null,
         phone: $('#editOutPhone').value.trim(),
       };
 
