@@ -436,7 +436,9 @@ async function loadUserInfo() {
   }
 }
 
-loadUserInfo();
+if (!params.get('select')) {
+  loadUserInfo();
+}
 
 
 // Toast function
