@@ -165,15 +165,32 @@ router.get('/outlets/:id', ensureAuth, async (req, res) => {
     if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
 
     const user = req.session.user;
-
-    // Same permission logic you already trust
     if (user.role === 'rep') {
-      if (outlet.repId !== user.id) return res.status(403).json({ message: 'Access denied' });
+      // Checking if user is one of the assigned reps
+      const repIdList = Array.isArray(outlet.repIds) 
+        ? outlet.repIds 
+        : (outlet.repId ? [outlet.repId] : []);
+      if (!repIdList.includes(user.id)) return res.status(403).json({ message: 'Access denied' });
     } else if (user.role === 'manager') {
       const warehouse = await Warehouse.findOne({ id: outlet.warehouseId, managerId: user.id }).lean();
       if (!warehouse) return res.status(403).json({ message: 'Access denied' });
     }
-    // admin can see all
+    // Admin can see all
+
+    const repIdList = Array.isArray(outlet.repIds)
+      ? outlet.repIds
+      : (outlet.repId ? [outlet.repId] : []);
+
+    if (repIdList.length > 0) {
+      const reps = await Account.find({ id: { $in: repIdList } }).lean();
+      outlet.repNames = reps.map(r => r.name);
+      outlet.phone = reps[0]?.phone || outlet.phone || ''; // fallback to stored phone
+    } else {
+      outlet.repNames = [];
+      outlet.phone = outlet.phone || '';
+    }
+
+    outlet.repIds = repIdList;
 
     res.json(outlet);
   } catch (err) {
@@ -203,6 +220,7 @@ router.get('/stats/top-outlets', ensureAdmin, async (req, res) => {
 
 
 // ✅ UPDATE OUTLET (Admin, Manager)
+/*
 router.put('/outlets/:id', ensureAuth, async (req, res) => {
   try {
     const outlet = await outletService.getById(req.params.id);
@@ -221,6 +239,76 @@ router.put('/outlets/:id', ensureAuth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+*/
+
+router.put('/outlets/:id', ensureAuth, async (req, res) => {
+
+  try {
+
+    const outlet = await outletService.getById(req.params.id);
+
+    if (!outlet) return res.status(404).json({ message: 'Outlet not found.' });
+
+    const user = req.session.user;
+
+    if (user.role !== 'admin' && user.id !== outlet.managerId)
+
+      return res.status(403).json({ message: 'Access denied.' });
+
+    let { name, location, warehouseId, phone, repIds = [], repNames = [] } = req.body;
+
+    // Sanitize
+
+    const updates = {
+
+      name: name ? validator.escape(name.trim()) : undefined,
+
+      location: location ? validator.escape(location.trim()) : undefined,
+
+      warehouseId: warehouseId || undefined,
+
+      phone: phone ? validator.escape(phone.trim()) : undefined,
+
+      repIds: Array.isArray(repIds) ? repIds : [],
+
+      repNames: Array.isArray(repNames) ? repNames : [],
+
+      lastUpdated: new Date()
+
+    };
+
+    // Remove undefined fields
+
+    Object.keys(updates).forEach(key => updates[key] === undefined && delete updates[key]);
+
+    const updatedOutlet = await outletService.update(req.params.id, updates);
+
+    // Re-populating repNames for consistent response
+
+    const repIdList = Array.isArray(updatedOutlet.repIds) ? updatedOutlet.repIds : [];
+
+    if (repIdList.length > 0) {
+
+      const reps = await Account.find({ id: { $in: repIdList } }).lean();
+
+      updatedOutlet.repNames = reps.map(r => r.name);
+
+    } else {
+
+      updatedOutlet.repNames = [];
+
+    }
+
+    res.json({ message: 'Outlet updated successfully.', outlet: updatedOutlet });
+
+  } catch (err) {
+
+    res.status(500).json({ message: 'Server error', error: err.message });
+
+  }
+
+});
+
 
 
 // ✅ DELETE OUTLET (Admin only)

@@ -98,7 +98,12 @@ async function getByManager(managerId) {
 
 // Get outlets by rep
 async function getByRep(repId) {
-  return await Outlet.find({ repId });
+  return await Outlet.find({
+    $or: [
+      { repIds: repId },
+      { repId: repId } 
+    ]
+  });
 }
 
 // Updated: now accepts outletId directly (not repId)

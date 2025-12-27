@@ -7,6 +7,8 @@ const outletSchema = new mongoose.Schema({
   warehouseName: { type: String, required: true },
   repId: { type: String },
   repName: { type: String },
+  repIds: { type: [String], default: [] },
+repNames: { type: [String], default: [] },
   location: { type: String, required: true },
   address: { type: String },
   phone: { type: String },
