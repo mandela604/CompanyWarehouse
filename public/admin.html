@@ -1339,13 +1339,11 @@ async function renderWarehouses() {
           </div>
         </h4>
         <p class="location">${o.location}</p>
-   ${o.repName || (o.repNames && o.repNames.length > 0)
+    ${o.repNames && o.repNames.length > 0
   ? `<p class="small muted" style="margin:4px 0">
-       Sales Rep${(Array.isArray(o.repNames) ? o.repNames.length : 1) > 1 ? 's' : ''}: 
+       Sales Rep${o.repNames.length > 1 ? 's' : ''}:
        <strong>
-         ${Array.isArray(o.repNames) 
-           ? o.repNames.join(', ') 
-           : o.repName || '—'}
+         ${o.repNames.slice(0, 2).join(', ')}${o.repNames.length > 2 ? ` +${o.repNames.length - 2} other${o.repNames.length - 2 > 1 ? 's' : ''}` : ''}
        </strong>
      </p>`
   : `<p class="small muted" style="margin:4px 0">Sales Rep: <strong>None assigned</strong></p>`
@@ -2630,7 +2628,7 @@ async function editOutlet(id) {
     const warehouses = await whRes.json();
 
     const repOptions = reps
-      .map(r => `<option value="${r.id}" ${r.id === o.repId ? 'selected' : ''}>${r.name}</option>`)
+            .map(r => `<option value="${r.id}" ${(o.repIds || []).includes(r.id) ? 'selected' : ''}>${r.name}</option>`)
       .join('');
 
     const whOptions = warehouses
@@ -2911,7 +2909,7 @@ async function deleteProduct(id) {
         <select id="editRole">
           <option value="admin" ${user.role==='admin'?'selected':''}>admin</option>
           <option value="manager" ${user.role==='manager'?'selected':''}>manager</option>
-          <option value="rep" ${user.role==='rep'?'selected':''}>rep</option>
+          <option value="rep" ${user.role==='rep'?'selected':''}>Sales rep</option>
         </select>
       </div>
 

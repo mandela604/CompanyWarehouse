@@ -294,7 +294,7 @@
         products.filter(p => p.qty > 0).map(p => `
           <option value="${p.productId}" data-price="${p.unitPrice}" data-max="${p.qty}">
             ${p.productName} (${p.qty} left)
-          </option>
+          </option>    
         `).join('');
     }
 
