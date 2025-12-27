@@ -125,6 +125,83 @@ router.post('/login', async (req, res) => {
 
 // Find all outlets this rep manages
 // Find all outlets this rep is assigned to — works for both old and new data
+  const outlets = user.role === 'rep'
+    ? await Outlet.find({
+        $or: [
+          { repIds: user.id },    // new system: multiple reps (array)
+          { repId: user.id }      // old system: single rep (legacy)
+        ]
+      })
+        .select('id name location')
+        .lean()
+    : [];
+
+  // Save clean list in session
+  req.session.outlets = outlets.map(o => ({
+    id: o.id,
+    name: o.name,
+    location: o.location || ''
+  }));
+
+  // Auto-select if only one outlet
+  if (outlets.length === 1) {
+    req.session.currentOutletId = outlets[0].id;
+  }
+
+    switch (user.role) {
+      case 'admin':
+        return res.json({ redirect: '/admin.html' });
+      case 'manager':
+        return res.json({redirect: '/warehouse.html'});
+      case 'rep':
+      if (outlets.length === 1) {
+        req.session.currentOutletId = outlets[0].id;
+        return res.json({ redirect: '/outlet.html' });
+      } else {
+        // Pass outlets list via query string 
+       // Send only id and name — keep it simple and consistent
+        const outletList = outlets.map(o => ({ id: o.id, name: o.name, location: o.location || '' }));
+        const outletQuery = encodeURIComponent(JSON.stringify(outletList));
+        return res.json({ redirect: `/outlet.html?select=1&outlets=${outletQuery}` });
+              }
+      default:
+        return res.status(403).send('Access denied'); 
+    }
+
+    
+  } catch (err) {
+     console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+
+
+/*
+// LOGIN
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await accountService.findByEmail(email);
+    if (!user) return res.status(404).json({ message: 'Account not found.' });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials.' });
+
+    // Start session
+  req.session.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone, 
+      canCreateOutlet: user.canCreateOutlet
+};
+
+// Find all outlets this rep manages
+// Find all outlets this rep is assigned to — works for both old and new data
     const outlets = user.role === 'rep'
       ? await Outlet.find({
           $or: [
@@ -182,9 +259,7 @@ req.session.save(err => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
-
-
+*/
 
 // LOGOUT (POST)
 router.post('/logout', (req, res) => {
