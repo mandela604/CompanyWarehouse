@@ -177,17 +177,26 @@ router.get('/outlets/:id', ensureAuth, async (req, res) => {
     }
     // Admin can see all
 
-    const repIdList = Array.isArray(outlet.repIds)
+       const repIdList = Array.isArray(outlet.repIds)
       ? outlet.repIds
       : (outlet.repId ? [outlet.repId] : []);
 
     if (repIdList.length > 0) {
       const reps = await Account.find({ id: { $in: repIdList } }).lean();
-      outlet.repNames = reps.map(r => r.name);
-      outlet.phone = reps[0]?.phone || outlet.phone || ''; // fallback to stored phone
+
+      // Preserve exact order of selection (repIdList order = selection order)
+      const orderedReps = repIdList
+        .map(id => reps.find(r => r.id === id))
+        .filter(Boolean); // safety
+
+      // First selected rep = index 0
+      const firstRep = orderedReps[0];
+
+      outlet.repNames = orderedReps.map(r => r.name);
+      outlet.phone = firstRep?.phone || outlet.phone || ''; // ← first rep's phone
     } else {
       outlet.repNames = [];
-      outlet.phone = outlet.phone || '';
+      outlet.phone = outlet.phone || ''; // keep outlet's own phone or clear if you prefer
     }
 
     outlet.repIds = repIdList;

@@ -2646,11 +2646,18 @@ async function editOutlet(id) {
       </div>
       <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
       <div class="form-row">
-        <label style="font-size:12px; color:var(--muted)">Current Sales Rep: <strong>${o.repName || '—'}</strong></label>
+        <label style="font-size:12px; color:var(--muted)">
+  Current Sales Rep${(o.repNames || []).length > 1 ? 's' : ''}: 
+  <strong>
+    ${(o.repNames || []).length > 0 
+      ? o.repNames.slice(0, 2).join(', ') + (o.repNames.length > 2 ? ` +${o.repNames.length - 2} others` : '')
+      : 'None assigned'}
+  </strong>
+</label>
         <select id="editOutRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
     ${repOptions}
   </select>
-  <small class="muted">Hold Ctrl/Cmd to select multiple. Leave empty for none.</small>
+  
 </div>
       <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
       <div style="text-align:right; margin-top:12px">
