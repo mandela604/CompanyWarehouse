@@ -125,16 +125,17 @@ router.post('/login', async (req, res) => {
 
 // Find all outlets this rep manages
 // Find all outlets this rep is assigned to — works for both old and new data
-    const outlets = user.role === 'rep'
-      ? await Outlet.find({
-          $or: [
-            { repIds: user.id },    // new system: multiple reps (array)
-            { repId: user.id }      // old system: single rep (legacy)
-          ]
-        })
-          .select('id name location')
-          .lean()
-      : [];
+  const outlets = user.role === 'rep'
+  ? await Outlet.find({
+      $or: [
+        { repIds: user.id },           // keep for backward if array exactly matches
+        { repIds: { $in: [user.id] } }, // ← THIS IS THE FIX: array contains user.id
+        { repId: user.id }              // old single rep
+      ]
+    })
+      .select('id name location')
+      .lean()
+  : [];
 
     // Save clean list in session
     req.session.outlets = outlets.map(o => ({
