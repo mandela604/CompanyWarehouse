@@ -125,49 +125,56 @@ router.post('/login', async (req, res) => {
 
 // Find all outlets this rep manages
 // Find all outlets this rep is assigned to — works for both old and new data
-  const outlets = user.role === 'rep'
-  ? await Outlet.find({
-      $or: [
-        { repIds: user.id },         
-        { repIds: { $in: [user.id] } }, 
-        { repId: user.id }             
-      ]
-    })
-      .select('id name location')
-      .lean()
-  : [];
+    const outlets = user.role === 'rep'
+      ? await Outlet.find({
+          $or: [
+            { repIds: user.id },    // new system: multiple reps (array)
+            { repId: user.id }      // old system: single rep (legacy)
+          ]
+        })
+          .select('id name location')
+          .lean()
+      : [];
 
     // Save clean list in session
-    req.session.outlets = outlets.map(o => ({
-      id: o.id,
-      name: o.name,
-      location: o.location || ''
-    }));
+req.session.outlets = outlets.map(o => ({
+  id: o.id,
+  name: o.name,
+  location: o.location || ''
+}));
 
-    // Auto-select if only one outlet
-    if (outlets.length === 1) {
-      req.session.currentOutletId = outlets[0].id;
-    }
+if (outlets.length === 1) {
+  req.session.currentOutletId = outlets[0].id;
+}
 
-    switch (user.role) {
-      case 'admin':
-        return res.json({ redirect: '/admin.html' });
-      case 'manager':
-        return res.json({redirect: '/warehouse.html'});
-      case 'rep':
+req.session.save(err => {
+  if (err) {
+    console.error('Session save error:', err);
+    return res.status(500).json({ message: 'Session error' });
+  }
+
+  switch (user.role) {
+    case 'admin':
+      return res.json({ redirect: '/admin.html' });
+
+    case 'manager':
+      return res.json({ redirect: '/warehouse.html' });
+
+    case 'rep':
       if (outlets.length === 1) {
-        req.session.currentOutletId = outlets[0].id;
         return res.json({ redirect: '/outlet.html' });
       } else {
-        // Pass outlets list via query string 
-       // Send only id and name — keep it simple and consistent
-        const outletList = outlets.map(o => ({ id: o.id, name: o.name, location: o.location || '' }));
-        const outletQuery = encodeURIComponent(JSON.stringify(outletList));
-        return res.json({ redirect: `/outlet.html?select=1&outlets=${outletQuery}` });
-              }
-      default:
-        return res.status(403).send('Access denied'); 
-    }
+        const outletQuery = encodeURIComponent(JSON.stringify(req.session.outlets));
+        return res.json({
+          redirect: `/outlet.html?select=1&outlets=${outletQuery}`
+        });
+      }
+
+    default:
+      return res.status(403).send('Access denied');
+  }
+});
+
 
     
   } catch (err) {
