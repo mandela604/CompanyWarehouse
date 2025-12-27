@@ -2899,7 +2899,7 @@ async function deleteProduct(id) {
   }
 }
 
-    async function editUser(id) {
+async function editUser(id) {
   try {
     // Fetch user from backend
     const res = await fetch(`/api/accounts/${id}`);
@@ -2908,9 +2908,9 @@ async function deleteProduct(id) {
 
     showModal(`
       <h4>Edit User</h4>
-      <div class="form-row"><input id="editName" value="${user.name}" /></div>
-      <div class="form-row"><input id="editEmail" value="${user.email}" /></div>
-      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" /></div>
+      <div class="form-row"><input id="editName" value="${user.name}" placeholder="Full name" /></div>
+      <div class="form-row"><input id="editEmail" type="email" value="${user.email}" placeholder="Email" /></div>
+      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" placeholder="Phone" /></div>
 
       <div class="form-row">
         <select id="editRole">
@@ -2920,21 +2920,60 @@ async function deleteProduct(id) {
         </select>
       </div>
 
-      <div style="text-align:right">
+      <!-- Password field with toggle -->
+      <div class="form-row" style="position:relative;">
+        <input id="editPassword" type="password" placeholder="New Password (leave blank to keep current)" style="padding-right:40px;" />
+        <button type="button" id="togglePassword" style="
+          position:absolute;
+          right:8px;
+          top:50%;
+          transform:translateY(-50%);
+          background:none;
+          border:none;
+          font-size:18px;
+          cursor:pointer;
+          color:var(--muted);
+        ">👁</button>
+      </div>
+
+      <div style="text-align:right; margin-top:16px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEdit">Save</button>
       </div>
     `);
 
+    // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const pwdField = document.getElementById('editPassword');
+      if (pwdField.type === 'password') {
+        pwdField.type = 'text';
+        this.textContent = '🙈'; // eye closed
+      } else {
+        pwdField.type = 'password';
+        this.textContent = '👁';  // eye open
+      }
+    });
+
+    // === Save button ===
     $('#saveEdit').onclick = async () => {
-    $('#saveEdit').disabled = true;
+      $('#saveEdit').disabled = true;
 
       const updates = {
-        name: $('#editName').value,
-        email: $('#editEmail').value,
+        name: $('#editName').value.trim(),
+        email: $('#editEmail').value.trim(),
         role: $('#editRole').value,
-        phone: $('#editPhone').value
+        phone: $('#editPhone').value.trim()
       };
+
+      const newPassword = $('#editPassword').value.trim();
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          showToast('Password must be at least 6 characters', 'error');
+          $('#saveEdit').disabled = false;
+          return;
+        }
+        updates.password = newPassword;
+      }
 
       const updateRes = await fetch(`/api/accounts/${id}`, {
         method: 'PUT',
@@ -2944,22 +2983,20 @@ async function deleteProduct(id) {
 
       if (!updateRes.ok) {
         const err = await updateRes.json();
-        showToast('Error: ' + err.message, 'error');
+        showToast('Error: ' + (err.message || 'Failed to update user'), 'error');
+        $('#saveEdit').disabled = false;
         return;
       }
-       $('#saveEdit').disabled = false;
-      
-    showToast('User updated successfully', 'success');
-      closeModal();
-      renderAccounts(); 
-    };
-  } catch (err) {
-      showToast('Error: ' + err.message, 'error');
-  } 
-     
-  
-}
 
+      showToast('User updated successfully', 'success');
+      closeModal();
+      renderAccounts();
+    };
+
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
 
 function confirmDeleteUser(id) {
   const confirmHTML = `
