@@ -296,31 +296,103 @@
 
 const params = new URLSearchParams(window.location.search);
 if (params.get('select')) {
-  const outlets = JSON.parse(decodeURIComponent(params.get('outlets')));
-  
-  // Get user name from session via API
+
+  let outlets = [];
+
+  try {
+
+    const raw = params.get('outlets');
+
+    if (raw) {
+
+      outlets = JSON.parse(decodeURIComponent(raw));
+
+    }
+
+  } catch (e) {
+
+    console.error('Failed to parse outlets:', e);
+
+    document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+
+      <h3>Error loading outlets</h3>
+
+      <p><a href="/login.html">Back to login</a></p>
+
+    </div>`;
+
+    return;
+
+  }
+
+  // Fetch user name
+
   fetch('/api/auth/me')
+
     .then(res => res.json())
+
     .then(user => {
-      let html = `<div style="text-align:center;padding:40px;background:#f8f9fa;border-radius:12px;margin:20px;">
-        <h3>Welcome, ${user.name}!</h3>
-        <p>Select outlet to manage:</p><br>`;
-      
-      outlets.forEach(o => {
-        html += `<button onclick="selectOutlet('${o.id}')" 
-          style="display:block;width:300px;margin:10px auto;padding:14px;font-size:16px;border-radius:8px;background:var(--blue);color:white;border:none;cursor:pointer;">
-          ${o.name}
-        </button>`;
-      });
-      html += `</div>`;
-      document.body.innerHTML = html;
-    })
-    .catch(() => {
-      document.body.innerHTML = `<div style="text-align:center;padding:50px;">
-        <h3>Session expired</h3>
-        <a href="/login.html">Login again</a>
+
+      let html = `<div style="text-align:center;padding:60px;background:#f8f9fa;border-radius:16px;margin:40px auto;max-width:500px;">
+
+        <h2>Welcome, ${user.name || 'Rep'}!</h2>
+
+        <p style="color:#666;margin:20px 0;">Please select an outlet to manage:</p>`;
+
+      if (outlets.length === 0) {
+
+        html += `<p>No outlets assigned.</p>`;
+
+      } else {
+
+        outlets.forEach(o => {
+
+          html += `<button onclick="selectOutlet('${o.id}')" 
+
+            style="display:block;width:100%;max-width:360px;margin:16px auto;padding:16px;font-size:16px;
+
+                   border-radius:12px;background:var(--blue);color:white;border:none;
+
+                   cursor:pointer;box-shadow:0 4px 12px rgba(11,94,215,0.2);">
+
+            <div><strong>${o.name}</strong></div>
+
+            <div style="font-size:13px;margin-top:4px;color:rgba(255,255,255,0.8);">
+
+              ${o.location || 'No location'}
+
+            </div>
+
+          </button>`;
+
+        });
+
+      }
+
+      html += `<div style="margin-top:40px;"><a href="/login.html" style="color:var(--muted);text-decoration:underline;">← Back to login</a></div>
+
       </div>`;
+
+      document.body.innerHTML = html;
+
+    })
+
+    .catch(err => {
+
+      console.error(err);
+
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;">
+
+        <h3>Session error</h3>
+
+        <p><a href="/login.html">Login again</a></p>
+
+      </div>`;
+
     });
+
+  return; // Stop normal page load
+
 }
 
 function selectOutlet(id) {
