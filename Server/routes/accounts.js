@@ -128,9 +128,9 @@ router.post('/login', async (req, res) => {
   const outlets = user.role === 'rep'
   ? await Outlet.find({
       $or: [
-        { repIds: user.id },           // keep for backward if array exactly matches
-        { repIds: { $in: [user.id] } }, // ← THIS IS THE FIX: array contains user.id
-        { repId: user.id }              // old single rep
+        { repIds: user.id },         
+        { repIds: { $in: [user.id] } }, 
+        { repId: user.id }             
       ]
     })
       .select('id name location')
