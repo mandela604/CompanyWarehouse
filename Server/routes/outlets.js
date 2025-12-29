@@ -155,6 +155,9 @@ router.get('/outlet', ensureAuth, async (req, res) => {
   }
 });
 
+
+
+
 // GET /api/outlets/:id — used by admin dashboard to edit outlet
 router.get('/outlets/:id', ensureAuth, async (req, res) => {
   try {

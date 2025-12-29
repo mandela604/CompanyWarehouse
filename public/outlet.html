@@ -768,7 +768,7 @@ async function renderShipments(page = 1) {
       params.append('outletId', OUTLET_ID);
     }
 
-    const url = `/api/outlet?${params.toString()}`;
+    const url = `/api/outlet-shipments?${params.toString()}`;
     const res = await fetch(url);
 
     if (!res.ok) {

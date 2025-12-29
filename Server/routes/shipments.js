@@ -278,7 +278,7 @@ if (!warehouse) return res.json([]);
 });
 
 
-router.get('/outlet', ensureAuth, async (req, res) => {
+router.get('/outlet-shipments', ensureAuth, async (req, res) => {
   console.log('Outlet shipments route hit');
 
   try {
