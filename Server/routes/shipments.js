@@ -287,10 +287,16 @@ router.get('/outlet-shipments', ensureAuth, async (req, res) => {
 
     // Resolve outletId based on role
     if (user.role === 'rep') {
-      const outlet = await Outlet.findOne({ repId: user.id }).lean();
-      if (!outlet) return res.status(404).json({ message: 'No outlet assigned' });
-      outletId = outlet.id;
-    } else {
+  const outlet = await Outlet.findOne({
+    $or: [
+      { repId: user.id },
+      { repIds: user.id }
+    ]
+  }).lean();
+
+  if (!outlet) return res.status(404).json({ message: 'No outlet assigned' });
+  outletId = outlet.id;
+} else {
       outletId = req.query.outletId?.trim();
       if (!outletId) return res.status(400).json({ message: 'outletId required' });
     }
