@@ -417,6 +417,16 @@ router.get('/outlet/overview', ensureAuth, async (req, res) => {
     const outlet = await Outlet.findOne({ id: outletId }).lean();
     if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
 
+    // REP ACCESS CHECK: must be in repId OR repIds array
+if (user.role === 'rep') {
+  const isAssigned = 
+    outlet.repId === user.id ||
+    (Array.isArray(outlet.repIds) && outlet.repIds.includes(user.id));
+
+  if (!isAssigned) {
+    return res.status(403).json({ message: 'Access denied to this outlet' });
+  }
+}
     // Manager extra check
     if (user.role === 'manager') {
       const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
@@ -461,23 +471,36 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
 
     console.log('outletid:', outletId );
     // === CASE 1: User is a Rep → auto-resolve their own outlet
-    if (user.role === 'rep') {
-      if (outletId) {
-        // Optional: Reps can also view another outlet if explicitly given AND it's theirs
-        const requestedOutlet = await Outlet.findOne({ id: outletId }).lean();
-        if (!requestedOutlet || requestedOutlet.repId !== user.id) {
-          return res.status(403).json({ message: 'You can only view your own outlet' });
-        }
-        // It's valid → proceed with requested one
-      } else {
-        // No outletId provided → find the one assigned to this rep
-        const ownOutlet = await Outlet.findOne({ repId: user.id }).lean();
-        if (!ownOutlet) {
-          return res.status(404).json({ message: 'No outlet assigned to you' });
-        }
-        outletId = ownOutlet.id;
-      }
+    // === For reps: must be assigned via repId OR repIds array
+if (user.role === 'rep') {
+  if (outletId) {
+    const requestedOutlet = await Outlet.findOne({ id: outletId }).lean();
+    if (!requestedOutlet) {
+      return res.status(404).json({ message: 'Outlet not found' });
     }
+
+    const isAssigned = 
+      requestedOutlet.repId === user.id || 
+      (Array.isArray(requestedOutlet.repIds) && requestedOutlet.repIds.includes(user.id));
+
+    if (!isAssigned) {
+      return res.status(403).json({ message: 'You do not have access to this outlet' });
+    }
+  } else {
+    // No outletId → find one they are assigned to
+    const ownOutlet = await Outlet.findOne({
+      $or: [
+        { repId: user.id },
+        { repIds: user.id }
+      ]
+    }).lean();
+
+    if (!ownOutlet) {
+      return res.status(404).json({ message: 'No outlet assigned to you' });
+    }
+    outletId = ownOutlet.id;
+  }
+}
 
     // === CASE 2: Manager or Admin → outletId is REQUIRED
     else if (user.role === 'manager' || user.role === 'admin') {
@@ -501,7 +524,10 @@ router.get('/outlet/inventory', ensureAuth, async (req, res) => {
     const allowed =
       user.role === 'admin' ||
       user.role === 'manager' ||
-      (user.role === 'rep' && outlet.repId === user.id);
+      (user.role === 'rep' && (
+        outlet.repId === user.id ||
+        (Array.isArray(outlet.repIds) && outlet.repIds.includes(user.id))
+      ));
 
     if (!allowed) {
       return res.status(403).json({ message: 'You do not have access to this outlet' });
