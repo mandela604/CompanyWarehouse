@@ -1896,20 +1896,38 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
 });
 
 // Toggle manager dropdown
-const managerBtn = $('#managerDropdownBtn');
-const managerContent = $('#managerDropdownContent');
-managerBtn.onclick = () => {
-  managerBtn.classList.toggle('open');
-  managerContent.classList.toggle('open');
-};
+    setTimeout(() => {
+      const managerBtn = $('#managerDropdownBtn');
+      const managerContent = $('#managerDropdownContent');
 
-// Update button text when selection changes
-document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
-  radio.onchange = () => {
-    const label = radio.parentElement.textContent.trim();
-    managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${label})</span>`;
-  };
-});
+      if (!managerBtn || !managerContent) {
+        console.error('Manager dropdown elements not found');
+        return;
+      }
+
+      // Toggle open/close
+      managerBtn.onclick = () => {
+        managerBtn.classList.toggle('open');
+        managerContent.classList.toggle('open');
+      };
+
+      // Update button text when a manager is selected
+      document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
+        radio.onchange = () => {
+          const label = radio.parentElement.textContent.trim();
+          const displayText = radio.value === '' ? 'No manager selected' : label;
+          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+        };
+      });
+
+      // Set initial text (in case "No manager" is pre-checked)
+      const checkedRadio = document.querySelector('input[name="warehouseManager"]:checked');
+      if (checkedRadio) {
+        const label = checkedRadio.parentElement.textContent.trim();
+        const displayText = checkedRadio.value === '' ? 'No manager selected' : label;
+        managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+      }
+    }, 0);
 
 
 $('#createOutletBtn').addEventListener('click', async () => {
@@ -2002,17 +2020,23 @@ $('#createOutletBtn').addEventListener('click', async () => {
 });
 
 // Toggle rep dropdown
-const repBtn = $('#repDropdownBtn');
-const repContent = $('#repDropdownContent');
-repBtn.onclick = () => {
-  repBtn.classList.toggle('open');
-  repContent.classList.toggle('open');
-};
+    setTimeout(() => {
+      const repBtn = $('#repDropdownBtn');
+      const repContent = $('#repDropdownContent');
 
-// Update button text when checkboxes change
-document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
-  cb.onchange = updateRepButtonText;
-});
+      if (!repBtn || !repContent) return;
+
+      repBtn.onclick = () => {
+        repBtn.classList.toggle('open');
+        repContent.classList.toggle('open');
+      };
+
+      document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
+        cb.onchange = updateRepButtonText;
+      });
+
+      updateRepButtonText(); // set initial text
+    }, 0);
 
 function updateRepButtonText() {
   const checked = document.querySelectorAll('input[name="outletRep"]:checked');
