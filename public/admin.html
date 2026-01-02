@@ -435,7 +435,8 @@
   border: 1px solid #e6eefb;
   border-top: none;
   border-radius: 0 0 10px 10px;
-  max-height: 280px;
+  max-height: 50vh;                 /* Best: uses half the screen height max */
+  min-height: 80px;                 /* Optional: prevents tiny dropdown */
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   z-index: 10;
@@ -3311,7 +3312,15 @@ async function deleteUser(id) {
   }
 }
 
-
+// Close all open dropdowns when clicking outside them (but still inside modal)
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+    if (!dropdown.contains(e.target)) {
+      dropdown.querySelector('.dropdown-btn')?.classList.remove('open');
+      dropdown.querySelector('.dropdown-content')?.classList.remove('open');
+    }
+  });
+});
 
 function printSale() {
   const printWin = window.open('', '', 'width=800,height=600');
