@@ -1764,18 +1764,12 @@ async function renderSalesSummary() {
       <h4>Create Warehouse</h4>
       <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
       <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
-      <div style="margin:12px 0; max-height:200px; overflow-y:auto; border:1px solid #e6eefb; border-radius:8px; padding:10px; background:#fafcff;">
-  <label style="font-weight:600; font-size:13px; display:block; margin-bottom:8px; color:var(--muted);">Assign Manager(s)</label>
-  <div style="display:grid; gap:8px;">
-    ${accounts.map(acc => `
-      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px;">
-        <input type="checkbox" name="warehouseManager" value="${acc.id}">
-        <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
-      </label>
-    `).join('')}
-    ${accounts.length === 0 ? '<em class="muted">No users available</em>' : ''}
-  </div>
-</div>
+      <div class="form-row">
+        <select id="whManager">
+          <option value="">No manager</option>
+          ${managerOptions}
+        </select>
+      </div>
       <div style="text-align:right">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveWh">Create</button>

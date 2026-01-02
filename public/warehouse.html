@@ -951,8 +951,9 @@ async function openMultiShipmentToOutlet() {
   shipmentCart = [];
   try {
     // Fetch outlets assigned to this warehouse
-    const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
-    if (!outletsRes.ok) throw new Error('Failed to load outlets');
+   // const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+   const outletsRes = await fetch('/api/outlets/select');
+   if (!outletsRes.ok) throw new Error('Failed to load outlets');
     const outlets = await outletsRes.json();
 
     if (outlets.length === 0) return showToast('No outlets available', 'error');
@@ -1181,7 +1182,7 @@ async function confirmMultiShipmentToOutlet() {
 async function quickShipToOutlet(productId) {
   // Fetch fresh data 
   const [outletsRes, productsRes] = await Promise.all([
-    fetch(`/api/outlets/warehouse/${myWarehouse.id}`),
+    fetch('/api/outlets/select'),
     fetch(`/api/products/warehouse/${myWarehouse.id}`)
   ]);
 

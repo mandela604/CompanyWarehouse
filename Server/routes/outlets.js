@@ -90,6 +90,21 @@ router.post('/select-outlet', ensureAuth, (req, res) => {
 });
 
 
+// 🔹 GET ALL OUTLETS (for shipment destination)
+router.get('/outlets/select', ensureAuth, async (req, res) => {
+  try {
+    const outlets = await Outlet.find(
+      { status: 'active' },
+      { id: 1, name: 1, location: 1 }
+    ).lean();
+
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 // ✅ GET ALL OUTLETS (Admin only)
 router.get('/outlets', ensureAdmin, async (req, res) => {
   try {

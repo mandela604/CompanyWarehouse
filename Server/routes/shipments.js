@@ -307,8 +307,8 @@ router.get('/outlet-shipments', ensureAuth, async (req, res) => {
 
     if (user.role === 'manager') {
       const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
-      if (!warehouse || outlet.warehouseId !== warehouse.id) {
-        return res.status(403).json({ message: 'Not your outlet' });
+       if (!warehouse) {
+    return res.status(403).json({ message: 'Invalid warehouse access' });
       }
     }
 
