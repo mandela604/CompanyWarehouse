@@ -1896,39 +1896,38 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
 });
 
 // Toggle manager dropdown
-    setTimeout(() => {
-      const managerBtn = $('#managerDropdownBtn');
-      const managerContent = $('#managerDropdownContent');
+setTimeout(() => {
+  const managerBtn = $('#managerDropdownBtn');
+  const managerContent = $('#managerDropdownContent');
 
-      if (!managerBtn || !managerContent) {
-        console.error('Manager dropdown elements not found');
-        return;
-      }
+  if (!managerBtn || !managerContent) {
+    console.error('Manager dropdown elements not found');
+    return;
+  }
 
-      // Toggle open/close
-      managerBtn.onclick = () => {
-        managerBtn.classList.toggle('open');
-        managerContent.classList.toggle('open');
-      };
+  // Toggle open/close
+  managerBtn.onclick = () => {
+    managerBtn.classList.toggle('open');
+    managerContent.classList.toggle('open');
+  };
 
-      // Update button text when a manager is selected
-      document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
-        radio.onchange = () => {
-          const label = radio.parentElement.textContent.trim();
-          const displayText = radio.value === '' ? 'No manager selected' : label;
-          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
-        };
-      });
+  // Update button text on selection
+  document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
+    radio.onchange = () => {
+      const labelText = radio.parentElement.textContent.trim();
+      const displayText = radio.value === '' ? 'No manager selected' : labelText;
+      managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+    };
+  });
 
-      // Set initial text (in case "No manager" is pre-checked)
-      const checkedRadio = document.querySelector('input[name="warehouseManager"]:checked');
-      if (checkedRadio) {
-        const label = checkedRadio.parentElement.textContent.trim();
-        const displayText = checkedRadio.value === '' ? 'No manager selected' : label;
-        managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
-      }
-    }, 0);
-
+  // Set initial text (for pre-checked "No manager")
+  const initialChecked = document.querySelector('input[name="warehouseManager"]:checked');
+  if (initialChecked) {
+    const labelText = initialChecked.parentElement.textContent.trim();
+    const displayText = initialChecked.value === '' ? 'No manager selected' : labelText;
+    managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+  }
+}, 0);
 
 $('#createOutletBtn').addEventListener('click', async () => {
   try {
@@ -2020,36 +2019,45 @@ $('#createOutletBtn').addEventListener('click', async () => {
 });
 
 // Toggle rep dropdown
-    setTimeout(() => {
-      const repBtn = $('#repDropdownBtn');
-      const repContent = $('#repDropdownContent');
+setTimeout(() => {
+  const repBtn = $('#repDropdownBtn');
+  const repContent = $('#repDropdownContent');
 
-      if (!repBtn || !repContent) return;
-
-      repBtn.onclick = () => {
-        repBtn.classList.toggle('open');
-        repContent.classList.toggle('open');
-      };
-
-      document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
-        cb.onchange = updateRepButtonText;
-      });
-
-      updateRepButtonText(); // set initial text
-    }, 0);
-
-function updateRepButtonText() {
-  const checked = document.querySelectorAll('input[name="outletRep"]:checked');
-  if (checked.length === 0) {
-    repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(None selected)</span>`;
-  } else if (checked.length === 1) {
-    const name = checked[0].parentElement.textContent.trim();
-    repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${name})</span>`;
-  } else {
-    repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${checked.length} selected)</span>`;
+  if (!repBtn || !repContent) {
+    console.error('Rep dropdown elements not found');
+    return;
   }
-}
-// Call once to set initial text
+
+  // Toggle open/close
+  repBtn.onclick = () => {
+    repBtn.classList.toggle('open');
+    repContent.classList.toggle('open');
+  };
+
+  // Define the function inside the timeout so it can access repBtn
+  function updateRepButtonText() {
+    const checked = document.querySelectorAll('input[name="outletRep"]:checked');
+    let displayText;
+
+    if (checked.length === 0) {
+      displayText = 'None selected';
+    } else if (checked.length === 1) {
+      displayText = checked[0].parentElement.textContent.trim();
+    } else {
+      displayText = `${checked.length} selected`;
+    }
+
+    repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+  }
+
+  // Attach change listeners
+  document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
+    cb.onchange = updateRepButtonText;
+  });
+
+  // Set initial text
+  updateRepButtonText();
+}, 0);// Call once to set initial text
 updateRepButtonText();
 
 
