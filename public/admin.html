@@ -2703,40 +2703,85 @@ document.querySelectorAll('.nav a').forEach(a => {
 
 async function editWarehouse(id) {
   try {
-    // Fetch warehouse data from backend
     const res = await fetch(`/api/warehouses/${id}`);
     if (!res.ok) return showToast('Warehouse not found', 'info');
     const wh = await res.json();
 
-    // Fetch managers for dropdown
-    const mgrRes = await fetch('/api/accounts/role/manager'); 
-    const accounts = mgrRes.ok ? await mgrRes.json() : [];
-
-    const managerOptions = accounts
-      .map(a => `<option value="${a.id}" ${a.id === wh.managerId ? 'selected' : ''}>${a.name}</option>`)
-      .join('');
+    // Fetch only managers
+    const mgrRes = await fetch('/api/accounts');
+    if (!mgrRes.ok) throw new Error('Failed to fetch accounts');
+    const accounts = await mgrRes.json();
+    const managers = accounts.filter(acc => acc.role === 'manager');
 
     showModal(`
       <h4>Edit Warehouse – ${wh.name}</h4>
       <div class="form-row"><input id="editWhName" value="${wh.name}" placeholder="Warehouse name" /></div>
       <div class="form-row"><input id="editWhLocation" value="${wh.location}" placeholder="Location" /></div>
-      <div class="form-row">
-        <select id="editWhManager"><option value="">No manager</option>${managerOptions}</select>
+
+      <!-- Custom Dropdown for Manager (same as create) -->
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="editManagerDropdownBtn">
+          Assign Manager <span style="color:var(--muted); font-weight:normal;">
+            (${wh.manager || 'No manager selected'})
+          </span>
+        </div>
+        <div class="dropdown-content" id="editManagerDropdownContent">
+          <div class="dropdown-item">
+            <label>
+              <input type="radio" name="editWarehouseManager" value="" ${!wh.managerId ? 'checked' : ''}>
+              <span>No manager</span>
+            </label>
+          </div>
+          ${managers.map(acc => `
+            <div class="dropdown-item">
+              <label>
+                <input type="radio" name="editWarehouseManager" value="${acc.id}" ${acc.id === wh.managerId ? 'checked' : ''}>
+                <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
+              </label>
+            </div>
+          `).join('')}
+          ${managers.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No managers available</div>' : ''}
+        </div>
       </div>
-      <div style="text-align:right; margin-top:16px">
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEditWhBtn">Save</button>
       </div>
     `);
 
-    $('#saveEditWhBtn').onclick = async () => {
-       $('#saveEditWhBtn').disabled = true;
+    setTimeout(() => {
+      const managerBtn = $('#editManagerDropdownBtn');
+      const managerContent = $('#editManagerDropdownContent');
+      if (!managerBtn || !managerContent) return;
 
+      managerBtn.onclick = (e) => {
+        e.stopPropagation();
+        managerBtn.classList.toggle('open');
+        managerContent.classList.toggle('open');
+      };
+
+      document.querySelectorAll('input[name="editWarehouseManager"]').forEach(radio => {
+        radio.onchange = () => {
+          const labelText = radio.parentElement.textContent.trim();
+          const displayText = radio.value === '' ? 'No manager selected' : labelText;
+          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+        };
+      });
+    }, 0);
+
+    $('#saveEditWhBtn').onclick = async () => {
+      $('#saveEditWhBtn').disabled = true;
       const newName = $('#editWhName').value.trim();
       const newLocation = $('#editWhLocation').value.trim();
-      const newMgrId = $('#editWhManager').value || null;
+      const selected = document.querySelector('input[name="editWarehouseManager"]:checked');
+      const newMgrId = selected && selected.value !== '' ? selected.value : null;
 
-      if (!newName || !newLocation) return showToast('Name & location required', 'error');
+      if (!newName || !newLocation) {
+        showToast('Name & location required', 'error');
+        $('#saveEditWhBtn').disabled = false;
+        return;
+      }
 
       try {
         const res = await fetch(`/api/warehouses/${id}`, {
@@ -2745,15 +2790,13 @@ async function editWarehouse(id) {
           body: JSON.stringify({ name: newName, location: newLocation, managerId: newMgrId })
         });
         if (!res.ok) throw new Error('Update failed');
-      
-        const updated = await res.json();
         showToast('Warehouse updated successfully', 'success');
         closeModal();
-        renderWarehouses(); 
+        renderWarehouses();
       } catch (err) {
-        showToast(err.message || "server error", 'error');
-      } finally{
-         $('#saveEditWhBtn').disabled = false;
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveEditWhBtn').disabled = false;
       }
     };
 
@@ -2765,104 +2808,123 @@ async function editWarehouse(id) {
 
 
 
-
 async function editOutlet(id) {
   try {
-    // 1️⃣ Fetch the outlet from backend
     const res = await fetch(`/api/outlets/${id}`);
     if (!res.ok) throw new Error('Outlet not found');
     const o = await res.json();
 
-    // 2️⃣ Fetch reps and warehouses from backend
     const [repsRes, whRes] = await Promise.all([
-      fetch('/api/accounts/role/rep'),
+      fetch('/api/accounts'),
       fetch('/api/warehouses')
     ]);
-    if (!repsRes.ok || !whRes.ok) throw new Error('Failed to load reps or warehouses');
-
-    const reps = await repsRes.json();
+    if (!repsRes.ok || !whRes.ok) throw new Error('Failed to load data');
+    const accounts = await repsRes.json();
+    const reps = accounts.filter(a => a.role === 'rep');
     const warehouses = await whRes.json();
 
-    const repOptions = reps
-            .map(r => `<option value="${r.id}" ${(o.repIds || []).includes(r.id) ? 'selected' : ''}>${r.name}</option>`)
-      .join('');
-
-    const whOptions = warehouses
-      .map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name}</option>`)
-      .join('');
-
-      const currentRepIds = o.repId ? [o.repId] : [];
-
-    // 3️⃣ Show modal with backend data
     showModal(`
       <h4>Edit Outlet – ${o.name}</h4>
       <div class="form-row"><input id="editOutName" value="${o.name}" placeholder="Outlet name" /></div>
       <div class="form-row">
-        <select id="editOutWh">${whOptions}</select>
+        <label>Warehouse</label>
+        <select id="editOutWh">
+          <option value="">Select warehouse...</option>
+          ${warehouses.map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name} (${w.location})</option>`).join('')}
+        </select>
       </div>
-      <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
-      <div class="form-row">
-        <label style="font-size:12px; color:var(--muted)">
-  Current Sales Rep${(o.repNames || []).length > 1 ? 's' : ''}: 
-  <strong>
-    ${(o.repNames || []).length > 0 
-      ? o.repNames.slice(0, 2).join(', ') + (o.repNames.length > 2 ? ` +${o.repNames.length - 2} others` : '')
-      : 'None assigned'}
-  </strong>
-</label>
-        <select id="editOutRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${repOptions}
-  </select>
-  
-</div>
-      <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
-      <div style="text-align:right; margin-top:12px">
+
+      <!-- Custom Dropdown for Sales Reps (same as create) -->
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="editRepDropdownBtn">
+          Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">
+            (${(o.repNames && o.repNames.length > 0) ? (o.repNames.length === 1 ? o.repNames[0] : `${o.repNames.length} selected`) : 'None selected'})
+          </span>
+        </div>
+        <div class="dropdown-content" id="editRepDropdownContent">
+          ${reps.length > 0 ? reps.map(r => `
+            <div class="dropdown-item">
+              <label>
+                <input type="checkbox" name="editOutletRep" value="${r.id}" ${(o.repIds || []).includes(r.id) ? 'checked' : ''}>
+                <span>${r.name}</span>
+              </label>
+            </div>
+          `).join('') :
+            '<div style="padding:20px; text-align:center; color:#888; font-style:italic;">No sales reps available yet.</div>'
+          }
+        </div>
+      </div>
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEditOut">Save</button>
       </div>
     `);
 
-    // 4️⃣ Save button sends PUT request to backend
+    setTimeout(() => {
+      const repBtn = $('#editRepDropdownBtn');
+      const repContent = $('#editRepDropdownContent');
+      if (!repBtn || !repContent) return;
+
+      repBtn.onclick = (e) => {
+        e.stopPropagation();
+        repBtn.classList.toggle('open');
+        repContent.classList.toggle('open');
+      };
+
+      function updateRepButtonText() {
+        const checked = document.querySelectorAll('input[name="editOutletRep"]:checked');
+        let displayText;
+        if (checked.length === 0) {
+          displayText = 'None selected';
+        } else if (checked.length === 1) {
+          displayText = checked[0].parentElement.textContent.trim();
+        } else {
+          displayText = `${checked.length} selected`;
+        }
+        repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+      }
+
+      document.querySelectorAll('input[name="editOutletRep"]').forEach(cb => {
+        cb.onchange = updateRepButtonText;
+      });
+      updateRepButtonText(); // initial
+    }, 0);
+
     $('#saveEditOut').onclick = async () => {
-        $('#saveEditOut').disabled = true;
+      $('#saveEditOut').disabled = true;
       const payload = {
         name: $('#editOutName').value.trim(),
         warehouseId: $('#editOutWh').value,
-        location: $('#editOutLocation').value.trim(),
-        repIds: Array.from($('#editOutRep').selectedOptions).map(opt => opt.value),
-        repNames: Array.from($('#editOutRep').selectedOptions).map(opt => opt.textContent.trim()),
-        phone: $('#editOutPhone').value.trim(),
+        repIds: Array.from(document.querySelectorAll('input[name="editOutletRep"]:checked')).map(cb => cb.value),
       };
-
-      if (!payload.name || !payload.location) return showToast('Name & location required', 'error');
-     
+      if (!payload.name || !payload.warehouseId) {
+        showToast('Name and warehouse required', 'error');
+        $('#saveEditOut').disabled = false;
+        return;
+      }
 
       try {
-        const updateRes = await fetch(`/api/outlets/${id}`, {
+        const res = await fetch(`/api/outlets/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!updateRes.ok) {
-          const err = await updateRes.json();
-          throw new Error(err.message || 'Failed to update outlet');
-        }
-
-        const updated = await updateRes.json();
-        closeModal();
-        renderOutlets(); // refresh list after backend update
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed');
         showToast('Outlet updated successfully', 'success');
+        closeModal();
+        renderOutlets();
       } catch (err) {
-        showToast(err.message || 'server error', 'error' );
-      } finally{
-          $('#saveEditOut').disabled = false;
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveEditOut').disabled = false;
       }
     };
+
   } catch (err) {
-     showToast(err.message || 'server error', 'error' );
+    showToast(err.message || 'Server error', 'error');
   }
 }
-
 
 async function editProduct(id) {
   try {
