@@ -1869,7 +1869,7 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
       const managerContent = $('#managerDropdownContent');
       if (!managerBtn || !managerContent) return;
 
-      managerBtn.onclick = () => {
+      managerBtn.onclick = (e) => {
         e.stopPropagation();
         managerBtn.classList.toggle('open');
         managerContent.classList.toggle('open');
@@ -1981,7 +1981,7 @@ $('#createOutletBtn').addEventListener('click', async () => {
       const repContent = $('#repDropdownContent');
       if (!repBtn || !repContent) return;
 
-      repBtn.onclick = () => {
+      repBtn.onclick = (e) => {
         e.stopPropagation();
         repBtn.classList.toggle('open');
         repContent.classList.toggle('open');
