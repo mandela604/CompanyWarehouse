@@ -1823,40 +1823,67 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
 
-   showModal(`
-  <h4>Create Warehouse</h4>
-  <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
-  <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
+    showModal(`
+      <h4>Create Warehouse</h4>
+      <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
+      <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
 
-  <!-- Custom Dropdown for Manager -->
-  <div class="custom-dropdown">
-    <div class="dropdown-btn" id="managerDropdownBtn">
-      Assign Manager <span style="color:var(--muted); font-weight:normal;">(No manager selected)</span>
-    </div>
-    <div class="dropdown-content" id="managerDropdownContent">
-      <div class="dropdown-item">
-        <label>
-          <input type="radio" name="warehouseManager" value="" checked>
-          <span>No manager</span>
-        </label>
-      </div>
-      ${accounts.map(acc => `
-        <div class="dropdown-item">
-          <label>
-            <input type="radio" name="warehouseManager" value="${acc.id}">
-            <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
-          </label>
+      <!-- Custom Dropdown for Manager -->
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="managerDropdownBtn">
+          Assign Manager <span style="color:var(--muted); font-weight:normal;">(No manager selected)</span>
         </div>
-      `).join('')}
-      ${accounts.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No users available</div>' : ''}
-    </div>
-  </div>
+        <div class="dropdown-content" id="managerDropdownContent">
+          <div class="dropdown-item">
+            <label>
+              <input type="radio" name="warehouseManager" value="" checked>
+              <span>No manager</span>
+            </label>
+          </div>
+          ${accounts.map(acc => `
+            <div class="dropdown-item">
+              <label>
+                <input type="radio" name="warehouseManager" value="${acc.id}">
+                <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
+              </label>
+            </div>
+          `).join('')}
+          ${accounts.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No users available</div>' : ''}
+        </div>
+      </div>
 
-  <div style="text-align:right; margin-top:20px;">
-    <button class="btn secondary" onclick="closeModal()">Cancel</button>
-    <button class="btn" id="saveWh">Create</button>
-  </div>
-`);
+      <div style="text-align:right; margin-top:20px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="saveWh">Create</button>
+      </div>
+    `);
+
+    // === Manager dropdown setup (now inside the click handler) ===
+    setTimeout(() => {
+      const managerBtn = $('#managerDropdownBtn');
+      const managerContent = $('#managerDropdownContent');
+      if (!managerBtn || !managerContent) return;
+
+      managerBtn.onclick = () => {
+        managerBtn.classList.toggle('open');
+        managerContent.classList.toggle('open');
+      };
+
+      document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
+        radio.onchange = () => {
+          const labelText = radio.parentElement.textContent.trim();
+          const displayText = radio.value === '' ? 'No manager selected' : labelText;
+          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+        };
+      });
+
+      // Initial text
+      const initial = document.querySelector('input[name="warehouseManager"]:checked');
+      if (initial) {
+        const txt = initial.value === '' ? 'No manager selected' : initial.parentElement.textContent.trim();
+        managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${txt})</span>`;
+      }
+    }, 0);
 
     $('#saveWh').onclick = async () => {
       $('#saveWh').disabled = true;
@@ -1895,40 +1922,6 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
   }
 });
 
-// Toggle manager dropdown
-setTimeout(() => {
-  const managerBtn = $('#managerDropdownBtn');
-  const managerContent = $('#managerDropdownContent');
-
-  if (!managerBtn || !managerContent) {
-    console.error('Manager dropdown elements not found');
-    return;
-  }
-
-  // Toggle open/close
-  managerBtn.onclick = () => {
-    managerBtn.classList.toggle('open');
-    managerContent.classList.toggle('open');
-  };
-
-  // Update button text on selection
-  document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
-    radio.onchange = () => {
-      const labelText = radio.parentElement.textContent.trim();
-      const displayText = radio.value === '' ? 'No manager selected' : labelText;
-      managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
-    };
-  });
-
-  // Set initial text (for pre-checked "No manager")
-  const initialChecked = document.querySelector('input[name="warehouseManager"]:checked');
-  if (initialChecked) {
-    const labelText = initialChecked.parentElement.textContent.trim();
-    const displayText = initialChecked.value === '' ? 'No manager selected' : labelText;
-    managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
-  }
-}, 0);
-
 $('#createOutletBtn').addEventListener('click', async () => {
   try {
     const resWarehouses = await fetch('/api/warehouses');
@@ -1944,7 +1937,6 @@ $('#createOutletBtn').addEventListener('click', async () => {
       <h4>Create Outlet</h4>
       <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
 
-      <!-- Warehouse selector -->
       <div class="form-row">
         <label>Warehouse</label>
         <select id="outWh">
@@ -1953,24 +1945,23 @@ $('#createOutletBtn').addEventListener('click', async () => {
         </select>
       </div>
 
-      <!-- Custom Dropdown for Sales Reps -->
-<div class="custom-dropdown">
-  <div class="dropdown-btn" id="repDropdownBtn">
-    Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(None selected)</span>
-  </div>
-  <div class="dropdown-content" id="repDropdownContent">
-    ${reps.length > 0 ? reps.map(r => `
-      <div class="dropdown-item">
-        <label>
-          <input type="checkbox" name="outletRep" value="${r.id}">
-          <span>${r.name} <small style="color:var(--muted)">${r.email ? '(' + r.email + ')' : '(no email)'}</small></span>
-        </label>
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="repDropdownBtn">
+          Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(None selected)</span>
+        </div>
+        <div class="dropdown-content" id="repDropdownContent">
+          ${reps.length > 0 ? reps.map(r => `
+            <div class="dropdown-item">
+              <label>
+                <input type="checkbox" name="outletRep" value="${r.id}">
+                <span>${r.name} <small style="color:var(--muted)">${r.email ? '(' + r.email + ')' : '(no email)'}</small></span>
+              </label>
+            </div>
+          `).join('') : 
+            '<div style="padding:20px; text-align:center; color:#888; font-style:italic;">No sales reps available yet.</div>'
+          }
+        </div>
       </div>
-    `).join('') : 
-      '<div style="padding:20px; text-align:center; color:#888; font-style:italic;">No sales reps available yet.</div>'
-    }
-  </div>
-</div>
 
       <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
@@ -1978,13 +1969,43 @@ $('#createOutletBtn').addEventListener('click', async () => {
       </div>
     `);
 
+    // === Rep dropdown setup (now inside the click handler) ===
+    setTimeout(() => {
+      const repBtn = $('#repDropdownBtn');
+      const repContent = $('#repDropdownContent');
+      if (!repBtn || !repContent) return;
+
+      repBtn.onclick = () => {
+        repBtn.classList.toggle('open');
+        repContent.classList.toggle('open');
+      };
+
+      function updateRepButtonText() {
+        const checked = document.querySelectorAll('input[name="outletRep"]:checked');
+        let displayText;
+        if (checked.length === 0) {
+          displayText = 'None selected';
+        } else if (checked.length === 1) {
+          displayText = checked[0].parentElement.textContent.trim();
+        } else {
+          displayText = `${checked.length} selected`;
+        }
+        repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+      }
+
+      document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
+        cb.onchange = updateRepButtonText;
+      });
+
+      updateRepButtonText(); // initial
+    }, 0);
+
     $('#saveOut').onclick = async () => {
       const name = $('#outName').value.trim();
       const warehouseId = $('#outWh').value;
-
       const checkedReps = Array.from(document.querySelectorAll('input[name="outletRep"]:checked'));
       const repIds = checkedReps.map(cb => cb.value);
-      const repNames = checkedReps.map(cb => cb.closest('label').querySelector('span').textContent.trim().split(' (')[0]); // just name
+      const repNames = checkedReps.map(cb => cb.closest('label').querySelector('span').textContent.trim().split(' (')[0]);
 
       if (!name || !warehouseId) {
         alert('Name and warehouse required');
@@ -2017,50 +2038,6 @@ $('#createOutletBtn').addEventListener('click', async () => {
     showToast('Server error: ' + err.message, 'error');
   }
 });
-
-// Toggle rep dropdown
-setTimeout(() => {
-  const repBtn = $('#repDropdownBtn');
-  const repContent = $('#repDropdownContent');
-
-  if (!repBtn || !repContent) {
-    console.error('Rep dropdown elements not found');
-    return;
-  }
-
-  // Toggle open/close
-  repBtn.onclick = () => {
-    repBtn.classList.toggle('open');
-    repContent.classList.toggle('open');
-  };
-
-  // Define the function inside the timeout so it can access repBtn
-  function updateRepButtonText() {
-    const checked = document.querySelectorAll('input[name="outletRep"]:checked');
-    let displayText;
-
-    if (checked.length === 0) {
-      displayText = 'None selected';
-    } else if (checked.length === 1) {
-      displayText = checked[0].parentElement.textContent.trim();
-    } else {
-      displayText = `${checked.length} selected`;
-    }
-
-    repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
-  }
-
-  // Attach change listeners
-  document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
-    cb.onchange = updateRepButtonText;
-  });
-
-  // Set initial text
-  updateRepButtonText();
-}, 0);// Call once to set initial text
-updateRepButtonText();
-
-
 
 
 
