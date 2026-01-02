@@ -1747,128 +1747,145 @@ async function renderSalesSummary() {
     //CREATE A WAREHOUSE FUNCTION
     //CREATE A WAREHOUSE FUNCTION
     //CREATE A WAREHOUSE FUNCTION
-    $('#createWarehouseBtn').addEventListener('click', async () => {
-      $('#createWarehouseBtn').disabled = true;
+$('#createWarehouseBtn').addEventListener('click', async () => {
+  $('#createWarehouseBtn').disabled = true;
   try {
-    // Fetch accounts from backend to populate manager dropdown
     const resAccounts = await fetch('/api/accounts');
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
 
-    const managerOptions = accounts.map(
-      acc => `<option value="${acc.id}">${acc.name} (${acc.role})</option>`
-    ).join('');
-
-    // Show modal
     showModal(`
       <h4>Create Warehouse</h4>
       <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
       <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
-      <div style="margin:12px 0; max-height:200px; overflow-y:auto; border:1px solid #e6eefb; border-radius:8px; padding:10px; background:#fafcff;">
-  <label style="font-weight:600; font-size:13px; display:block; margin-bottom:8px; color:var(--muted);">Assign Manager(s)</label>
-  <div style="display:grid; gap:8px;">
-    ${accounts.map(acc => `
-      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px;">
-        <input type="checkbox" name="warehouseManager" value="${acc.id}">
-        <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
-      </label>
-    `).join('')}
-    ${accounts.length === 0 ? '<em class="muted">No users available</em>' : ''}
-  </div>
-</div>
-      <div style="text-align:right">
+
+      <!-- Radio buttons for single manager selection -->
+      <div style="margin:16px 0; max-height:240px; overflow-y:auto; border:1px solid #e6eefb; border-radius:10px; padding:14px; background:#fafcff;">
+        <label style="font-weight:600; font-size:14px; display:block; margin-bottom:12px; color:var(--muted);">
+          Assign Manager (select one)
+        </label>
+        <div style="display:grid; gap:10px;">
+          <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:10px; border-radius:8px; transition:background 0.2s;">
+            <input type="radio" name="warehouseManager" value="" checked>
+            <span>No manager</span>
+          </label>
+          ${accounts.map(acc => `
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:10px; border-radius:8px; transition:background 0.2s;">
+              <input type="radio" name="warehouseManager" value="${acc.id}">
+              <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
+            </label>
+          `).join('')}
+          ${accounts.length === 0 ? '<div style="padding:10px; color:#888;">No users available</div>' : ''}
+        </div>
+      </div>
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveWh">Create</button>
       </div>
     `);
 
-    // Save button handler
     $('#saveWh').onclick = async () => {
-     $('#saveWh').disabled = true;
-
+      $('#saveWh').disabled = true;
       const name = $('#whName').value.trim();
       const location = $('#whLocation').value.trim();
-      const managerId = $('#whManager').value || null;
+      const selected = document.querySelector('input[name="warehouseManager"]:checked');
+      const managerId = selected && selected.value !== '' ? selected.value : null;
 
-      if (!name || !location) return alert('Fill name and location');
-
-      const res = await fetch('/api/warehouses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, location, managerId })
-      });
-
-      $('#saveWh').disabled = false;
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create warehouse');
+      if (!name || !location) {
+        showToast('Name and location required', 'error');
+        $('#saveWh').disabled = false;
+        return;
       }
 
-      // Fetch the newly created warehouse from backend
-      const data = await res.json();
-      closeModal();
-      renderWarehouses(); // Re-fetch warehouses from backend inside renderWarehouses()
+      try {
+        const res = await fetch('/api/warehouses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, location, managerId })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+        showToast('Warehouse created successfully!', 'success');
+        closeModal();
+        renderWarehouses();
+      } catch (err) {
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveWh').disabled = false;
+      }
     };
 
   } catch (err) {
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  } finally{
+    showToast('Server error: ' + err.message, 'error');
+  } finally {
     $('#createWarehouseBtn').disabled = false;
   }
 });
 
-
-   $('#createOutletBtn').addEventListener('click', async () => {
+$('#createOutletBtn').addEventListener('click', async () => {
   try {
-    // 1️⃣ Fetch warehouses from backend
     const resWarehouses = await fetch('/api/warehouses');
     if (!resWarehouses.ok) throw new Error('Failed to fetch warehouses');
     const warehouses = await resWarehouses.json();
 
-    // 2️⃣ Fetch accounts/reps from backend
     const resAccounts = await fetch('/api/accounts');
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
     const reps = accounts.filter(a => a.role === 'rep');
 
-    // 3️⃣ Show modal
     showModal(`
       <h4>Create Outlet</h4>
       <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
+
+      <!-- Warehouse selector -->
       <div class="form-row">
+        <label>Warehouse</label>
         <select id="outWh">
-          ${warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+          <option value="">Select warehouse...</option>
+          ${warehouses.map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`).join('')}
         </select>
       </div>
-      <div class="form-row">
-  <label>Sales Rep(s)</label>
-  <select id="outRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-  </select>
-  <small class="muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple reps.<br>Leave empty for no rep.</small>
-</div>
-      <div style="text-align:right">
+
+      <!-- Beautiful checkbox list for reps -->
+      <div style="margin:16px 0; max-height:260px; overflow-y:auto; border:1px solid #e6eefb; border-radius:10px; padding:14px; background:#fafcff;">
+        <label style="font-weight:600; font-size:14px; display:block; margin-bottom:12px; color:var(--muted);">
+          Assign Sales Rep(s) <small style="font-weight:normal;">(click as many as needed)</small>
+        </label>
+        <div style="display:grid; gap:10px;">
+          ${reps.length > 0 ? reps.map(r => `
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:10px; border-radius:8px; transition:background 0.2s;">
+              <input type="checkbox" name="outletRep" value="${r.id}">
+              <span style="font-size:14px;">${r.name} 
+                <small style="color:var(--muted)">${r.email ? '(' + r.email + ')' : '(no email)'}</small>
+              </span>
+            </label>
+          `).join('') : 
+            '<div style="padding:12px; color:#888; font-style:italic;">No sales reps available yet.</div>'
+          }
+        </div>
+      </div>
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveOut">Create</button>
       </div>
     `);
 
-    // 4️⃣ Save button
     $('#saveOut').onclick = async () => {
       const name = $('#outName').value.trim();
       const warehouseId = $('#outWh').value;
-      const selectedOptions = Array.from($('#outRep').selectedOptions);
-      const repIds = selectedOptions.map(opt => opt.value);
-      const repNames = selectedOptions.map(opt => opt.textContent.trim());
 
-      if (!name || !warehouseId) return alert('Name and warehouse required');
+      const checkedReps = Array.from(document.querySelectorAll('input[name="outletRep"]:checked'));
+      const repIds = checkedReps.map(cb => cb.value);
+      const repNames = checkedReps.map(cb => cb.closest('label').querySelector('span').textContent.trim().split(' (')[0]); // just name
 
-      // Find selected warehouse to get name and location
+      if (!name || !warehouseId) {
+        alert('Name and warehouse required');
+        return;
+      }
+
       const warehouse = warehouses.find(w => w.id === warehouseId);
 
-      // POST to backend
       const res = await fetch('/api/outlets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1876,29 +1893,23 @@ async function renderSalesSummary() {
           name,
           warehouseId,
           warehouseName: warehouse.name,
-          location: warehouse.location, 
-          repIds,     
+          location: warehouse.location,
+          repIds,
           repNames
         })
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create outlet');
-      }
-
-      const data = await res.json();
+      if (!res.ok) throw new Error((await res.json()).message || 'Failed');
 
       closeModal();
       renderOutlets();
+      showToast('Outlet created successfully!', 'success');
     };
 
   } catch (err) {
-       showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
+    showToast('Server error: ' + err.message, 'error');
   }
 });
-
 
 
 //ADD PRODUCT FUNCTION
