@@ -1825,6 +1825,8 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
     const resAccounts = await fetch('/api/accounts');
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
+    const managers = accounts.filter(acc => acc.role === 'manager');
+
 
     showModal(`
       <h4>Create Warehouse</h4>
@@ -1843,7 +1845,7 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
               <span>No manager</span>
             </label>
           </div>
-          ${accounts.map(acc => `
+          ${managers.map(acc => `
             <div class="dropdown-item">
               <label>
                 <input type="radio" name="warehouseManager" value="${acc.id}">
@@ -1851,7 +1853,7 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
               </label>
             </div>
           `).join('')}
-          ${accounts.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No users available</div>' : ''}
+          ${managers.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No users available</div>' : ''}
         </div>
       </div>
 
@@ -1958,7 +1960,7 @@ $('#createOutletBtn').addEventListener('click', async () => {
             <div class="dropdown-item">
               <label>
                 <input type="checkbox" name="outletRep" value="${r.id}">
-                <span>${r.name} <small style="color:var(--muted)">${r.email ? '(' + r.email + ')' : '(no email)'}</small></span>
+                <span>${r.name} <small style="color:var(--muted)"></small></span>
               </label>
             </div>
           `).join('') : 
