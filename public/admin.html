@@ -1866,6 +1866,7 @@ $('#createWarehouseBtn').addEventListener('click', async () => {
       if (!managerBtn || !managerContent) return;
 
       managerBtn.onclick = () => {
+        e.stopPropagation();
         managerBtn.classList.toggle('open');
         managerContent.classList.toggle('open');
       };
@@ -1977,6 +1978,7 @@ $('#createOutletBtn').addEventListener('click', async () => {
       if (!repBtn || !repContent) return;
 
       repBtn.onclick = () => {
+        e.stopPropagation();
         repBtn.classList.toggle('open');
         repContent.classList.toggle('open');
       };
@@ -3312,7 +3314,18 @@ async function deleteUser(id) {
   }
 }
 
-// Close all open dropdowns when clicking outside them (but still inside modal)
+// 1. Auto-close only on radio selection (Manager)
+document.addEventListener('change', (e) => {
+  if (e.target.type === 'radio') {
+    const dropdown = e.target.closest('.custom-dropdown');
+    if (dropdown) {
+      dropdown.querySelector('.dropdown-btn')?.classList.remove('open');
+      dropdown.querySelector('.dropdown-content')?.classList.remove('open');
+    }
+  }
+});
+
+// 2. Close dropdown when clicking anywhere outside it (but keep modal open)
 document.addEventListener('click', (e) => {
   document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
     if (!dropdown.contains(e.target)) {
