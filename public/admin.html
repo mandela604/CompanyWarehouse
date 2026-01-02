@@ -1505,9 +1505,19 @@ async function renderWarehouses() {
 
 
 function clearSalesFilter() {
-  $('#filterStart').value = '';
-  $('#filterEnd').value = '';
+  // 1. Reset the global filter variables
   salesFilter = { start: null, end: null };
+  
+  // 2. Reset the displayed text back to "All time"
+  $('#salesDateDisplay').textContent = 'All time';
+
+  // 3. Clear the flatpickr date picker (this is the key part!)
+  if (salesPicker) {
+    salesPicker.clear();           // Clears selected dates
+    salesPicker.setDate(null);     // Ensures no hidden value remains
+  }
+
+  // 4. Reset pagination and reload sales with no filter
   curSales = 1;
   renderSales();
 }
