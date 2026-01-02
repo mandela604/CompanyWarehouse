@@ -1503,25 +1503,23 @@ async function renderWarehouses() {
 }
    
 
-
 function clearSalesFilter() {
-  // 1. Reset the global filter variables
+  // Reset filter variables
   salesFilter = { start: null, end: null };
-  
-  // 2. Reset the displayed text back to "All time"
+
+  // Reset the label text
   $('#salesDateDisplay').textContent = 'All time';
 
-  // 3. Clear the flatpickr date picker (this is the key part!)
+  // Fully clear the flatpickr date picker
   if (salesPicker) {
-    salesPicker.clear();           // Clears selected dates
-    salesPicker.setDate(null);     // Ensures no hidden value remains
+    salesPicker.clear();        // Clears the input field visually
+    salesPicker.setDate([]);    // Clears internal selected dates
   }
 
-  // 4. Reset pagination and reload sales with no filter
+  // Reset to first page and reload sales
   curSales = 1;
   renderSales();
 }
-
 
  const SALES_PER_PAGE = 10; // items per page
 let curSales = 1;          // current page
@@ -2717,23 +2715,25 @@ async function editWarehouse(id) {
     if (!res.ok) return showToast('Warehouse not found', 'info');
     const wh = await res.json();
 
-    // Fetch only managers
     const mgrRes = await fetch('/api/accounts');
     if (!mgrRes.ok) throw new Error('Failed to fetch accounts');
     const accounts = await mgrRes.json();
     const managers = accounts.filter(acc => acc.role === 'manager');
+
+    // Find the currently assigned manager to display their name immediately
+    const currentManager = managers.find(m => m.id === wh.managerId);
+    const initialDisplay = currentManager 
+      ? `${currentManager.name} <small style="color:var(--muted)">(${currentManager.role})</small>`
+      : 'No manager selected';
 
     showModal(`
       <h4>Edit Warehouse – ${wh.name}</h4>
       <div class="form-row"><input id="editWhName" value="${wh.name}" placeholder="Warehouse name" /></div>
       <div class="form-row"><input id="editWhLocation" value="${wh.location}" placeholder="Location" /></div>
 
-      <!-- Custom Dropdown for Manager (same as create) -->
       <div class="custom-dropdown">
         <div class="dropdown-btn" id="editManagerDropdownBtn">
-          Assign Manager <span style="color:var(--muted); font-weight:normal;">
-            (${wh.manager || 'No manager selected'})
-          </span>
+          Assign Manager <span style="color:var(--muted); font-weight:normal;">(${initialDisplay})</span>
         </div>
         <div class="dropdown-content" id="editManagerDropdownContent">
           <div class="dropdown-item">
@@ -2814,8 +2814,6 @@ async function editWarehouse(id) {
     showToast('Failed to load warehouse: ' + err.message, 'error');
   }
 }
-
-
 
 
 async function editOutlet(id) {
