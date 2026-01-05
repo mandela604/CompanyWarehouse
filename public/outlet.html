@@ -1029,6 +1029,7 @@ async function openMultiSaleModal() {
     `).join('');
 
   $('#productSelect').innerHTML = '<option value="">Select product...</option>' + options;
+  $('#successMsg').style.display = 'none';
   $('#modalBackdrop').style.display = 'flex';
 }
 
@@ -1230,6 +1231,10 @@ function showModal(html) {
 
 function closeModal() {
   document.getElementById('modalBackdrop').style.display = 'none';
+  saleCart = [];
+  renderCart();
+
+  $('#successMsg').style.display = 'none';
 }
 
 // THIS MAKES THE PRINT BUTTON WORK
