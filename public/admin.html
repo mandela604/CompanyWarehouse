@@ -486,57 +486,6 @@
 }
 
 
-/* === SALES TABLE – PERFECTLY BALANCED, NO EXTRA RIGHT SPACE === */
-.table:has(#salesTable) {
-  display: flex;
-  justify-content: center;    /* Center the entire table block */
-  padding: 0 20px;            /* Small side padding for mobile */
-}
-
-#salesTable {
-  width: 100%;
-  max-width: 1000px;          /* This removes the huge right space */
-  margin: 0 auto;             /* Centers the table perfectly */
-  table-layout: fixed;        /* Forces all 8 columns to share space equally */
-  border-collapse: collapse;
-}
-
-/* All columns equal width + centered content */
-#salesTable th,
-#salesTable td {
-  width: 12.5%;               /* 100% ÷ 8 columns = exactly equal */
-  padding: 14px 10px;
-  text-align: center;         /* Center all content */
-  vertical-align: middle;
-  white-space: nowrap;        /* Prevent wrapping */
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Left-align only the name/text columns */
-#salesTable th:nth-child(1), #salesTable td:nth-child(1), /* Date */
-#salesTable th:nth-child(4), #salesTable td:nth-child(4), /* Outlet */
-#salesTable th:nth-child(5), #salesTable td:nth-child(5), /* Sales Rep */
-#salesTable th:nth-child(7), #salesTable td:nth-child(7)  /* Sent From */
-{
-  text-align: left;
-}
-
-/* Right-align the View button */
-#salesTable th:nth-child(8), #salesTable td:nth-child(8) {
-  text-align: right;
-  padding-right: 20px;
-}
-
-/* Header styling */
-#salesTable th {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  background: #f8fafc;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
