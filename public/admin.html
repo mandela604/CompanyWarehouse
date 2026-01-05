@@ -486,23 +486,31 @@
 }
 
 
-/* Center the sales table content and reduce extra right space */
+/* ==== SALES TABLE – CENTERED, CLEAN, NO EXTRA RIGHT SPACE ==== */
+.table:has(#salesTable) {
+  display: flex;
+  justify-content: center;   /* This centers the table inside the flex container */
+  padding: 0 20px;           /* Small side padding for mobile */
+}
+
 #salesTable {
-  width: auto;                    /* Let table size to content */
-  margin: 0 auto;                 /* Center the table horizontally */
-  min-width: 900px;               /* Optional: prevent it from getting too narrow on large screens */
-  max-width: 1200px;              /* Optional: cap the width for better look */
-  table-layout: fixed;            /* Keep columns evenly distributed */
+  width: auto;                    /* Let table shrink to content */
+  min-width: 860px;               /* Minimum readable width */
+  max-width: 100%;                /* Never exceed container */
+  table-layout: fixed;            /* Even column distribution */
+  margin: 0;                      /* Remove any auto margin conflict */
+  border-collapse: collapse;
 }
 
-/* Optional: Add subtle horizontal padding inside cells for better readability */
-#salesTable td,
-#salesTable th {
-  padding: 14px 16px !important;  /* Slightly more horizontal padding */
-  text-align: center;             /* Center all text in cells */
+/* Base cell styling */
+#salesTable th,
+#salesTable td {
+  padding: 14px 12px;
+  text-align: center;             /* Center everything by default */
+  vertical-align: middle;
 }
 
-/* Left-align specific columns for better UX */
+/* Left-align text columns for better readability */
 #salesTable th:nth-child(1),
 #salesTable td:nth-child(1) { text-align: left; }   /* Date */
 
@@ -515,10 +523,20 @@
 #salesTable th:nth-child(7),
 #salesTable td:nth-child(7) { text-align: left; }   /* Sent From */
 
-/* Right-align Details button */
+/* Right-align the View button */
 #salesTable td:last-child {
   text-align: right;
+  padding-right: 20px;
 }
+
+/* Make headers uppercase and clean */
+#salesTable th {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: #f8fafc;
+  color: var(--muted);
+}
+
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
