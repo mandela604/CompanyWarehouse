@@ -466,6 +466,16 @@
 .custom-dropdown {
   margin-bottom: 40px;   /* Only increase bottom margin */
 }
+
+.sales-filter-input {
+  height: 42px;                    /* matches button height */
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6eefb;
+  background: white;
+  font-size: 14px;
+  min-width: 180px;
+}
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -656,26 +666,24 @@
       <!-- ==================== SALES RECORDS ==================== -->
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
-        <div style="margin:16px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-  <div id="salesDateContainer" style="min-width:220px;"></div>
+      <div style="margin:16px 0 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <div id="salesDateContainer" style="min-width:220px;"></div>
 
-  <!-- Outlet Filter -->
-  <select id="outletFilter" style="padding:10px 12px; border-radius:10px; border:1px solid #e6eefb; min-width:180px;">
-    <option value="">All Outlets</option>
-  </select>
+    <select id="outletFilter" class="sales-filter-input">
+      <option value="">All Outlets</option>
+    </select>
 
-  <!-- Rep Filter -->
-  <select id="repFilter" style="padding:10px 12px; border-radius:10px; border:1px solid #e6eefb; min-width:180px;">
-    <option value="">All Sales Reps</option>
-  </select>
+    <select id="repFilter" class="sales-filter-input">
+      <option value="">All Sales Reps</option>
+    </select>
 
-  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filters</button>
-  <div class="small muted" id="salesDateDisplay">All time</div>
-</div>
+    <button class="btn secondary" onclick="clearSalesFilter()">Clear Filters</button>
 
+    <div class="small muted" id="salesDateDisplay">All time</div>
+  </div>
 
-        <div style="margin-bottom: 12px; text-align: right;">
-  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
+  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white; white-space:nowrap;">
     Print This Page
   </button>
 </div>

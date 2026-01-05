@@ -311,6 +311,14 @@ router.get('/sales', ensureAuth, async (req, res) => {
       if (endDate) filter.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
     }
 
+    // NEW: Outlet filter
+if (req.query.outletId) {
+  filter.outletId = req.query.outletId;
+}
+
+if (req.query.repId) {
+  filter.soldBy = req.query.repId;   
+}
     // 2. Get raw sales + total count
    const rawSales = await Sale.find(filter)
       .sort({ createdAt: -1 })
