@@ -658,9 +658,22 @@
         <h2 style="margin-top:0">All Sales Records</h2>
         <div style="margin:16px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
   <div id="salesDateContainer" style="min-width:220px;"></div>
-  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filter</button>
+
+  <!-- Outlet Filter -->
+  <select id="outletFilter" style="padding:10px 12px; border-radius:10px; border:1px solid #e6eefb; min-width:180px;">
+    <option value="">All Outlets</option>
+  </select>
+
+  <!-- Rep Filter -->
+  <select id="repFilter" style="padding:10px 12px; border-radius:10px; border:1px solid #e6eefb; min-width:180px;">
+    <option value="">All Sales Reps</option>
+  </select>
+
+  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filters</button>
   <div class="small muted" id="salesDateDisplay">All time</div>
 </div>
+
+
         <div style="margin-bottom: 12px; text-align: right;">
   <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
     Print This Page
@@ -832,6 +845,9 @@
 
 
   <script>
+
+
+
 
 // Close mobile sidebar when clicking outside
 document.addEventListener('click', (e) => {
@@ -1502,28 +1518,31 @@ async function renderWarehouses() {
   renderSales();
 }
    
-
 function clearSalesFilter() {
-  // Reset filter variables
-  salesFilter = { start: null, end: null };
+  salesFilter = { start: null, end: null, outletId: null, repId: null };
 
-  // Reset the label text
   $('#salesDateDisplay').textContent = 'All time';
 
-  // Fully clear the flatpickr date picker
   if (salesPicker) {
-    salesPicker.clear();        // Clears the input field visually
-    salesPicker.setDate([]);    // Clears internal selected dates
+    salesPicker.clear();         
+    salesPicker.setDate([]);    
   }
 
-  // Reset to first page and reload sales
+  $('#outletFilter').value = '';
+  $('#repFilter').value = '';
+
   curSales = 1;
   renderSales();
 }
-
  const SALES_PER_PAGE = 10; // items per page
 let curSales = 1;          // current page
-let salesFilter = { start: null, end: null }; // optional filters
+let salesFilter = { 
+  start: null, 
+  end: null, 
+  outletId: null, 
+  repId: null 
+};
+
 
 async function renderSales(page = 1) {
   curSales = page;
@@ -1532,11 +1551,13 @@ async function renderSales(page = 1) {
 
   try {
     // build query params
-    const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
+   const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
     if (salesFilter.start) q.set('startDate', salesFilter.start);
     if (salesFilter.end) q.set('endDate', salesFilter.end);
+    if (salesFilter.outletId) q.set('outletId', salesFilter.outletId);
+    if (salesFilter.repId) q.set('repId', salesFilter.repId);
 
-    // fetch paginated sales from backend
+        // fetch paginated sales from backend
     const res = await fetch(`/api/sales?${q.toString()}`);
     const json = await res.json();
 
@@ -1729,6 +1750,52 @@ async function renderFullSales() {
 
   }
 }
+
+
+async function loadSalesFilters() {
+  try {
+    // Load outlets
+    const outRes = await fetch('/api/outlets');
+    const outlets = await outRes.json();
+    const outletSelect = $('#outletFilter');
+    outletSelect.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.textContent = o.name;
+      outletSelect.appendChild(opt);
+    });
+
+    // Load reps (only role 'rep')
+    const accRes = await fetch('/api/accounts');
+    const accounts = await accRes.json();
+    const reps = accounts.filter(a => a.role === 'rep');
+    const repSelect = $('#repFilter');
+    repSelect.innerHTML = '<option value="">All Sales Reps</option>';
+    reps.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      repSelect.appendChild(opt);
+    });
+
+    // Attach change listeners
+    outletSelect.onchange = () => {
+      salesFilter.outletId = outletSelect.value || null;
+      curSales = 1;
+      renderSales();
+    };
+    repSelect.onchange = () => {
+      salesFilter.repId = repSelect.value || null;
+      curSales = 1;
+      renderSales();
+    };
+
+  } catch (err) {
+    console.error('Failed to load filters:', err);
+  }
+}
+
 
 function initFullSalesPicker() {
   if (fullSalesPicker) return;
@@ -2690,6 +2757,7 @@ document.querySelectorAll('.nav a').forEach(a => {
     }
     else if (route === 'sales') {
       $('#salesSection').classList.add('active');
+      loadSalesFilters();
       renderSales();
     }
     else if (route === 'settings') {
