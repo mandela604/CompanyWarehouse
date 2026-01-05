@@ -486,31 +486,23 @@
 }
 
 
-/* === SALES TABLE – PERFECT CENTERED, NO EXTRA RIGHT SPACE, EVEN COLUMNS === */
-.table:has(#salesTable) {
-  display: flex;
-  justify-content: center;   /* Centers the whole table block */
-  padding: 0 20px;           /* Small side padding for mobile */
-}
-
+/* Center the sales table content and reduce extra right space */
 #salesTable {
-  width: 100%;
-  max-width: 1100px;         /* Controls the maximum width – no endless right space */
-  margin: 0 auto;            /* Centers the table */
-  table-layout: fixed;       /* Forces equal column distribution */
-  border-collapse: collapse;
+  width: auto;                    /* Let table size to content */
+  margin: 0 auto;                 /* Center the table horizontally */
+  min-width: 900px;               /* Optional: prevent it from getting too narrow on large screens */
+  max-width: 1200px;              /* Optional: cap the width for better look */
+  table-layout: fixed;            /* Keep columns evenly distributed */
 }
 
-/* Give each of the 8 columns equal width */
-#salesTable th,
-#salesTable td {
-  width: 12.5%;              /* 100% / 8 columns = 12.5% each */
-  padding: 14px 10px;
-  text-align: center;        /* Default: center everything */
-  vertical-align: middle;
+/* Optional: Add subtle horizontal padding inside cells for better readability */
+#salesTable td,
+#salesTable th {
+  padding: 14px 16px !important;  /* Slightly more horizontal padding */
+  text-align: center;             /* Center all text in cells */
 }
 
-/* Override for columns that should be left-aligned */
+/* Left-align specific columns for better UX */
 #salesTable th:nth-child(1),
 #salesTable td:nth-child(1) { text-align: left; }   /* Date */
 
@@ -523,25 +515,9 @@
 #salesTable th:nth-child(7),
 #salesTable td:nth-child(7) { text-align: left; }   /* Sent From */
 
-/* View button column – right aligned */
-#salesTable th:nth-child(8),
-#salesTable td:nth-child(8) {
+/* Right-align Details button */
+#salesTable td:last-child {
   text-align: right;
-  padding-right: 20px;
-}
-
-/* Make header text uppercase and clean */
-#salesTable th {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  background: #f8fafc;
-  color: var(--muted);
-}
-
-/* Ensure pagination stays centered */
-#salesPagination {
-  justify-content: center !important;
-  margin-top: 20px;
 }
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
