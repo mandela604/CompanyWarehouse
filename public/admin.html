@@ -766,7 +766,7 @@
           </div>
         </div>
 
-        <div class="widget">
+      <!--  <div class="widget">
           <h4>Users</h4>
           <div class="table">
             <table id="settingsUsersTable">
@@ -782,7 +782,7 @@
               <tbody></tbody>
             </table>
           </div>
-        </div>
+        </div> -->
 
         <div class="widget">
           <h4>My Profile (Admin)</h4>
@@ -2220,7 +2220,10 @@ $('#addUserBtn').addEventListener('click', async () => {
     const resRoles = await fetch('/api/roles');
     if (!resRoles.ok) throw new Error('Failed to fetch roles');
     const roles = await resRoles.json(); 
-    const roleOptions = roles.map(r => `<option value="${r}">${r}</option>`).join('');
+    const roleOptions = roles
+  .filter(r => r !== 'admin')  // ← remove admin role
+  .map(r => `<option value="${r}">${r}</option>`)
+  .join('');
 
     // Show modal
     showModal(`
@@ -3224,7 +3227,6 @@ async function editUser(id) {
 
       <div class="form-row">
         <select id="editRole">
-          <option value="admin" ${user.role==='admin'?'selected':''}>admin</option>
           <option value="manager" ${user.role==='manager'?'selected':''}>manager</option>
           <option value="rep" ${user.role==='rep'?'selected':''}>Sales rep</option>
         </select>
