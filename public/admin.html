@@ -711,6 +711,7 @@
                <!--   <th>Products<br><small style="font-weight:normal;color:#888;">(name × qty)</small></th> -->
                 <th>Total Qty</th>
                 <th>Items</th>
+                <th style="text-align:right;">Amount</th>
                 <th>Outlet</th>
                 <th>Sales Rep (Recorder)</th>
               <!--  <th>Manager (Approver)</th> -->
@@ -1604,6 +1605,9 @@ tbody.innerHTML = sales.map(s => {
       <td style="vertical-align:top;">${s.date}</td>
       <td style="vertical-align:top;"><strong>${s.totalQty}</strong></td>
       <td style="vertical-align:top;">${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
+      <td style="text-align:right; vertical-align:top; font-weight:600; color:var(--blue);">
+      ${formatNGN(s.totalAmount || 0)}
+    </td>
       <td style="vertical-align:top;">${s.outletName}</td>
       <td style="vertical-align:top;">${s.repName || '—'}</td>
       <td style="vertical-align:top;"><span class="pill">${s.status}</span></td>
