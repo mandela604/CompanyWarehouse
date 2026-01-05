@@ -486,38 +486,61 @@
 }
 
 
-/* Center the sales table content and reduce extra right space */
+/* === SALES TABLE – PERFECTLY BALANCED, NO EXTRA RIGHT SPACE === */
+.table:has(#salesTable) {
+  display: flex;
+  justify-content: center;    /* Center the entire table block */
+  padding: 0 20px;            /* Small side padding for mobile */
+}
+
 #salesTable {
-  width: auto;                    /* Let table size to content */
-  margin: 0 auto;                 /* Center the table horizontally */
-  min-width: 900px;               /* Optional: prevent it from getting too narrow on large screens */
-  max-width: 1200px;              /* Optional: cap the width for better look */
-  table-layout: fixed;            /* Keep columns evenly distributed */
+  width: 100%;
+  max-width: 1000px;          /* This removes the huge right space */
+  margin: 0 auto;             /* Centers the table perfectly */
+  table-layout: fixed;        /* Forces all 8 columns to share space equally */
+  border-collapse: collapse;
 }
 
-/* Optional: Add subtle horizontal padding inside cells for better readability */
-#salesTable td,
-#salesTable th {
-  padding: 14px 16px !important;  /* Slightly more horizontal padding */
-  text-align: center;             /* Center all text in cells */
+/* All columns equal width + centered content */
+#salesTable th,
+#salesTable td {
+  width: 12.5%;               /* 100% ÷ 8 columns = exactly equal */
+  padding: 14px 10px;
+  text-align: center;         /* Center all content */
+  vertical-align: middle;
+  white-space: nowrap;        /* Prevent wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Left-align specific columns for better UX */
-#salesTable th:nth-child(1),
-#salesTable td:nth-child(1) { text-align: left; }   /* Date */
+/* Left-align only the name/text columns */
+#salesTable th:nth-child(1), #salesTable td:nth-child(1), /* Date */
+#salesTable th:nth-child(4), #salesTable td:nth-child(4), /* Outlet */
+#salesTable th:nth-child(5), #salesTable td:nth-child(5), /* Sales Rep */
+#salesTable th:nth-child(7), #salesTable td:nth-child(7)  /* Sent From */
+{
+  text-align: left;
+}
 
-#salesTable th:nth-child(4),
-#salesTable td:nth-child(4) { text-align: left; }   /* Outlet */
-
-#salesTable th:nth-child(5),
-#salesTable td:nth-child(5) { text-align: left; }   /* Sales Rep */
-
-#salesTable th:nth-child(7),
-#salesTable td:nth-child(7) { text-align: left; }   /* Sent From */
-
-/* Right-align Details button */
-#salesTable td:last-child {
+/* Right-align the View button */
+#salesTable th:nth-child(8), #salesTable td:nth-child(8) {
   text-align: right;
+  padding-right: 20px;
+}
+
+/* Header styling */
+#salesTable th {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: #f8fafc;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Keep pagination centered */
+#salesPagination {
+  justify-content: center !important;
+  margin-top: 20px;
 }
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
