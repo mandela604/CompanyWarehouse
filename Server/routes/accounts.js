@@ -151,8 +151,45 @@ router.post('/login', async (req, res) => {
     switch (user.role) {
       case 'admin':
         return res.json({ redirect: '/admin.html' });
-      case 'manager':
-        return res.json({redirect: '/warehouse.html'});
+     case 'manager':
+  // Find all warehouses this manager is assigned to
+  const warehouses = await Warehouse.find({
+    $or: [
+      { managerIds: user.id },   // new: multiple managers array
+      { managerId: user.id }     // old: single manager legacy field
+    ]
+  })
+    .select('id name location')
+    .lean();
+
+  // Save clean list in session (good for later use)
+  req.session.warehouses = warehouses.map(w => ({
+    id: w.id,
+    name: w.name,
+    location: w.location || ''
+  }));
+
+  // Auto-select if only one warehouse
+  if (warehouses.length === 1) {
+    req.session.currentWarehouseId = warehouses[0].id;
+    return res.json({ redirect: '/warehouse.html' }); // or /manager.html if that's your file
+  }
+
+  // Multiple warehouses → show selection screen
+  if (warehouses.length > 1) {
+    const warehouseList = warehouses.map(w => ({
+      id: w.id,
+      name: w.name,
+      location: w.location || ''
+    }));
+    const warehouseQuery = encodeURIComponent(JSON.stringify(warehouseList));
+    return res.json({
+      redirect: `/warehouse.html?select=1&warehouses=${warehouseQuery}`
+    });
+  }
+
+  // No warehouses assigned
+  return res.status(403).json({ message: 'No warehouse assigned to this manager.' });
       case 'rep':
       if (outlets.length === 1) {
         req.session.currentOutletId = outlets[0].id;

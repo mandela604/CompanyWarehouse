@@ -14,6 +14,70 @@ const WarehouseInventory = require('../models/WarehouseInventory');
 
 const router = express.Router();
 
+
+router.get('/warehouses/select', ensureAuth, async (req, res) => {
+  try {
+    // Only return warehouses the current user has access to
+    const userId = req.session.user.id;
+
+    const warehouses = await Warehouse.find(
+      {
+        status: 'active',  // optional: only active ones
+        $or: [
+          { managerIds: userId },     // new multi-manager system
+          { managerId: userId }       // legacy single manager
+        ]
+      },
+      { _id: 1, name: 1, location: 1 }  // use _id or id depending on your schema
+    ).lean();
+
+    // Map to consistent shape (id as string if needed)
+    const formatted = warehouses.map(w => ({
+      id: w._id.toString(),  // or just w._id if your frontend expects ObjectId
+      name: w.name,
+      location: w.location || ''
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error('Failed to fetch warehouses for select:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/select-warehouse', ensureAuth, async (req, res) => {
+  try {
+    const { warehouseId } = req.body;
+
+    if (!warehouseId) {
+      return res.status(400).json({ message: 'warehouseId is required' });
+    }
+
+    const userId = req.session.user.id;
+
+    // Security: make sure this manager actually has access to this warehouse
+    const warehouse = await Warehouse.findOne({
+      _id: warehouseId,
+      $or: [
+        { managerIds: userId },
+        { managerId: userId }
+      ]
+    });
+
+    if (!warehouse) {
+      return res.status(403).json({ message: 'Access denied to this warehouse' });
+    }
+
+    // Save the selected warehouse in session
+    req.session.currentWarehouseId = warehouseId;
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Select warehouse error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // ✅ CREATE WAREHOUSE (Admin only)
 router.post('/warehouses', ensureAdmin, async (req, res) => {
   try {

@@ -290,6 +290,66 @@
 
   <script>
 
+
+
+const params = new URLSearchParams(window.location.search);
+
+if (params.get('select')) {
+  let warehouses = [];
+
+  try {
+    const raw = params.get('warehouses');
+    if (raw) warehouses = JSON.parse(decodeURIComponent(raw));
+  } catch (e) {
+    console.error('Failed to parse warehouses:', e);
+    document.body.innerHTML = `<div style="text-align:center;padding:50px;"><h3>Error loading warehouses</h3><p><a href="/login.html">Back to login</a></p></div>`;
+    throw e;
+  }
+
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(user => {
+      let html = `<div style="text-align:center;padding:60px;background:#f8f9fa;border-radius:16px;margin:40px auto;max-width:500px;">
+        <h2>Welcome, ${user.name || 'Manager'}!</h2>
+        <p style="color:#666;margin:20px 0;">Please select a warehouse to manage:</p>`;
+
+      if (warehouses.length === 0) {
+        html += `<p>No warehouses assigned.</p>`;
+      } else {
+        warehouses.forEach(w => {
+          html += `<button onclick="selectWarehouse('${w.id}')" 
+            style="display:block;width:100%;max-width:360px;margin:16px auto;padding:16px;font-size:16px;
+                   border-radius:12px;background:var(--blue);color:white;border:none;
+                   cursor:pointer;box-shadow:0 4px 12px rgba(11,94,215,0.2);">
+            <div><strong>${w.name}</strong></div>
+            <div style="font-size:13px;margin-top:4px;color:rgba(255,255,255,0.8);">
+              ${w.location || 'No location'}
+            </div>
+          </button>`;
+        });
+      }
+
+      html += `<div style="margin-top:40px;"><a href="/login.html" style="color:var(--muted);text-decoration:underline;">← Back to login</a></div></div>`;
+      document.body.innerHTML = html;
+    })
+    .catch(() => {
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;"><h3>Session error</h3><p><a href="/login.html">Login again</a></p></div>`;
+    });
+
+  // Stop normal loading
+  throw new Error('Selection mode');
+}
+
+function selectWarehouse(id) {
+  fetch('/api/select-warehouse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ warehouseId: id })
+  }).then(() => location.href = '/manager.html');
+}
+
+
+
 function logout() {
   fetch('/api/logout', {
     method: 'POST',
@@ -1316,8 +1376,14 @@ document.getElementById('printManagerSalesBtn')?.addEventListener('click', print
 
 
 async function start() {
-  await loadManagerData();
- await refreshAll();
+  try {
+    await loadManagerData();      
+    await refreshAll();
+  } catch (e) {
+    if (e.message === 'Selection mode') return; 
+    console.error(e);
+    showToast('Failed to load dashboard', 'error');
+  }
 }
 
 start();
