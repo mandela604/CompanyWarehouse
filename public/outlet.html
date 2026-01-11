@@ -76,6 +76,110 @@
 #shipmentsTable th:nth-child(7), #shipmentsTable td:nth-child(7) { width: 19%; } /* Action */
 
 
+
+/* Small screens / phones (< 768px) */
+@media (max-width: 768px) {
+  .app {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .sidebar {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .nav a {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;           /* Stack cards vertically */
+    gap: 12px;
+  }
+
+  .card .value {
+    font-size: 20px;
+  }
+
+  .card h3 {
+    font-size: 11px;
+  }
+
+  main {
+    padding: 0;
+  }
+
+  /* Tables become scrollable horizontally */
+  table {
+    min-width: 700px; /* force horizontal scroll on small screens */
+  }
+
+  th, td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  /* Buttons smaller */
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .pagination button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Very small phones (< 480px) */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  .hamburger {
+    left: 10px;
+    top: 10px;
+    padding: 6px;
+  }
+
+  .sidebar {
+    width: 280px;
+    padding: 10px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .card .value {
+    font-size: 18px;
+  }
+
+  .modal {
+    min-width: 90%;
+    max-width: 95%;
+    padding: 16px;
+  }
+
+  .form-row input,
+  .form-row select {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
   </style>
 
 
@@ -1137,7 +1241,7 @@ $('#confirmSale').onclick = async () => {
     }));
 
     console.log('Sending bulk sale items:', JSON.stringify(items, null, 2));
-    
+
     const res = await fetch('/api/sales/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
