@@ -109,7 +109,11 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
     const totalQty = items.reduce((sum, i) => sum + i.qtySold, 0);
 
     for (const item of items) {
-      const { productId, qtySold } = item;
+      const { productId, qtySold, unitPrice } = item;
+
+      if (unitPrice == null || typeof unitPrice !== 'number' || unitPrice < 0) {
+        throw new Error(`Missing or invalid unitPrice for product ${productId}`);
+      }
 
       const inventory = await OutletInventory.findOne({ outletId, productId }).session(session);
       if (!inventory || inventory.qty < qtySold) {
@@ -119,13 +123,15 @@ router.post('/sales/bulk', ensureAuth, async (req, res) => {
       const product = await Product.findOne({ id: productId }).session(session);
       if (!product) throw new Error(`Product not found: ${productId}`);
 
-      const totalAmount = qtySold * product.unitPrice;
-      totalSaleAmount += totalAmount;
+     // const totalAmount = qtySold * product.unitPrice;
 
-      await OutletService.updateInventory(session, inventory.outletId, inventory.productId, qtySold, totalAmount);
-      await OutletService.incrementOutlet(session, outletId, qtySold, totalAmount);
-      await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, totalAmount);
-      await companyService.incrementRevenue(session, totalAmount, qtySold);
+      const lineTotal = qtySold * unitPrice;
+      totalSaleAmount += lineTotal;
+
+      await OutletService.updateInventory(session, inventory.outletId, inventory.productId, qtySold, lineTotal);
+      await OutletService.incrementOutlet(session, outletId, qtySold, lineTotal);
+      await OutletService.incrementWarehouse(session, inventory.warehouseId, productId, lineTotal);
+      await companyService.incrementRevenue(session, lineTotal, qtySold);
  
 
       const outlet = await Outlet.findOne({ id: outletId }).session(session);
@@ -154,7 +160,8 @@ await Warehouse.updateOne(
         outletId,
         productId,
         qtySold,
-        totalAmount,
+        unitPrice: unitPrice,
+        totalAmount: lineTotal,
         soldBy: req.session.user.id,
         transactionId,
         itemCount,      

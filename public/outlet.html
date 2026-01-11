@@ -1132,7 +1132,8 @@ $('#confirmSale').onclick = async () => {
   try {
     const items = saleCart.map(item => ({
       productId: item.productId,
-      qtySold: item.qty
+      qtySold: item.qty,
+      unitPrice: item.price
     }));
 
     const res = await fetch('/api/sales/bulk', {

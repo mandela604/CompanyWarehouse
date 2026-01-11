@@ -7,6 +7,10 @@ const saleSchema = new mongoose.Schema({
   productId: { type: String, required: true },
   qtySold: { type: Number, required: true },
   totalAmount: { type: Number, required: true },
+  unitPrice: {
+  type: Number,
+  required: true
+},
   transactionId: {
   type: String,
   required: true,
