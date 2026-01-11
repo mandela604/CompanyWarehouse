@@ -1051,7 +1051,14 @@ function renderCart() {
         <td style="padding:8px;"><strong>${item.name}</strong></td>
         <td><input type="number" min="1" max="${item.max}" value="${item.qty}" 
                    onchange="updateQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
-        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
+        <td>
+  <input type="number"
+         step="0.01"
+         min="0"
+         value="${(item.price || 0).toFixed(2)}"
+         onchange="updatePrice(${i}, this.value)"
+         style="width:110px; text-align:right; padding:5px 8px; border:1px solid #ddd; border-radius:6px;">
+</td>
         <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
         <td><button onclick="removeItem(${i})" style="color:var(--dark-red);background:none;border:none;font-size:18px;">×</button></td>
       </tr>
@@ -1074,6 +1081,17 @@ function removeItem(index) {
   renderCart();
 }
 
+
+
+function updatePrice(index, newValue) {
+    let price = parseFloat(newValue) || 0;
+    if (price < 0) price = 0;
+
+    saleCart[index].price = price;
+    renderCart();  // refresh totals & display
+}
+
+
 $('#addItemBtn').onclick = () => {
   const sel = $('#productSelect');
   const qty = parseInt($('#qtyInput').value) || 1;
@@ -1090,7 +1108,14 @@ $('#addItemBtn').onclick = () => {
     saleCart[existing].qty += qty;
     if (saleCart[existing].qty > max) saleCart[existing].qty = max;
   } else {
-    saleCart.push({ productId: sel.value, name, price, qty, max });
+    saleCart.push({
+    productId: sel.value,
+    name,
+    price,
+    originalPrice: price,   
+    qty,
+    max
+});
   }
 
   $('#qtyInput').value = 1;
