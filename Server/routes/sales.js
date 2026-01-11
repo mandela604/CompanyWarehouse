@@ -143,7 +143,7 @@ const warehouseId = outlet.warehouseId;
 
 await Warehouse.updateOne(
   { id: warehouseId },
-  { $inc: { totalRevenue: totalAmount } },
+  { $inc: { totalRevenue: lineTotal } },
   { session }
 );
 

@@ -1136,6 +1136,8 @@ $('#confirmSale').onclick = async () => {
       unitPrice: item.price
     }));
 
+    console.log('Sending bulk sale items:', JSON.stringify(items, null, 2));
+    
     const res = await fetch('/api/sales/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
