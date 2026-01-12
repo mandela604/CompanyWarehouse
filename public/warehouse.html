@@ -510,6 +510,9 @@ async function loadManagerData() {
      if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();   
 
+    console.log('All recent shipments from backend:', data.recentShipments);
+
+
     cards.innerHTML = `
       <div class="card">
         <h3>Total Stock</h3>
@@ -536,7 +539,8 @@ async function loadManagerData() {
     // recent shipments table
 const tbody = $('#recentShipments tbody');
 tbody.innerHTML = '';
-const incomingOnly = (data.recentShipments || []).filter(s => s.toType === 'Warehouse')
+const incomingOnly = (data.recentShipments || []).filter(s => s.toType === 'Warehouse');
+console.log('Filtered incoming only:', incomingOnly);
   if (incomingOnly.length > 0){
   incomingOnly.slice(0, 6).forEach(s => {
     const itemCount = s.products?.length || 1;
@@ -586,9 +590,9 @@ async function renderRecentOutgoingShipments() {
     const allShipments = await res.json();
 
     // Filter only outgoing (from this warehouse)
-    const outgoing = allShipments.filter(s => 
-      s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
-    );
+    const outgoing = (allShipments.recentShipments || []).filter(s => 
+  s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
+);
 
     tbody.innerHTML = '';
 
@@ -1555,7 +1559,7 @@ document.addEventListener('click', async (e) => {
                 <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
                 <div><strong>Status:</strong> ${shipment.status}</div>
                 <div><strong>From:</strong> ${shipment.from?.name || 'Head Office'}</div>
-                <div><strong>To:</strong> ${myWarehouse.name}</div>
+                <div><strong>To:</strong> ${shipment.to?.name || 'Unknown Outlet'}</div>
               </div>
               <table>
                 <thead><tr><th>Product</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Line Total</th></tr></thead>
