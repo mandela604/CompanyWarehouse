@@ -175,6 +175,24 @@
                 </thead>
                <tbody></tbody></table>
             </div>
+
+            <div class="table" style="margin-top:24px;">
+  <h3 style="margin:0 0 16px;padding:0 16px">Recent Outgoing Shipments</h3>
+  <table id="recentOutgoingShipments">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>From</th>
+        <th>Items</th>
+        <th>Qty</th>
+        <th>Total Value</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
           </div>
         <!--  <div class="panel-right">
             <div class="card">
@@ -518,8 +536,9 @@ async function loadManagerData() {
     // recent shipments table
 const tbody = $('#recentShipments tbody');
 tbody.innerHTML = '';
-if (data.recentShipments && data.recentShipments.length > 0) {
-  data.recentShipments.slice(0, 6).forEach(s => {
+const incomingOnly = (data.recentShipments || []).filter(s => s.toType === 'Warehouse')
+  if (incomingOnly.length > 0){
+  incomingOnly.slice(0, 6).forEach(s => {
     const itemCount = s.products?.length || 1;
     const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || s.qty || 0;
     const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0) || 0;
@@ -551,7 +570,58 @@ if (data.recentShipments && data.recentShipments.length > 0) {
     showToast( err?.message || 'Failed to load. Please refresh.', 'error');
    
   }
+  await renderRecentOutgoingShipments();
 }
+
+async function renderRecentOutgoingShipments() {
+  const tbody = $('#recentOutgoingShipments tbody');
+  if (!tbody) return; // table not present
+
+  tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+
+  try {
+    // Reuse the same endpoint you're already using
+   const res = await fetch(`/api/manager/overview?warehouseId=${myWarehouse.id}`);
+    if (!res.ok) throw new Error('Failed');
+    const allShipments = await res.json();
+
+    // Filter only outgoing (from this warehouse)
+    const outgoing = allShipments.filter(s => 
+      s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
+    );
+
+    tbody.innerHTML = '';
+
+    if (outgoing.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No recent outgoing shipments</td></tr>';
+      return;
+    }
+
+    // Show only first 6 (same as incoming)
+    outgoing.slice(0, 6).forEach(s => {
+      const itemCount = s.products?.length || 1;
+      const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || 0;
+      const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0) || 0;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${myWarehouse.name}</td> <!-- Always this warehouse -->
+          <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+          <td style="text-align:center;"><strong>${totalQty}</strong></td>
+          <td style="text-align:right;">${formatNGN(totalValue)}</td>
+          <td><span class="pill">${s.status}</span></td>
+          <td style="text-align:center;">
+            <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">Failed to load</td></tr>';
+  }
+}
+
 
 
 async function renderShipments() {
@@ -1423,7 +1493,7 @@ document.addEventListener('click', async (e) => {
           <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
           <div><strong>Status:</strong> <span class="pill">${shipment.status}</span></div>
           <div><strong>From:</strong> ${shipment.from?.name || 'Head Office'}</div>
-          <div><strong>To:</strong> ${myWarehouse.name}</div>
+          <div><strong>To:</strong> ${shipment.to?.name || 'Unknown Outlet'}</div>
         </div>
 
         <h4 style="margin:20px 0 10px;">Products Shipped</h4>
