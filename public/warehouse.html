@@ -583,24 +583,30 @@ async function renderRecentOutgoingShipments() {
 
   tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
 
-  try {
-    // Reuse the same endpoint you're already using
-   const res = await fetch(`/api/manager/overview?warehouseId=${myWarehouse.id}`);
-    if (!res.ok) throw new Error('Failed');
-    const allShipments = await res.json();
+ try {
+  const res = await fetch(`/api/manager/overview?warehouseId=${myWarehouse.id}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const response = await res.json();
 
-    // Filter only outgoing (from this warehouse)
-    const outgoing = (allShipments.recentShipments || []).filter(s => 
-  s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
-);
+  // Debug: see what backend really returns
+  console.log('Overview API full response:', response);
 
-    tbody.innerHTML = '';
+  // Safely get recentShipments (array)
+  const allShipments = response.recentShipments || [];
+  console.log('All recent shipments (array):', allShipments);
 
-    if (outgoing.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="muted">No recent outgoing shipments</td></tr>';
-      return;
-    }
+  // Filter outgoing
+  const outgoing = allShipments.filter(s => 
+    s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
+  );
+  console.log('Filtered outgoing:', outgoing);
 
+  tbody.innerHTML = '';
+
+  if (outgoing.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">No recent outgoing shipments</td></tr>';
+    return;
+  }
     // Show only first 6 (same as incoming)
     outgoing.slice(0, 6).forEach(s => {
       const itemCount = s.products?.length || 1;
