@@ -132,6 +132,11 @@ const enrichedRecent = recentShipments.map(s => ({
   id: s.id, 
   date: s.date,
   fromName: s.from?.name || 'Head Office',
+ toName: s.to?.name || 'Unknown',
+  fromType: s.fromType,
+  toType: s.toType,        // ← ADD THESE 2 LINES
+  fromId: s.from?.id,
+  toId: s.to?.id,
   status: s.status,
   products: s.products.map(p => ({
     name: p.name || p.productName,
