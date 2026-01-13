@@ -1536,11 +1536,40 @@ document.addEventListener('click', async (e) => {
           </tbody>
         </table>
 
-        <div style="text-align:right;margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
-          <button class="btn" onclick="printShipment(this)">Print Receipt</button>
-          <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
-        </div>
+       <div style="text-align:right;margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+
+  <!-- Edit button ONLY for outgoing In Transit shipments from THIS warehouse -->
+  ${shipment.status.toLowerCase() === 'in transit' && 
+    shipment.fromType === 'Warehouse' && 
+    shipment.from?.id === myWarehouse.id ? `
+    <button class="btn" id="editOutgoingShipmentBtn"
+            style="background:#f59e0b; color:white;"
+            data-id="${shipment.id}">
+      Edit Shipment
+    </button>
+  ` : ''}
+
+    <!-- Print button always -->
+  <button class="btn" onclick="printShipment(this)">Print Receipt</button>
+
+  <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+</div>
       `;
+
+
+      // Attach Edit button listener AFTER modal is in DOM
+setTimeout(() => {
+  const editBtn = document.getElementById('editOutgoingShipmentBtn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      // Close current view modal
+      backdrop.remove();
+      // Open edit modal with pre-filled data
+      editOutgoingShipment(shipment.id);
+    };
+  }
+}, 0);
+
 
       window.printShipment = function() {
         const printWin = window.open('', '', 'width=800,height=700');
@@ -1603,6 +1632,174 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+
+async function editOutgoingShipment(shipmentId) {
+  try {
+    // 1. Fetch the full shipment
+    const res = await fetch(`/api/shipments/${shipmentId}`);
+    if (!res.ok) throw new Error('Failed to load shipment');
+    const shipment = await res.json();
+
+    // Safety checks
+    if (shipment.status.toLowerCase() !== 'in transit') {
+      return showToast('Only In Transit shipments can be edited', 'error');
+    }
+    if (shipment.fromType !== 'Warehouse' || shipment.from?.id !== myWarehouse.id) {
+      return showToast('You can only edit your own outgoing shipments', 'error');
+    }
+
+    // 2. Pre-fill cart
+    shipmentCart = shipment.products.map(p => ({
+      productId: p.productId,
+      name: p.name || p.productName || 'Unknown',
+      price: p.unitPrice || 0,
+      qty: p.qty,
+      max: 9999  // You can make this stricter later by fetching current stock
+    }));
+
+    // 3. Load current outlets + inventory (same as create)
+    const [outletsRes, prodRes] = await Promise.all([
+      fetch('/api/outlets/select'),
+      fetch(`/api/products/warehouse/${myWarehouse.id}`)
+    ]);
+
+    if (!outletsRes.ok || !prodRes.ok) throw new Error('Failed to load data');
+
+    const outlets = await outletsRes.json();
+    const products = (await prodRes.json()).products || [];
+
+    const outletOptions = outlets
+      .map(o => `<option value="${o.id}" ${o.id === shipment.to?.id ? 'selected' : ''}>
+        ${o.name} (${o.location || '—'})
+      </option>`)
+      .join('');
+
+    const productOptions = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option value="${p.id}"
+                data-qty="${p.qty}"
+                data-price="${p.unitPrice || 0}">
+          ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+        </option>
+      `)
+      .join('');
+
+    // 4. Show modal (same UI as create, but titled "Edit")
+    showModal(`
+      <h3>Edit Outgoing Shipment to Outlet</h3>
+      <div id="successMsg" class="success" style="display:none;">Shipment updated successfully!</div>
+
+      <div class="form-row">
+        <label>Destination Outlet</label>
+        <select id="targetOutletSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
+          <option value="">Select outlet...</option>
+          ${outletOptions}
+        </select>
+      </div>
+
+      <table style="width:100%;margin:16px 0;">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Unit Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="shipmentItems"></tbody>
+      </table>
+
+      <div class="form-row">
+        <select id="productSelect" style="width:100%;padding:10px;">
+          <option value="">Add more products...</option>
+          ${productOptions}
+        </select>
+      </div>
+
+      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+        <div style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
+        </div>
+        <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
+      </div>
+
+      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+        Total Quantity: <span id="shipmentTotalQty">0</span> units
+      </div>
+
+      <div style="text-align:right;margin-top:20px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmShipmentBtn" style="background:#10b981;">Save Changes</button>
+      </div>
+    `);
+
+    // 5. Initialize cart, listeners, etc.
+    setTimeout(() => {
+      renderShipmentCartToOutlet();  // ← your existing function
+
+      $('#addShipmentItemBtn').onclick = addItemToShipmentCartToOutlet;  // ← existing
+      $('#confirmShipmentBtn').onclick = () => confirmEditOutgoingShipment(shipmentId);
+
+      $('#targetOutletSelect').onchange = () => {
+        const enabled = !!$('#targetOutletSelect').value && shipmentCart.length > 0;
+        $('#confirmShipmentBtn').disabled = !enabled;
+      };
+      $('#targetOutletSelect').dispatchEvent(new Event('change'));
+    }, 0);
+
+  } catch (err) {
+    showToast('Failed to open edit modal: ' + (err.message || 'Unknown error'), 'error');
+    console.error(err);
+  }
+}
+
+async function confirmEditOutgoingShipment(shipmentId) {
+  const outletId = $('#targetOutletSelect').value;
+  if (!outletId) return showToast('Select a destination outlet', 'error');
+  if (shipmentCart.length === 0) return showToast('Shipment must have at least one item', 'error');
+
+  $('#confirmShipmentBtn').disabled = true;
+  $('#confirmShipmentBtn').textContent = 'Saving...';
+
+  const items = shipmentCart.map(item => ({
+    productId: item.productId,
+    qty: item.qty
+  }));
+
+  try {
+    const res = await fetch(`/api/shipments/${shipmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toId: outletId,
+        products: items
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || 'Failed to update shipment');
+    }
+
+    $('#successMsg').style.display = 'block';
+    showToast('Outgoing shipment updated!', 'success');
+
+    setTimeout(() => {
+      closeModal();
+      refreshAll();           // refresh overview + tables
+      renderShipments();      // also refresh incoming table if needed
+    }, 1200);
+
+  } catch (err) {
+    showToast(err.message || 'Update failed', 'error');
+  } finally {
+    $('#confirmShipmentBtn').disabled = false;
+    $('#confirmShipmentBtn').textContent = 'Save Changes';
+  }
+}
 
   </script>
 </body>
