@@ -847,6 +847,11 @@ router.put('/shipments/:id', async (req, res) => {
   } catch (err) {
     await session.abortTransaction();
     console.error('Shipment update failed:', err);
+    console.error('Shipment update failed:', {
+    error: err.message,
+    stack: err.stack,
+    payload: req.body  // ← log what frontend sent
+  });
     res.status(500).json({ message: 'Failed to update shipment', error: err.message });
   } finally {
     session.endSession();
