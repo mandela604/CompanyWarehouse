@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema({
 });
 
 productSchema.pre('save', function(next) {
-  this.lastUpdated = Date.now();  // updates on every edit
+  this.lastUpdated = Date.now();  
   next();
 });
 
