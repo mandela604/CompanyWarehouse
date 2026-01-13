@@ -394,6 +394,99 @@
   min-width: 60px;
 }
 
+
+.custom-dropdown {
+  position: relative;
+  margin: 16px 0;
+}
+.dropdown-btn {
+  width: 100%;
+  padding: 14px 16px;
+  background: #fafcff;
+  border: 1px solid #e6eefb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+.dropdown-btn:hover {
+  background: #f0f7ff;
+}
+.dropdown-btn::after {
+  content: '▼';
+  font-size: 12px;
+  color: var(--muted);
+}
+.dropdown-btn.open::after {
+  content: '▲';
+}
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e6eefb;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  max-height: 50vh;                 /* Best: uses half the screen height max */
+  min-height: 80px;                 /* Optional: prevents tiny dropdown */
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  z-index: 10;
+  display: none;
+  padding: 12px;
+}
+.dropdown-content.open {
+  display: block;
+}
+.dropdown-item {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background: #f0f7ff;
+}
+.dropdown-item label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.custom-dropdown {
+  margin-bottom: 40px;   /* Only increase bottom margin */
+}
+
+.sales-filter-input {
+  height: 42px;                    /* matches button height */
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6eefb;
+  background: white;
+  font-size: 14px;
+  min-width: 180px;
+}
+
+/* Make flatpickr input match the height of your dropdowns and buttons */
+#salesDateContainer input {
+  height: 42px !important;           /* exact same height */
+  padding: 10px 12px !important;      /* same padding as selects */
+  font-size: 14px !important;         /* same text size */
+  box-sizing: border-box !important;
+}
+
+
+
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -435,7 +528,7 @@
     <main>
       <div class="topbar">
         <div class="search">
-          <input id="globalSearch" placeholder="Search products, warehouses, outlets...">
+          <input id="globalSearch" disabled placeholder="Search products, warehouses, outlets...">
           <div class="small muted" id="currentWarehouse">Viewing: All Warehouses</div>
         </div>
         <div class="actions">
@@ -584,13 +677,24 @@
       <!-- ==================== SALES RECORDS ==================== -->
       <section id="salesSection" class="section">
         <h2 style="margin-top:0">All Sales Records</h2>
-        <div style="margin:16px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-  <div id="salesDateContainer" style="min-width:220px;"></div>
-  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filter</button>
-  <div class="small muted" id="salesDateDisplay">All time</div>
-</div>
-        <div style="margin-bottom: 12px; text-align: right;">
-  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
+      <div style="margin:16px 0 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <div id="salesDateContainer" style="min-width:220px;"></div>
+
+    <select id="outletFilter" class="sales-filter-input">
+      <option value="">All Outlets</option>
+    </select>
+
+    <select id="repFilter" class="sales-filter-input">
+      <option value="">All Sales Reps</option>
+    </select>
+
+    <button class="btn secondary" onclick="clearSalesFilter()">Clear Filters</button>
+
+    <div class="small muted" id="salesDateDisplay">All time</div>
+  </div>
+
+  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white; white-space:nowrap;">
     Print This Page
   </button>
 </div>
@@ -604,11 +708,12 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Products<br><small style="font-weight:normal;color:#888;">(name × qty)</small></th>
+               <!--   <th>Products<br><small style="font-weight:normal;color:#888;">(name × qty)</small></th> -->
                 <th>Total Qty</th>
                 <th>Items</th>
+                <th style="text-align:right;">Amount</th>
                 <th>Outlet</th>
-                <th>Rep (Recorder)</th>
+                <th>Sales Rep (Recorder)</th>
               <!--  <th>Manager (Approver)</th> -->
                 <th>Status</th>
                 <th>Sent From</th>
@@ -642,7 +747,7 @@
           <table id="fullSalesTable">
             <thead>
               <tr>
-                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Rep</th>
+                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Sales Rep</th>
                 <th>Unit Price</th><th>Line Total</th><th>Status</th>
               </tr>
             </thead>
@@ -665,7 +770,7 @@
           </div>
         </div>
 
-        <div class="widget">
+      <!--  <div class="widget">
           <h4>Users</h4>
           <div class="table">
             <table id="settingsUsersTable">
@@ -681,7 +786,7 @@
               <tbody></tbody>
             </table>
           </div>
-        </div>
+        </div> -->
 
         <div class="widget">
           <h4>My Profile (Admin)</h4>
@@ -760,6 +865,9 @@
 
 
   <script>
+
+
+
 
 // Close mobile sidebar when clicking outside
 document.addEventListener('click', (e) => {
@@ -1339,10 +1447,15 @@ async function renderWarehouses() {
           </div>
         </h4>
         <p class="location">${o.location}</p>
-      ${o.repName 
-          ? `<p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName}</strong></p>` 
-          : `<p class="small muted" style="margin:4px 0">Rep: <strong>No rep assigned</strong></p>`
-        }
+    ${o.repNames && o.repNames.length > 0
+  ? `<p class="small muted" style="margin:4px 0">
+       Sales Rep${o.repNames.length > 1 ? 's' : ''}:
+       <strong>
+         ${o.repNames.slice(0, 2).join(', ')}${o.repNames.length > 2 ? ` +${o.repNames.length - 2} other${o.repNames.length - 2 > 1 ? 's' : ''}` : ''}
+       </strong>
+     </p>`
+  : `<p class="small muted" style="margin:4px 0">Sales Rep: <strong>None assigned</strong></p>`
+}
         ${o.phone 
           ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
           : ''
@@ -1425,20 +1538,31 @@ async function renderWarehouses() {
   renderSales();
 }
    
-
-
 function clearSalesFilter() {
-  $('#filterStart').value = '';
-  $('#filterEnd').value = '';
-  salesFilter = { start: null, end: null };
+  salesFilter = { start: null, end: null, outletId: null, repId: null };
+
+  $('#salesDateDisplay').textContent = 'All time';
+
+  if (salesPicker) {
+    salesPicker.clear();         
+    salesPicker.setDate([]);    
+  }
+
+  $('#outletFilter').value = '';
+  $('#repFilter').value = '';
+
   curSales = 1;
   renderSales();
 }
-
-
  const SALES_PER_PAGE = 10; // items per page
 let curSales = 1;          // current page
-let salesFilter = { start: null, end: null }; // optional filters
+let salesFilter = { 
+  start: null, 
+  end: null, 
+  outletId: null, 
+  repId: null 
+};
+
 
 async function renderSales(page = 1) {
   curSales = page;
@@ -1447,11 +1571,13 @@ async function renderSales(page = 1) {
 
   try {
     // build query params
-    const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
+   const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
     if (salesFilter.start) q.set('startDate', salesFilter.start);
     if (salesFilter.end) q.set('endDate', salesFilter.end);
+    if (salesFilter.outletId) q.set('outletId', salesFilter.outletId);
+    if (salesFilter.repId) q.set('repId', salesFilter.repId);
 
-    // fetch paginated sales from backend
+        // fetch paginated sales from backend
     const res = await fetch(`/api/sales?${q.toString()}`);
     const json = await res.json();
 
@@ -1477,9 +1603,11 @@ tbody.innerHTML = sales.map(s => {
   return `
     <tr>
       <td style="vertical-align:top;">${s.date}</td>
-      <td style="vertical-align:top; line-height:1.6;">${productLines}</td>
       <td style="vertical-align:top;"><strong>${s.totalQty}</strong></td>
       <td style="vertical-align:top;">${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
+      <td style="text-align:right; vertical-align:top; font-weight:600; color:var(--blue);">
+      ${formatNGN(s.totalAmount || 0)}
+    </td>
       <td style="vertical-align:top;">${s.outletName}</td>
       <td style="vertical-align:top;">${s.repName || '—'}</td>
       <td style="vertical-align:top;"><span class="pill">${s.status}</span></td>
@@ -1645,6 +1773,52 @@ async function renderFullSales() {
   }
 }
 
+
+async function loadSalesFilters() {
+  try {
+    // Load outlets
+    const outRes = await fetch('/api/outlets');
+    const outlets = await outRes.json();
+    const outletSelect = $('#outletFilter');
+    outletSelect.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.textContent = o.name;
+      outletSelect.appendChild(opt);
+    });
+
+    // Load reps (only role 'rep')
+    const accRes = await fetch('/api/accounts');
+    const accounts = await accRes.json();
+    const reps = accounts.filter(a => a.role === 'rep');
+    const repSelect = $('#repFilter');
+    repSelect.innerHTML = '<option value="">All Sales Reps</option>';
+    reps.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      repSelect.appendChild(opt);
+    });
+
+    // Attach change listeners
+    outletSelect.onchange = () => {
+      salesFilter.outletId = outletSelect.value || null;
+      curSales = 1;
+      renderSales();
+    };
+    repSelect.onchange = () => {
+      salesFilter.repId = repSelect.value || null;
+      curSales = 1;
+      renderSales();
+    };
+
+  } catch (err) {
+    console.error('Failed to load filters:', err);
+  }
+}
+
+
 function initFullSalesPicker() {
   if (fullSalesPicker) return;
   fullSalesPicker = flatpickr('#fullSalesDatePicker', {
@@ -1742,120 +1916,208 @@ async function renderSalesSummary() {
     //CREATE A WAREHOUSE FUNCTION
     //CREATE A WAREHOUSE FUNCTION
     //CREATE A WAREHOUSE FUNCTION
-    $('#createWarehouseBtn').addEventListener('click', async () => {
-      $('#createWarehouseBtn').disabled = true;
+$('#createWarehouseBtn').addEventListener('click', async () => {
+  $('#createWarehouseBtn').disabled = true;
   try {
-    // Fetch accounts from backend to populate manager dropdown
     const resAccounts = await fetch('/api/accounts');
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
+    const managers = accounts.filter(acc => acc.role === 'manager');
 
-    const managerOptions = accounts.map(
-      acc => `<option value="${acc.id}">${acc.name} (${acc.role})</option>`
-    ).join('');
 
-    // Show modal
     showModal(`
       <h4>Create Warehouse</h4>
       <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
       <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
-      <div class="form-row">
-        <select id="whManager">
-          <option value="">No manager</option>
-          ${managerOptions}
-        </select>
+
+      <!-- Custom Dropdown for Manager -->
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="managerDropdownBtn">
+          Assign Manager <span style="color:var(--muted); font-weight:normal;">(No manager selected)</span>
+        </div>
+        <div class="dropdown-content" id="managerDropdownContent">
+          <div class="dropdown-item">
+            <label>
+              <input type="radio" name="warehouseManager" value="" checked>
+              <span>No manager</span>
+            </label>
+          </div>
+          ${managers.map(acc => `
+            <div class="dropdown-item">
+              <label>
+                <input type="radio" name="warehouseManager" value="${acc.id}">
+                <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
+              </label>
+            </div>
+          `).join('')}
+          ${managers.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No users available</div>' : ''}
+        </div>
       </div>
-      <div style="text-align:right">
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveWh">Create</button>
       </div>
     `);
 
-    // Save button handler
-    $('#saveWh').onclick = async () => {
-     $('#saveWh').disabled = true;
+    // === Manager dropdown setup (now inside the click handler) ===
+    setTimeout(() => {
+      const managerBtn = $('#managerDropdownBtn');
+      const managerContent = $('#managerDropdownContent');
+      if (!managerBtn || !managerContent) return;
 
-      const name = $('#whName').value.trim();
-      const location = $('#whLocation').value.trim();
-      const managerId = $('#whManager').value || null;
+      managerBtn.onclick = (e) => {
+        e.stopPropagation();
+        managerBtn.classList.toggle('open');
+        managerContent.classList.toggle('open');
+      };
 
-      if (!name || !location) return alert('Fill name and location');
-
-      const res = await fetch('/api/warehouses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, location, managerId })
+      document.querySelectorAll('input[name="warehouseManager"]').forEach(radio => {
+        radio.onchange = () => {
+          const labelText = radio.parentElement.textContent.trim();
+          const displayText = radio.value === '' ? 'No manager selected' : labelText;
+          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+        };
       });
 
-      $('#saveWh').disabled = false;
+      // Initial text
+      const initial = document.querySelector('input[name="warehouseManager"]:checked');
+      if (initial) {
+        const txt = initial.value === '' ? 'No manager selected' : initial.parentElement.textContent.trim();
+        managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${txt})</span>`;
+      }
+    }, 0);
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create warehouse');
+    $('#saveWh').onclick = async () => {
+      $('#saveWh').disabled = true;
+      const name = $('#whName').value.trim();
+      const location = $('#whLocation').value.trim();
+      const selected = document.querySelector('input[name="warehouseManager"]:checked');
+      const managerId = selected && selected.value !== '' ? selected.value : null;
+
+      if (!name || !location) {
+        showToast('Name and location required', 'error');
+        $('#saveWh').disabled = false;
+        return;
       }
 
-      // Fetch the newly created warehouse from backend
-      const data = await res.json();
-      closeModal();
-      renderWarehouses(); // Re-fetch warehouses from backend inside renderWarehouses()
+      try {
+        const res = await fetch('/api/warehouses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, location, managerId })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+        showToast('Warehouse created successfully!', 'success');
+        closeModal();
+        renderWarehouses();
+      } catch (err) {
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveWh').disabled = false;
+      }
     };
 
   } catch (err) {
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  } finally{
+    showToast('Server error: ' + err.message, 'error');
+  } finally {
     $('#createWarehouseBtn').disabled = false;
   }
 });
 
-
-   $('#createOutletBtn').addEventListener('click', async () => {
+$('#createOutletBtn').addEventListener('click', async () => {
   try {
-    // 1️⃣ Fetch warehouses from backend
     const resWarehouses = await fetch('/api/warehouses');
     if (!resWarehouses.ok) throw new Error('Failed to fetch warehouses');
     const warehouses = await resWarehouses.json();
 
-    // 2️⃣ Fetch accounts/reps from backend
     const resAccounts = await fetch('/api/accounts');
     if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
     const accounts = await resAccounts.json();
     const reps = accounts.filter(a => a.role === 'rep');
 
-    // 3️⃣ Show modal
     showModal(`
       <h4>Create Outlet</h4>
       <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
+
       <div class="form-row">
+        <label>Warehouse</label>
         <select id="outWh">
-          ${warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
+          <option value="">Select warehouse...</option>
+          ${warehouses.map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`).join('')}
         </select>
       </div>
-      <div class="form-row">
-        <select id="outRep">
-          <option value="">No rep</option>
-          ${reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-        </select>
+
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="repDropdownBtn">
+          Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(None selected)</span>
+        </div>
+        <div class="dropdown-content" id="repDropdownContent">
+          ${reps.length > 0 ? reps.map(r => `
+            <div class="dropdown-item">
+              <label>
+                <input type="checkbox" name="outletRep" value="${r.id}">
+                <span>${r.name} <small style="color:var(--muted)"></small></span>
+              </label>
+            </div>
+          `).join('') : 
+            '<div style="padding:20px; text-align:center; color:#888; font-style:italic;">No sales reps available yet.</div>'
+          }
+        </div>
       </div>
-      <div style="text-align:right">
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveOut">Create</button>
       </div>
     `);
 
-    // 4️⃣ Save button
+    // === Rep dropdown setup (now inside the click handler) ===
+    setTimeout(() => {
+      const repBtn = $('#repDropdownBtn');
+      const repContent = $('#repDropdownContent');
+      if (!repBtn || !repContent) return;
+
+      repBtn.onclick = (e) => {
+        e.stopPropagation();
+        repBtn.classList.toggle('open');
+        repContent.classList.toggle('open');
+      };
+
+      function updateRepButtonText() {
+        const checked = document.querySelectorAll('input[name="outletRep"]:checked');
+        let displayText;
+        if (checked.length === 0) {
+          displayText = 'None selected';
+        } else if (checked.length === 1) {
+          displayText = checked[0].parentElement.textContent.trim();
+        } else {
+          displayText = `${checked.length} selected`;
+        }
+        repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+      }
+
+      document.querySelectorAll('input[name="outletRep"]').forEach(cb => {
+        cb.onchange = updateRepButtonText;
+      });
+
+      updateRepButtonText(); // initial
+    }, 0);
+
     $('#saveOut').onclick = async () => {
       const name = $('#outName').value.trim();
       const warehouseId = $('#outWh').value;
-      const repId = $('#outRep').value || null;
-      const repName = reps.find(r => r.id === repId)?.name || '';
+      const checkedReps = Array.from(document.querySelectorAll('input[name="outletRep"]:checked'));
+      const repIds = checkedReps.map(cb => cb.value);
+      const repNames = checkedReps.map(cb => cb.closest('label').querySelector('span').textContent.trim().split(' (')[0]);
 
-      if (!name || !warehouseId) return alert('Name and warehouse required');
+      if (!name || !warehouseId) {
+        alert('Name and warehouse required');
+        return;
+      }
 
-      // Find selected warehouse to get name and location
       const warehouse = warehouses.find(w => w.id === warehouseId);
 
-      // POST to backend
       const res = await fetch('/api/outlets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1863,28 +2125,26 @@ async function renderSalesSummary() {
           name,
           warehouseId,
           warehouseName: warehouse.name,
-          location: warehouse.location, 
-          repId,
-          repName
+          location: warehouse.location,
+          repIds,
+          repNames
         })
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create outlet');
-      }
-
-      const data = await res.json();
+      if (!res.ok) throw new Error((await res.json()).message || 'Failed');
 
       closeModal();
       renderOutlets();
+      showToast('Outlet created successfully!', 'success');
     };
 
   } catch (err) {
-       showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
+    showToast('Server error: ' + err.message, 'error');
   }
 });
+
+
+
 
 
 
@@ -1966,7 +2226,10 @@ $('#addUserBtn').addEventListener('click', async () => {
     const resRoles = await fetch('/api/roles');
     if (!resRoles.ok) throw new Error('Failed to fetch roles');
     const roles = await resRoles.json(); 
-    const roleOptions = roles.map(r => `<option value="${r}">${r}</option>`).join('');
+    const roleOptions = roles
+  .filter(r => r !== 'admin')  // ← remove admin role
+  .map(r => `<option value="${r}">${r}</option>`)
+  .join('');
 
     // Show modal
     showModal(`
@@ -2519,6 +2782,7 @@ document.querySelectorAll('.nav a').forEach(a => {
     }
     else if (route === 'sales') {
       $('#salesSection').classList.add('active');
+      loadSalesFilters();
       renderSales();
     }
     else if (route === 'settings') {
@@ -2540,40 +2804,87 @@ document.querySelectorAll('.nav a').forEach(a => {
 
 async function editWarehouse(id) {
   try {
-    // Fetch warehouse data from backend
     const res = await fetch(`/api/warehouses/${id}`);
     if (!res.ok) return showToast('Warehouse not found', 'info');
     const wh = await res.json();
 
-    // Fetch managers for dropdown
-    const mgrRes = await fetch('/api/accounts/role/manager'); 
-    const accounts = mgrRes.ok ? await mgrRes.json() : [];
+    const mgrRes = await fetch('/api/accounts');
+    if (!mgrRes.ok) throw new Error('Failed to fetch accounts');
+    const accounts = await mgrRes.json();
+    const managers = accounts.filter(acc => acc.role === 'manager');
 
-    const managerOptions = accounts
-      .map(a => `<option value="${a.id}" ${a.id === wh.managerId ? 'selected' : ''}>${a.name}</option>`)
-      .join('');
+    // Find the currently assigned manager to display their name immediately
+    const currentManager = managers.find(m => m.id === wh.managerId);
+    const initialDisplay = currentManager 
+      ? `${currentManager.name} <small style="color:var(--muted)">(${currentManager.role})</small>`
+      : 'No manager selected';
 
     showModal(`
       <h4>Edit Warehouse – ${wh.name}</h4>
       <div class="form-row"><input id="editWhName" value="${wh.name}" placeholder="Warehouse name" /></div>
       <div class="form-row"><input id="editWhLocation" value="${wh.location}" placeholder="Location" /></div>
-      <div class="form-row">
-        <select id="editWhManager"><option value="">No manager</option>${managerOptions}</select>
+
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="editManagerDropdownBtn">
+          Assign Manager <span style="color:var(--muted); font-weight:normal;">(${initialDisplay})</span>
+        </div>
+        <div class="dropdown-content" id="editManagerDropdownContent">
+          <div class="dropdown-item">
+            <label>
+              <input type="radio" name="editWarehouseManager" value="" ${!wh.managerId ? 'checked' : ''}>
+              <span>No manager</span>
+            </label>
+          </div>
+          ${managers.map(acc => `
+            <div class="dropdown-item">
+              <label>
+                <input type="radio" name="editWarehouseManager" value="${acc.id}" ${acc.id === wh.managerId ? 'checked' : ''}>
+                <span>${acc.name} <small style="color:var(--muted)">(${acc.role})</small></span>
+              </label>
+            </div>
+          `).join('')}
+          ${managers.length === 0 ? '<div style="padding:20px; text-align:center; color:#888;">No managers available</div>' : ''}
+        </div>
       </div>
-      <div style="text-align:right; margin-top:16px">
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEditWhBtn">Save</button>
       </div>
     `);
 
-    $('#saveEditWhBtn').onclick = async () => {
-       $('#saveEditWhBtn').disabled = true;
+    setTimeout(() => {
+      const managerBtn = $('#editManagerDropdownBtn');
+      const managerContent = $('#editManagerDropdownContent');
+      if (!managerBtn || !managerContent) return;
 
+      managerBtn.onclick = (e) => {
+        e.stopPropagation();
+        managerBtn.classList.toggle('open');
+        managerContent.classList.toggle('open');
+      };
+
+      document.querySelectorAll('input[name="editWarehouseManager"]').forEach(radio => {
+        radio.onchange = () => {
+          const labelText = radio.parentElement.textContent.trim();
+          const displayText = radio.value === '' ? 'No manager selected' : labelText;
+          managerBtn.innerHTML = `Assign Manager <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+        };
+      });
+    }, 0);
+
+    $('#saveEditWhBtn').onclick = async () => {
+      $('#saveEditWhBtn').disabled = true;
       const newName = $('#editWhName').value.trim();
       const newLocation = $('#editWhLocation').value.trim();
-      const newMgrId = $('#editWhManager').value || null;
+      const selected = document.querySelector('input[name="editWarehouseManager"]:checked');
+      const newMgrId = selected && selected.value !== '' ? selected.value : null;
 
-      if (!newName || !newLocation) return showToast('Name & location required', 'error');
+      if (!newName || !newLocation) {
+        showToast('Name & location required', 'error');
+        $('#saveEditWhBtn').disabled = false;
+        return;
+      }
 
       try {
         const res = await fetch(`/api/warehouses/${id}`, {
@@ -2582,15 +2893,13 @@ async function editWarehouse(id) {
           body: JSON.stringify({ name: newName, location: newLocation, managerId: newMgrId })
         });
         if (!res.ok) throw new Error('Update failed');
-      
-        const updated = await res.json();
         showToast('Warehouse updated successfully', 'success');
         closeModal();
-        renderWarehouses(); 
+        renderWarehouses();
       } catch (err) {
-        showToast(err.message || "server error", 'error');
-      } finally{
-         $('#saveEditWhBtn').disabled = false;
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveEditWhBtn').disabled = false;
       }
     };
 
@@ -2600,93 +2909,123 @@ async function editWarehouse(id) {
 }
 
 
-
-
-
 async function editOutlet(id) {
   try {
-    // 1️⃣ Fetch the outlet from backend
     const res = await fetch(`/api/outlets/${id}`);
     if (!res.ok) throw new Error('Outlet not found');
     const o = await res.json();
 
-    // 2️⃣ Fetch reps and warehouses from backend
     const [repsRes, whRes] = await Promise.all([
-      fetch('/api/accounts/role/rep'),
+      fetch('/api/accounts'),
       fetch('/api/warehouses')
     ]);
-    if (!repsRes.ok || !whRes.ok) throw new Error('Failed to load reps or warehouses');
-
-    const reps = await repsRes.json();
+    if (!repsRes.ok || !whRes.ok) throw new Error('Failed to load data');
+    const accounts = await repsRes.json();
+    const reps = accounts.filter(a => a.role === 'rep');
     const warehouses = await whRes.json();
 
-    const repOptions = reps
-      .map(r => `<option value="${r.id}" ${r.id === o.repId ? 'selected' : ''}>${r.name}</option>`)
-      .join('');
-
-    const whOptions = warehouses
-      .map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name}</option>`)
-      .join('');
-
-    // 3️⃣ Show modal with backend data
     showModal(`
       <h4>Edit Outlet – ${o.name}</h4>
       <div class="form-row"><input id="editOutName" value="${o.name}" placeholder="Outlet name" /></div>
       <div class="form-row">
-        <select id="editOutWh">${whOptions}</select>
+        <label>Warehouse</label>
+        <select id="editOutWh">
+          <option value="">Select warehouse...</option>
+          ${warehouses.map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name} (${w.location})</option>`).join('')}
+        </select>
       </div>
-      <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
-      <div class="form-row">
-        <label style="font-size:12px; color:var(--muted)">Current Rep: <strong>${o.repName || '—'}</strong></label>
-        <select id="editOutRep"><option value="">No rep</option>${repOptions}</select>
+
+      <!-- Custom Dropdown for Sales Reps (same as create) -->
+      <div class="custom-dropdown">
+        <div class="dropdown-btn" id="editRepDropdownBtn">
+          Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">
+            (${(o.repNames && o.repNames.length > 0) ? (o.repNames.length === 1 ? o.repNames[0] : `${o.repNames.length} selected`) : 'None selected'})
+          </span>
+        </div>
+        <div class="dropdown-content" id="editRepDropdownContent">
+          ${reps.length > 0 ? reps.map(r => `
+            <div class="dropdown-item">
+              <label>
+                <input type="checkbox" name="editOutletRep" value="${r.id}" ${(o.repIds || []).includes(r.id) ? 'checked' : ''}>
+                <span>${r.name}</span>
+              </label>
+            </div>
+          `).join('') :
+            '<div style="padding:20px; text-align:center; color:#888; font-style:italic;">No sales reps available yet.</div>'
+          }
+        </div>
       </div>
-      <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
-      <div style="text-align:right; margin-top:12px">
+
+      <div style="text-align:right; margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEditOut">Save</button>
       </div>
     `);
 
-    // 4️⃣ Save button sends PUT request to backend
+    setTimeout(() => {
+      const repBtn = $('#editRepDropdownBtn');
+      const repContent = $('#editRepDropdownContent');
+      if (!repBtn || !repContent) return;
+
+      repBtn.onclick = (e) => {
+        e.stopPropagation();
+        repBtn.classList.toggle('open');
+        repContent.classList.toggle('open');
+      };
+
+      function updateRepButtonText() {
+        const checked = document.querySelectorAll('input[name="editOutletRep"]:checked');
+        let displayText;
+        if (checked.length === 0) {
+          displayText = 'None selected';
+        } else if (checked.length === 1) {
+          displayText = checked[0].parentElement.textContent.trim();
+        } else {
+          displayText = `${checked.length} selected`;
+        }
+        repBtn.innerHTML = `Assign Sales Rep(s) <span style="color:var(--muted); font-weight:normal;">(${displayText})</span>`;
+      }
+
+      document.querySelectorAll('input[name="editOutletRep"]').forEach(cb => {
+        cb.onchange = updateRepButtonText;
+      });
+      updateRepButtonText(); // initial
+    }, 0);
+
     $('#saveEditOut').onclick = async () => {
-        $('#saveEditOut').disabled = true;
+      $('#saveEditOut').disabled = true;
       const payload = {
         name: $('#editOutName').value.trim(),
         warehouseId: $('#editOutWh').value,
-        location: $('#editOutLocation').value.trim(),
-        repId: $('#editOutRep').value || null,
-        phone: $('#editOutPhone').value.trim(),
+        repIds: Array.from(document.querySelectorAll('input[name="editOutletRep"]:checked')).map(cb => cb.value),
       };
-
-      if (!payload.name || !payload.location) return showToast('Name & location required', 'error');
-     
+      if (!payload.name || !payload.warehouseId) {
+        showToast('Name and warehouse required', 'error');
+        $('#saveEditOut').disabled = false;
+        return;
+      }
 
       try {
-        const updateRes = await fetch(`/api/outlets/${id}`, {
+        const res = await fetch(`/api/outlets/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!updateRes.ok) {
-          const err = await updateRes.json();
-          throw new Error(err.message || 'Failed to update outlet');
-        }
-
-        const updated = await updateRes.json();
-        closeModal();
-        renderOutlets(); // refresh list after backend update
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed');
         showToast('Outlet updated successfully', 'success');
+        closeModal();
+        renderOutlets();
       } catch (err) {
-        showToast(err.message || 'server error', 'error' );
-      } finally{
-          $('#saveEditOut').disabled = false;
+        showToast(err.message || 'Server error', 'error');
+      } finally {
+        $('#saveEditOut').disabled = false;
       }
     };
+
   } catch (err) {
-     showToast(err.message || 'server error', 'error' );
+    showToast(err.message || 'Server error', 'error');
   }
 }
-
 
 async function editProduct(id) {
   try {
@@ -2879,7 +3218,7 @@ async function deleteProduct(id) {
   }
 }
 
-    async function editUser(id) {
+async function editUser(id) {
   try {
     // Fetch user from backend
     const res = await fetch(`/api/accounts/${id}`);
@@ -2888,33 +3227,71 @@ async function deleteProduct(id) {
 
     showModal(`
       <h4>Edit User</h4>
-      <div class="form-row"><input id="editName" value="${user.name}" /></div>
-      <div class="form-row"><input id="editEmail" value="${user.email}" /></div>
-      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" /></div>
+      <div class="form-row"><input id="editName" value="${user.name}" placeholder="Full name" /></div>
+      <div class="form-row"><input id="editEmail" type="email" value="${user.email}" placeholder="Email" /></div>
+      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" placeholder="Phone" /></div>
 
       <div class="form-row">
         <select id="editRole">
-          <option value="admin" ${user.role==='admin'?'selected':''}>admin</option>
           <option value="manager" ${user.role==='manager'?'selected':''}>manager</option>
-          <option value="rep" ${user.role==='rep'?'selected':''}>rep</option>
+          <option value="rep" ${user.role==='rep'?'selected':''}>Sales rep</option>
         </select>
       </div>
 
-      <div style="text-align:right">
+      <!-- Password field with toggle -->
+      <div class="form-row" style="position:relative;">
+        <input id="editPassword" type="password" placeholder="New Password (leave blank to keep current)" style="padding-right:40px;" />
+        <button type="button" id="togglePassword" style="
+          position:absolute;
+          right:8px;
+          top:50%;
+          transform:translateY(-50%);
+          background:none;
+          border:none;
+          font-size:18px;
+          cursor:pointer;
+          color:var(--muted);
+        ">👁</button>
+      </div>
+
+      <div style="text-align:right; margin-top:16px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="saveEdit">Save</button>
       </div>
     `);
 
+    // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const pwdField = document.getElementById('editPassword');
+      if (pwdField.type === 'password') {
+        pwdField.type = 'text';
+        this.textContent = '🙈'; // eye closed
+      } else {
+        pwdField.type = 'password';
+        this.textContent = '👁';  // eye open
+      }
+    });
+
+    // === Save button ===
     $('#saveEdit').onclick = async () => {
-    $('#saveEdit').disabled = true;
+      $('#saveEdit').disabled = true;
 
       const updates = {
-        name: $('#editName').value,
-        email: $('#editEmail').value,
+        name: $('#editName').value.trim(),
+        email: $('#editEmail').value.trim(),
         role: $('#editRole').value,
-        phone: $('#editPhone').value
+        phone: $('#editPhone').value.trim()
       };
+
+      const newPassword = $('#editPassword').value.trim();
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          showToast('Password must be at least 6 characters', 'error');
+          $('#saveEdit').disabled = false;
+          return;
+        }
+        updates.password = newPassword;
+      }
 
       const updateRes = await fetch(`/api/accounts/${id}`, {
         method: 'PUT',
@@ -2924,22 +3301,20 @@ async function deleteProduct(id) {
 
       if (!updateRes.ok) {
         const err = await updateRes.json();
-        showToast('Error: ' + err.message, 'error');
+        showToast('Error: ' + (err.message || 'Failed to update user'), 'error');
+        $('#saveEdit').disabled = false;
         return;
       }
-       $('#saveEdit').disabled = false;
-      
-    showToast('User updated successfully', 'success');
-      closeModal();
-      renderAccounts(); 
-    };
-  } catch (err) {
-      showToast('Error: ' + err.message, 'error');
-  } 
-     
-  
-}
 
+      showToast('User updated successfully', 'success');
+      closeModal();
+      renderAccounts();
+    };
+
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
 
 function confirmDeleteUser(id) {
   const confirmHTML = `
@@ -3105,7 +3480,26 @@ async function deleteUser(id) {
   }
 }
 
+// 1. Auto-close only on radio selection (Manager)
+document.addEventListener('change', (e) => {
+  if (e.target.type === 'radio') {
+    const dropdown = e.target.closest('.custom-dropdown');
+    if (dropdown) {
+      dropdown.querySelector('.dropdown-btn')?.classList.remove('open');
+      dropdown.querySelector('.dropdown-content')?.classList.remove('open');
+    }
+  }
+});
 
+// 2. Close dropdown when clicking anywhere outside it (but keep modal open)
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+    if (!dropdown.contains(e.target)) {
+      dropdown.querySelector('.dropdown-btn')?.classList.remove('open');
+      dropdown.querySelector('.dropdown-content')?.classList.remove('open');
+    }
+  });
+});
 
 function printSale() {
   const printWin = window.open('', '', 'width=800,height=600');

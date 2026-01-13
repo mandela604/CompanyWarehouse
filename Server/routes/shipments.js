@@ -788,4 +788,69 @@ router.get('/shipments', async (req, res) => {
 });
 
 
+// UPDATE SHIPMENT (full replace of destination & products)
+router.put('/shipments/:id', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const { toId, products } = req.body;
+
+    if (!toId || !products?.length) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Missing toId or products' });
+    }
+
+    const shipment = await Shipment.findOne({ id }).session(session);
+    if (!shipment) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
+
+    if (shipment.status !== 'In Transit') {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Only In Transit shipments can be edited' });
+    }
+
+    // Fetch new destination name
+    let toName;
+    const warehouse = await Warehouse.findOne({ id: toId }).session(session);
+    if (warehouse) {
+      toName = warehouse.name;
+    } else {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Destination warehouse not found' });
+    }
+
+    // Optional: validate products exist + stock (similar to create)
+    for (const p of products) {
+      const prod = await Product.findOne({ id: p.productId }).session(session);
+      if (!prod) throw new Error(`Product ${p.productId} not found`);
+      // You can add stock check here if needed
+    }
+
+    // Update shipment
+    shipment.to = { id: toId, name: toName };
+    shipment.products = products.map(p => ({
+      ...p,
+      unitPrice: p.unitPrice || 0, // ensure price is kept
+      name: p.name || 'Unknown'    // optional
+    }));
+    shipment.lastUpdated = new Date();
+
+    await shipment.save({ session });
+
+    await session.commitTransaction();
+    res.json({ message: 'Shipment updated', shipment });
+
+  } catch (err) {
+    await session.abortTransaction();
+    console.error('Shipment update failed:', err);
+    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
+  } finally {
+    session.endSession();
+  }
+});
+
 module.exports = router;

@@ -2308,7 +2308,7 @@ $('#shipToWarehouseBtn').addEventListener('click', openMultiShipmentModal);
 
 let shipmentCart = [];
 
-async function openMultiShipmentModal() {
+async function openMultiShipmentModal(shipmentToEdit = null) {
   shipmentCart = [];
   try {
     const whRes = await fetch('/api/warehouses');
@@ -2324,11 +2324,26 @@ async function openMultiShipmentModal() {
     const prodData = await prodRes.json();
     const products = Array.isArray(prodData) ? prodData : (prodData.products || []);
 
+    // ─── PRE-FILL FOR EDIT MODE ───────────────────────────────────
+    let preselectedWarehouseId = '';
+    if (shipmentToEdit) {
+      shipmentCart = shipmentToEdit.products.map(p => ({
+        productId: p.id || p.productId,
+        name: p.name || p.productName,
+        price: p.unitPrice || 0,
+        qty: p.qty,
+        max: 9999
+      }));
+      preselectedWarehouseId = shipmentToEdit.to?.id || '';
+    }
+
     if (warehouses.length === 0) return showToast('No warehouses available', 'error');
     if (products.length === 0) return showToast('No products in stock', 'error');
 
     const warehouseOptions = warehouses
-      .map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`)
+      .map(w => `<option value="${w.id}" ${w.id === preselectedWarehouseId ? 'selected' : ''}>
+          ${w.name} (${w.location})
+        </option>`)
       .join('');
 
     const productOptions = products
@@ -2339,13 +2354,18 @@ async function openMultiShipmentModal() {
                 data-price="${p.unitPrice || 0}">
           ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
         </option>
-      `)
-      .join('');
+      `).join('');
 
-    // Insert HTML
+    // ─── Dynamic title and button ────────────────────────────────
+    const isEdit = !!shipmentToEdit;
+    const modalTitle = isEdit ? 'Edit Shipment' : 'Ship Multiple Products';
+    const buttonText = isEdit ? 'Save Changes' : 'Create Shipment';
+    const buttonStyle = isEdit ? 'background:#10b981;' : '';
+
     showModal(`
-      <h3>Ship Multiple Products</h3>
-      <div id="successMsg" class="success" style="display:none;">Shipment created successfully!</div>
+      <h3>${modalTitle}</h3>
+      <div id="successMsg" class="success" style="display:none;">Shipment ${isEdit ? 'updated' : 'created'} successfully!</div>
+
       <div class="form-row">
         <label>Destination Warehouse</label>
         <select id="targetWarehouseSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
@@ -2353,6 +2373,7 @@ async function openMultiShipmentModal() {
           ${warehouseOptions}
         </select>
       </div>
+
       <table style="width:100%;margin:16px 0;">
         <thead style="background:#f8fafc;">
           <tr>
@@ -2365,12 +2386,14 @@ async function openMultiShipmentModal() {
         </thead>
         <tbody id="shipmentItems"></tbody>
       </table>
+
       <div class="form-row">
         <select id="productSelect" style="width:100%;padding:10px;">
           <option value="">Select product to add...</option>
           ${productOptions}
         </select>
       </div>
+
       <div class="form-row" style="display:flex;gap:10px;align-items:end;">
         <div style="flex:1;">
           <label>Quantity</label>
@@ -2378,31 +2401,38 @@ async function openMultiShipmentModal() {
         </div>
         <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
       </div>
+
       <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
         Total Quantity: <span id="shipmentTotalQty">0</span> units
       </div>
+
       <div style="text-align:right;margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="confirmShipmentBtn" disabled>Create Shipment</button>
+        <button class="btn" id="confirmShipmentBtn" style="${buttonStyle}" disabled>${buttonText}</button>
       </div>
     `);
 
-    // Safe render — use setTimeout to ensure DOM is ready
     setTimeout(() => {
       renderShipmentCart();
 
-      // Now attach listeners safely
       const addBtn = $('#addShipmentItemBtn');
       const confirmBtn = $('#confirmShipmentBtn');
       const warehouseSelect = $('#targetWarehouseSelect');
 
       if (addBtn) addBtn.onclick = addItemToShipmentCart;
-      if (confirmBtn) confirmBtn.onclick = confirmMultiShipment;
+
+      if (confirmBtn) {
+        confirmBtn.onclick = isEdit
+          ? () => confirmEditShipment(shipmentToEdit.id)
+          : confirmMultiShipment;
+      }
+
       if (warehouseSelect) {
         warehouseSelect.onchange = () => {
           const enabled = !!warehouseSelect.value && shipmentCart.length > 0;
-          if (confirmBtn) confirmBtn.disabled = !enabled;
+          confirmBtn.disabled = !enabled;
         };
+        warehouseSelect.dispatchEvent(new Event('change'));
       }
     }, 0);
 
@@ -2411,6 +2441,8 @@ async function openMultiShipmentModal() {
     showToast('Failed to open shipment modal: ' + err.message, 'error');
   }
 }
+
+
 
 function renderShipmentCart() {
   const tbody = $('#shipmentItems');
@@ -2547,6 +2579,55 @@ async function confirmMultiShipment() {
 }
 
 
+async function confirmEditShipment(shipmentId) {
+  const warehouseId = $('#targetWarehouseSelect').value;
+  if (!warehouseId) return showToast('Select a destination warehouse', 'error');
+  if (shipmentCart.length === 0) return showToast('Shipment must have at least one item', 'error');
+
+  $('#confirmShipmentBtn').disabled = true;
+  $('#confirmShipmentBtn').textContent = 'Saving...';
+
+  const items = shipmentCart.map(item => ({
+    productId: item.productId,
+    qty: item.qty
+  }));
+
+  const payload = {
+    toId: warehouseId,
+    products: items,
+    // If your backend needs sender info again, add it:
+    // senderId: currentUser.id,
+    // senderPhone: currentUser.phone || ''
+  };
+
+  try {
+    const res = await fetch(`/api/shipments/${shipmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || 'Failed to update');
+    }
+
+    $('#successMsg').style.display = 'block';
+    showToast('Shipment updated successfully!', 'success');
+
+    refreshAll();
+    renderShipments();
+
+    setTimeout(closeModal, 1200);
+
+  } catch (err) {
+    showToast(err.message || 'Update failed', 'error');
+  } finally {
+    $('#confirmShipmentBtn').disabled = false;
+    $('#confirmShipmentBtn').textContent = 'Save Changes';
+  }
+}
+
 
 $('#shipmentTable').addEventListener('click', async (e) => {
  
@@ -2636,9 +2717,16 @@ if (e.target.classList.contains('view-details')) {
       </table>
 
       <div style="text-align:right; margin-top:20px; display:flex; gap:8px; justify-content:flex-end;">
-        <button class="btn" onclick="printShipment(this)">Print Receipt</button>
-        <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
-      </div>
+  ${shipment.status === 'In Transit' ? `
+    <button class="btn" id="editShipmentBtn" 
+            style="background:#f59e0b; color:white;"
+            data-id="${shipment.id}">
+      Edit Shipment
+    </button>
+  ` : ''}
+  <button class="btn" onclick="printShipment(this)">Print Receipt</button>
+  <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+</div>
     `;
 
     // Print function (attached to the button)
@@ -2702,6 +2790,18 @@ if (e.target.classList.contains('view-details')) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+
+    setTimeout(() => {
+  const editBtn = document.getElementById('editShipmentBtn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      // Close the current view modal first
+      backdrop.remove();
+      // Open edit modal with this shipment
+      openMultiShipmentModal(shipment);
+    };
+  }
+}, 0);
 
     // Close on backdrop click
     backdrop.addEventListener('click', (e) => {
