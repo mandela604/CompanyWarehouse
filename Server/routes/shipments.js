@@ -790,6 +790,9 @@ router.get('/shipments', async (req, res) => {
 
 // UPDATE SHIPMENT (full replace of destination & products)
 router.put('/shipments/:id', async (req, res) => {
+ console.log('EDIT SHIPMENT ROUTE HIT — ID:', req.params.id);
+  console.log('Body received:', JSON.stringify(req.body, null, 2));
+ 
   const session = await mongoose.startSession();
   session.startTransaction();
 
