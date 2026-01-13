@@ -1539,7 +1539,7 @@ document.addEventListener('click', async (e) => {
        <div style="text-align:right;margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
 
   <!-- Edit button ONLY for outgoing In Transit shipments from THIS warehouse -->
-  ${shipment.status.toLowerCase() === 'in transit' && 
+  ${shipment.status.toLowerCase() === 'in ransit' && 
     shipment.fromType === 'Warehouse' && 
     shipment.from?.id === myWarehouse.id ? `
     <button class="btn" id="editOutgoingShipmentBtn"
