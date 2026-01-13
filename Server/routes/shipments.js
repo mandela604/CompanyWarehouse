@@ -790,9 +790,9 @@ router.get('/shipments', async (req, res) => {
 
 // UPDATE SHIPMENT (full replace of destination & products)
 router.put('/shipments/:id', async (req, res) => {
- console.log('EDIT SHIPMENT ROUTE HIT — ID:', req.params.id);
+  console.log('EDIT SHIPMENT ROUTE HIT — ID:', req.params.id);
   console.log('Body received:', JSON.stringify(req.body, null, 2));
- 
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -826,20 +826,33 @@ router.put('/shipments/:id', async (req, res) => {
       return res.status(404).json({ message: 'Destination warehouse not found' });
     }
 
-    // Optional: validate products exist + stock (similar to create)
+    // Re-validate + enrich + re-check stock (safe & consistent with create)
     for (const p of products) {
       const prod = await Product.findOne({ id: p.productId }).session(session);
-      if (!prod) throw new Error(`Product ${p.productId} not found`);
-      // You can add stock check here if needed
+      if (!prod) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          message: `Cannot edit: Product ${p.productId} no longer exists`
+        });
+      }
+
+      // Enrich with current real values
+      p.unitPrice = prod.unitPrice;
+      p.productSku = prod.sku;
+      p.name = prod.name;
+
+      // Re-check stock
+      if (p.qty > prod.qty) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          message: `Not enough stock for ${prod.name} (requested: ${p.qty}, available: ${prod.qty})`
+        });
+      }
     }
 
-    // Update shipment
+    // Update shipment (no need for extra map — data already enriched)
     shipment.to = { id: toId, name: toName };
-    shipment.products = products.map(p => ({
-      ...p,
-      unitPrice: p.unitPrice || 0, // ensure price is kept
-      name: p.name || 'Unknown'    // optional
-    }));
+    shipment.products = products;  // ← clean & correct
     shipment.lastUpdated = new Date();
 
     await shipment.save({ session });
@@ -851,10 +864,10 @@ router.put('/shipments/:id', async (req, res) => {
     await session.abortTransaction();
     console.error('Shipment update failed:', err);
     console.error('Shipment update failed:', {
-    error: err.message,
-    stack: err.stack,
-    payload: req.body  // ← log what frontend sent
-  });
+      error: err.message,
+      stack: err.stack,
+      payload: req.body
+    });
     res.status(500).json({ message: 'Failed to update shipment', error: err.message });
   } finally {
     session.endSession();
