@@ -611,6 +611,8 @@
                 <th>In Stock</th>
                 <th>Warehouse</th>
                 <th>Unit Price</th>
+                <th>Created</th>         
+                <th>Last Updated</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -1229,6 +1231,8 @@ async function renderProducts() {
         <td><strong>${p.qty}</strong></td>
         <td>${p.companyName}</td>
         <td>${formatNGN(p.unitPrice)}</td>
+        <td>${niceDate(p.createdAt)}</td>           
+        <td>${niceDate(p.lastUpdated)}</td>
         <td>
           <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct('${p.id}')">Edit</button>
           <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="confirmDeleteProduct('${p.id}')">Delete</button>
@@ -2663,6 +2667,7 @@ if (e.target.classList.contains('view-details')) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const shipment = await res.json();
 
+    console.log('Raw status from backend:', JSON.stringify(shipment.status));
     // Calculate totals
     const totalQty = shipment.products.reduce((sum, p) => sum + p.qty, 0);
     const grandTotal = shipment.products.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);

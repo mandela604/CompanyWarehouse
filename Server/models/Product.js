@@ -14,4 +14,10 @@ const productSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+productSchema.pre('save', function(next) {
+  this.lastUpdated = Date.now();  // updates on every edit
+  next();
+});
+
+
 module.exports = mongoose.model('Product', productSchema);
