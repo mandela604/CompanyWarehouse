@@ -2308,11 +2308,16 @@ $('#addUserBtn').addEventListener('click', async () => {
 });
 
 
-$('#shipToWarehouseBtn').addEventListener('click', openMultiShipmentModal);
+$('#shipToWarehouseBtn').addEventListener('click', () => {
+  openMultiShipmentModal(null);          
+});
 
 let shipmentCart = [];
 
 async function openMultiShipmentModal(shipmentToEdit = null) {
+  console.log("openMultiShipmentModal called → argument:", shipmentToEdit);
+  console.log("Type of argument:", typeof shipmentToEdit, shipmentToEdit === null ? "null" : shipmentToEdit?.constructor?.name);
+
   shipmentCart = [];
   try {
     const whRes = await fetch('/api/warehouses');
