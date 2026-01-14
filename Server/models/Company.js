@@ -14,7 +14,8 @@ const companySchema = new mongoose.Schema({
     name: { type: String, required: true },
     unitPrice: { type: Number, default: 0 },
     qty: { type: Number, default: 0 },
-    inTransit: { type: Number, default: 0 }
+    inTransit: { type: Number, min: 0, default: 0 }
+
   }
 ],
   totalStock: { type: Number, default: 0 },

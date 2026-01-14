@@ -143,15 +143,12 @@ router.put('/shipments/:id/status', async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    console.log('Request body:', req.body);           // log what frontend sent
-    console.log('Request params:', req.params);       // log shipment ID
-
+   
     const { status } = req.body;
     const shipment = await Shipment.findOne({ id: req.params.id }).session(session);
 
     if (!shipment) {
-      console.error('Shipment not found with ID:', req.params.id);
-      await session.abortTransaction();
+        await session.abortTransaction();
       return res.status(404).json({ message: 'Shipment not found' });
     }
 
@@ -170,24 +167,39 @@ router.put('/shipments/:id/status', async (req, res) => {
     if (status === 'cancelled') {
       for (const p of shipment.products) {
         if (shipment.fromType === 'Company') {
-          console.log('Updating company stock for product', p.productId);
-          await Company.updateOne(
-            { id: shipment.from.id },
-            { $inc: { inTransit: -p.qty } },
-            { session }
-          );
+           const result = await Company.updateOne(
+              {
+                id: shipment.from.id,
+                inTransit: { $gte: p.qty }   // 🔒 GUARD
+              },
+              { $inc: { inTransit: -p.qty } },
+              { session }
+            );
+
+            if (result.modifiedCount === 0) {
+              throw new Error('Invalid company inTransit state during cancel');
+            }
+
           await Product.updateOne(
             { id: p.productId },
             { $inc: { qty: p.qty } },
             { session }
           );
         } else if (shipment.fromType === 'Warehouse') {
-          console.log('Updating warehouse stock for product', p.productId);
-          await WarehouseInventory.updateOne(
-            { warehouseId: shipment.from.id, productId: p.productId },
-            { $inc: { inTransit: -p.qty } },
-            { session }
-          );
+            const result = await WarehouseInventory.updateOne(
+              {
+                warehouseId: shipment.from.id,
+                productId: p.productId,
+                inTransit: { $gte: p.qty }   // 🔒 GUARD
+              },
+              { $inc: { inTransit: -p.qty } },
+              { session }
+            );
+
+            if (result.modifiedCount === 0) {
+              throw new Error('Invalid warehouse inTransit state during cancel');
+            }
+
         }
       }
     }
@@ -618,31 +630,54 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
 
       // ================= SOURCE =================
       if (shipment.fromType === 'Company') {
-        await Company.updateOne(
-          { id: shipment.from.id, 'products.productId': p.productId },
-          {
-            $inc: {
-              inTransit: -p.qty,
-              'products.$.qty': -p.qty,
-              totalShipments: 1
-            }
-          },
-          { session }
-        );
+        const result = await Company.updateOne(
+        {
+          id: shipment.from.id,
+          inTransit: { $gte: p.qty },
+          'products.productId': p.productId,
+          'products.$.qty': { $gte: p.qty }
+        },
+        {
+          $inc: {
+            inTransit: -p.qty,
+            'products.$.qty': -p.qty,
+            totalShipments: 1
+          }
+        },
+        { session }
+      );
+
+      if (result.modifiedCount === 0) {
+        throw new Error('Invalid company stock state');
+      }
+
       }
 
       if (shipment.fromType === 'Warehouse') {
-        await WarehouseInventory.updateOne(
-          { warehouseId: shipment.from.id, productId: p.productId },
+        const result = await WarehouseInventory.updateOne(
+          {
+            warehouseId: shipment.from.id,
+            productId: p.productId,
+            inTransit: { $gte: p.qty }
+          },
           { $inc: { inTransit: -p.qty, totalShipped: p.qty } },
           { session }
         );
 
-        await Warehouse.updateOne(
-          { id: shipment.from.id },
-          { $inc: { totalStock: -p.qty, totalShipments: p.qty } },
-          { session }
-        );
+        if (result.modifiedCount === 0) {
+          throw new Error('Invalid warehouse inTransit state');
+        }
+
+
+       await Warehouse.updateOne(
+        {
+          id: shipment.from.id,
+          totalStock: { $gte: p.qty }
+        },
+        { $inc: { totalStock: -p.qty, totalShipments: p.qty } },
+        { session }
+      );
+
       }
     }
 
@@ -704,10 +739,14 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
     for (const p of shipment.products) {
       if (shipment.fromType === 'Company') {
         await Company.updateOne(
-          { id: shipment.from.id },
+          {
+            id: shipment.from.id,
+            inTransit: { $gte: p.qty }
+          },
           { $inc: { inTransit: -p.qty } },
           { session }
         );
+
         await Product.updateOne(
           { id: p.productId },
           { $inc: { qty: p.qty } }, // return units to company stock
@@ -715,10 +754,15 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
         );
       } else if (shipment.fromType === 'Warehouse') {
         await WarehouseInventory.updateOne(
-          { warehouseId: shipment.from.id, productId: p.productId },
-          { $inc: { inTransit: -p.qty } }, // return units to warehouse stock
-          { session }
-        );
+            {
+              warehouseId: shipment.from.id,
+              productId: p.productId,
+              inTransit: { $gte: p.qty }
+            },
+            { $inc: { inTransit: -p.qty } },
+            { session }
+          );
+
       }
     }
 
@@ -790,106 +834,120 @@ router.get('/shipments', async (req, res) => {
 
 // UPDATE SHIPMENT (full replace of destination & products)
 router.put('/shipments/:id', async (req, res) => {
-  console.log('EDIT SHIPMENT ROUTE HIT — ID:', req.params.id);
-  console.log('Body received:', JSON.stringify(req.body, null, 2));
-
   const session = await mongoose.startSession();
   session.startTransaction();
 
-try {
-  const { id } = req.params;
-  const { toId, products: newProducts } = req.body;
+  try {
+    const { id } = req.params;
+    const { toId, products: newProducts } = req.body;
 
-  if (!toId || !newProducts?.length) {
-    await session.abortTransaction();
-    return res.status(400).json({ message: 'Missing toId or products' });
-  }
-
-  const shipment = await Shipment.findOne({ id }).session(session);
-  if (!shipment) {
-    await session.abortTransaction();
-    return res.status(404).json({ message: 'Shipment not found' });
-  }
-
-  if (shipment.status !== 'In Transit') {
-    await session.abortTransaction();
-    return res.status(400).json({ message: 'Only In Transit shipments can be edited' });
-  }
-
-  // 1. Revert old inTransit from source (important!)
-  for (const oldP of shipment.products) {
-    if (shipment.fromType === 'Company') {
-      await Company.updateOne(
-        { id: shipment.from.id },
-        { $inc: { inTransit: -oldP.qty } },
-        { session }
-      );
-    } else if (shipment.fromType === 'Warehouse') {
-      await WarehouseInventory.updateOne(
-        { warehouseId: shipment.from.id, productId: oldP.productId },
-        { $inc: { inTransit: -oldP.qty } },
-        { session }
-      );
-    }
-  }
-
-  // 2. Validate & enrich new products + check current stock
-  const enrichedProducts = [];
-  for (const p of newProducts) {
-    const prod = await Product.findOne({ id: p.productId }).session(session);
-    if (!prod) throw new Error(`Product ${p.productId} not found`);
-
-    const requestedQty = Number(p.qty);
-    if (requestedQty > prod.qty) {
-      throw new Error(`Not enough stock for ${prod.name}: ${prod.qty} available`);
+    if (!toId || !newProducts?.length) {
+      throw new Error('Missing toId or products');
     }
 
-    enrichedProducts.push({
-      productId: p.productId,
-      name: prod.name,
-      productSku: prod.sku,
-      unitPrice: prod.unitPrice,
-      qty: requestedQty
-    });
-  }
+    // 1️⃣ Fetch shipment
+    const shipment = await Shipment.findOne({ id }).session(session);
+    if (!shipment) throw new Error('Shipment not found');
 
-  // 3. Apply new inTransit to source
-  for (const newP of enrichedProducts) {
-    if (shipment.fromType === 'Company') {
-      await Company.updateOne(
-        { id: shipment.from.id },
-        { $inc: { inTransit: newP.qty } },
-        { session }
-      );
-    } else if (shipment.fromType === 'Warehouse') {
-      await WarehouseInventory.updateOne(
-        { warehouseId: shipment.from.id, productId: newP.productId },
-        { $inc: { inTransit: newP.qty } },
-        { session }
-      );
+    if (shipment.status !== 'In Transit') {
+      throw new Error('Only In Transit shipments can be edited');
     }
+
+    /**
+     * 2️⃣ VALIDATE & PREPARE NEW PRODUCTS FIRST
+     * (NO stock mutation yet)
+     */
+    const enrichedProducts = [];
+
+    for (const p of newProducts) {
+      const prod = await Product.findOne({ id: p.productId }).session(session);
+      if (!prod) throw new Error(`Product ${p.productId} not found`);
+
+      const qty = Number(p.qty);
+      if (qty <= 0) throw new Error('Invalid quantity');
+
+      enrichedProducts.push({
+        productId: prod.id,
+        name: prod.name,
+        productSku: prod.sku,
+        unitPrice: prod.unitPrice,
+        qty
+      });
+    }
+
+    /**
+     * 3️⃣ REVERT OLD inTransit (SAFE DECREMENT)
+     */
+    for (const oldP of shipment.products) {
+      if (shipment.fromType === 'Company') {
+        await Company.updateOne(
+          {
+            id: shipment.from.id,
+            inTransit: { $gte: oldP.qty } // GUARD
+          },
+          { $inc: { inTransit: -oldP.qty } },
+          { session }
+        );
+      } else {
+        await WarehouseInventory.updateOne(
+          {
+            warehouseId: shipment.from.id,
+            productId: oldP.productId,
+            inTransit: { $gte: oldP.qty } // GUARD
+          },
+          { $inc: { inTransit: -oldP.qty } },
+          { session }
+        );
+      }
+    }
+
+    /**
+     * 4️⃣ APPLY NEW inTransit
+     */
+    for (const newP of enrichedProducts) {
+      if (shipment.fromType === 'Company') {
+        await Company.updateOne(
+          { id: shipment.from.id },
+          { $inc: { inTransit: newP.qty } },
+          { session }
+        );
+      } else {
+        await WarehouseInventory.updateOne(
+          {
+            warehouseId: shipment.from.id,
+            productId: newP.productId
+          },
+          { $inc: { inTransit: newP.qty } },
+          { session }
+        );
+      }
+    }
+
+    /**
+     * 5️⃣ UPDATE DESTINATION
+     */
+    const warehouse = await Warehouse.findOne({ id: toId }).session(session);
+    if (!warehouse) throw new Error('Destination warehouse not found');
+
+    /**
+     * 6️⃣ SAVE SHIPMENT
+     */
+    shipment.to = { id: toId, name: warehouse.name };
+    shipment.products = enrichedProducts;
+    shipment.lastUpdated = new Date();
+
+    await shipment.save({ session });
+
+    await session.commitTransaction();
+    res.json({ message: 'Shipment updated', shipment });
+
+  } catch (err) {
+    await session.abortTransaction();
+    res.status(400).json({ message: err.message });
+  } finally {
+    session.endSession();
   }
-
-  // 4. Update destination name
-  const warehouse = await Warehouse.findOne({ id: toId }).session(session);
-  if (!warehouse) throw new Error('Destination warehouse not found');
-
-  // 5. Save updated shipment
-  shipment.to = { id: toId, name: warehouse.name };
-  shipment.products = enrichedProducts;
-  shipment.lastUpdated = new Date();
-
-  await shipment.save({ session });
-
-  await session.commitTransaction();
-  res.json({ message: 'Shipment updated', shipment });
-} catch (err) {
-  await session.abortTransaction();
-  console.error('Edit shipment failed:', err);
-  res.status(500).json({ message: err.message || 'Failed to update shipment' });
-} finally {
-  session.endSession();
-}
 });
+
 
 module.exports = router;

@@ -1234,6 +1234,7 @@ async function renderProducts() {
         <td>${niceDate(p.createdAt)}</td>           
         <td>${niceDate(p.lastUpdated)}</td>
         <td>
+          <button class="btn" style="background:#10b981;font-size:11px;padding:4px 8px;margin-right:4px" onclick="restockProduct('${p.id}')">Restock</button>
           <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct('${p.id}')">Edit</button>
           <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="confirmDeleteProduct('${p.id}')">Delete</button>
         </td>
@@ -3149,21 +3150,28 @@ async function editProduct(id) {
     }
     const p = await res.json();
 
-    showModal(`
-      <h4>Edit Product – ${p.sku}</h4>
-      <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
-      <div class="form-row"><input id="editPQty" type="number" value="${p.qty}" placeholder="Quantity" /></div>
-      <div class="form-row"><input id="editPPrice" type="number" value="${p.unitPrice}" placeholder="Unit price (NGN)" /></div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveEditProd">Save</button>
-      </div>
-    `);
+  showModal(`
+  <h4>Edit Product – ${p.sku}</h4>
+  <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
+  
+  <div class="form-row">
+    <label>Unit Price (NGN)</label>
+    <input id="editPPrice" type="number" value="${p.unitPrice}" step="1" style="width: 180px;" />
+    <span style="margin-left: 12px; color: #0b5ed7; font-weight: 600;">
+      ${formatNGN(p.unitPrice)}
+    </span>
+  </div>
+
+  <div style="text-align:right; margin-top: 20px;">
+    <button class="btn secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn" id="saveEditProd">Save</button>
+  </div>
+`);
+
 
     $('#saveEditProd').onclick = async () => {
         $('#saveEditProd').disabled = true;
       const newName = $('#editPName').value.trim();
-      const newQty = Number($('#editPQty').value);
       const newPrice = Number($('#editPPrice').value);
 
       // Validate inputs
@@ -3200,6 +3208,70 @@ async function editProduct(id) {
     showToast(err.message || 'Unexpected error fetching product');
   }
 }
+
+
+async function restockProduct(id) {
+  try {
+    // Fetch current product data
+    const res = await fetch(`/api/products/${id}`);
+    if (!res.ok) throw new Error('Product not found');
+    const product = await res.json();
+
+    // Show restock modal
+    showModal(`
+      <h4>Restock Product – ${product.name}</h4>
+      <div style="margin-bottom:16px; color:#555;">
+        Current stock: <strong>${product.qty}</strong> units
+      </div>
+      <div class="form-row">
+        <label>Quantity to add</label>
+        <input id="restockQty" type="number" min="1" placeholder="e.g. 50" />
+      </div>
+      <div class="form-row" style="font-size:13px;color:#666;">
+        <div>Restock date: <strong>${new Date().toLocaleDateString('en-GB')}</strong></div>
+        <div>Restocked by: <strong>${currentUser?.name || 'Admin'}</strong></div>
+      </div>
+      <div style="text-align:right; margin-top:20px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmRestockBtn" style="background:#10b981;">Confirm Restock</button>
+      </div>
+    `);
+
+    // Handle confirm button
+    document.getElementById('confirmRestockBtn').onclick = async () => {
+      const addQty = Number(document.getElementById('restockQty').value);
+      if (!addQty || addQty <= 0) {
+        return showToast('Please enter a valid quantity', 'error');
+      }
+
+      const newQty = product.qty + addQty;
+
+      try {
+        const updateRes = await fetch(`/api/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qty: newQty })
+        });
+
+        if (!updateRes.ok) {
+          const err = await updateRes.json();
+          throw new Error(err.message || 'Update failed');
+        }
+
+        showToast(`Added ${addQty} units → New stock: ${newQty}`, 'success');
+        closeModal();
+        renderProducts();        // refresh table
+        refreshAll();            // refresh overview stats etc.
+      } catch (err) {
+        showToast('Restock failed: ' + err.message, 'error');
+      }
+    };
+  } catch (err) {
+    showToast('Could not load product: ' + err.message, 'error');
+  }
+}
+
+
 
 
 
