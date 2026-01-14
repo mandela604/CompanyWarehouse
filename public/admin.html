@@ -486,7 +486,24 @@
 }
 
 
+/* Restock modal specific styles — won't affect other modals */
+.restock-modal {
+  padding: 28px 36px;          /* more padding, only for restock */
+  min-width: 420px;            /* slightly wider for comfort */
+  max-width: 500px;            /* prevent it from getting too wide on large screens */
+}
 
+.restock-modal .info-line {
+  margin: 10px 0;              /* better spacing between date & name */
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.restock-modal .info-line strong {
+  color: #111827;
+  font-weight: 600;
+}
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -3150,40 +3167,52 @@ async function editProduct(id) {
     }
     const p = await res.json();
 
-  showModal(`
-  <h4>Edit Product – ${p.sku}</h4>
-  <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
-  
-  <div class="form-row">
-    <label>Unit Price (NGN)</label>
-    <input id="editPPrice" type="number" value="${p.unitPrice}" step="1" style="width: 180px;" />
-    <span style="margin-left: 12px; color: #0b5ed7; font-weight: 600;">
-      ${formatNGN(p.unitPrice)}
-    </span>
-  </div>
+    showModal(`
+      <h4>Edit Product – ${p.sku}</h4>
+      <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
+      
+      <div class="form-row" style="align-items: center; gap: 16px;">
+        <div style="flex: 1;">
+          <label>Unit Price (NGN)</label>
+          <input id="editPPrice" type="number" value="${p.unitPrice}" step="1" style="width: 100%;" />
+        </div>
+        <span id="pricePreview" style="color: var(--blue); font-weight: 600; white-space: nowrap; min-width: 140px; text-align: right;">
+          ${formatNGN(p.unitPrice)}
+        </span>
+      </div>
 
-  <div style="text-align:right; margin-top: 20px;">
-    <button class="btn secondary" onclick="closeModal()">Cancel</button>
-    <button class="btn" id="saveEditProd">Save</button>
-  </div>
-`);
+      <div style="text-align:right; margin-top: 28px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="saveEditProd">Save</button>
+      </div>
+    `);
 
+    // Live update preview as user types
+    const priceInput = document.getElementById('editPPrice');
+    const preview = document.getElementById('pricePreview');
 
-    $('#saveEditProd').onclick = async () => {
-        $('#saveEditProd').disabled = true;
-      const newName = $('#editPName').value.trim();
-      const newPrice = Number($('#editPPrice').value);
+    if (priceInput && preview) {
+      priceInput.addEventListener('input', () => {
+        const val = Number(priceInput.value) || 0;
+        preview.textContent = formatNGN(val);
+      });
+    }
 
-      // Validate inputs
+    document.getElementById('saveEditProd').onclick = async () => {
+      const saveBtn = document.getElementById('saveEditProd');
+      saveBtn.disabled = true;
+
+      const newName = document.getElementById('editPName').value.trim();
+      const newPrice = Number(document.getElementById('editPPrice').value);
+
       if (!newName) return showToast('Product name is required', 'error');
-      if (!Number.isFinite(newQty) || newQty < 0) return showToast('Quantity must be 0 or higher', 'error');
       if (!Number.isFinite(newPrice) || newPrice < 0) return showToast('Unit price must be 0 or higher', 'error');
 
       try {
         const updateRes = await fetch(`/api/products/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, qty: newQty, unitPrice: newPrice })
+          body: JSON.stringify({ name: newName, unitPrice: newPrice })
         });
 
         if (!updateRes.ok) {
@@ -3197,53 +3226,56 @@ async function editProduct(id) {
         refreshAll();
         showToast(`Product "${updated.product.name}" updated successfully`, 'success');
       } catch (err) {
-        console.error('Update failed:', err);
         showToast(err.message || 'Unexpected error while updating product', 'error');
       } finally {
-             $('#saveEditProd').disabled = false;
+        saveBtn.disabled = false;
       }
     };
   } catch (err) {
-    console.error('Fetch product failed:', err);
-    showToast(err.message || 'Unexpected error fetching product');
+    showToast(err.message || 'Unexpected error fetching product', 'error');
   }
 }
 
-
 async function restockProduct(id) {
   try {
-    // Fetch current product data
     const res = await fetch(`/api/products/${id}`);
     if (!res.ok) throw new Error('Product not found');
     const product = await res.json();
 
-    // Show restock modal
+    const restockDate = new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const restockerName = currentUser?.name || 'Admin';
+
     showModal(`
+    <div class="restock-modal">
       <h4>Restock Product – ${product.name}</h4>
-      <div style="margin-bottom:16px; color:#555;">
-        Current stock: <strong>${product.qty}</strong> units
+      <div style="margin: 16px 0 24px; color:#555;">
+        Current stock: <strong>${product.qty} units</strong>
       </div>
       <div class="form-row">
         <label>Quantity to add</label>
         <input id="restockQty" type="number" min="1" placeholder="e.g. 50" />
       </div>
-      <div class="form-row" style="font-size:13px;color:#666;">
-        <div>Restock date: <strong>${new Date().toLocaleDateString('en-GB')}</strong></div>
-        <div>Restocked by: <strong>${currentUser?.name || 'Admin'}</strong></div>
+      <div style="margin-top: 20px; font-size:13px; color:#666;">
+        <div class="info-line">Restock date: <strong>${restockDate}</strong></div>
+        <div class="info-line">Restocked by: <strong>${restockerName}</strong></div>
       </div>
-      <div style="text-align:right; margin-top:20px;">
+      <div style="text-align:right; margin-top: 28px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="confirmRestockBtn" style="background:#10b981;">Confirm Restock</button>
       </div>
+      </div>
     `);
 
-    // Handle confirm button
     document.getElementById('confirmRestockBtn').onclick = async () => {
       const addQty = Number(document.getElementById('restockQty').value);
       if (!addQty || addQty <= 0) {
         return showToast('Please enter a valid quantity', 'error');
       }
-
       const newQty = product.qty + addQty;
 
       try {
@@ -3252,16 +3284,12 @@ async function restockProduct(id) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ qty: newQty })
         });
-
-        if (!updateRes.ok) {
-          const err = await updateRes.json();
-          throw new Error(err.message || 'Update failed');
-        }
+        if (!updateRes.ok) throw new Error((await updateRes.json()).message || 'Update failed');
 
         showToast(`Added ${addQty} units → New stock: ${newQty}`, 'success');
         closeModal();
-        renderProducts();        // refresh table
-        refreshAll();            // refresh overview stats etc.
+        renderProducts();
+        refreshAll();
       } catch (err) {
         showToast('Restock failed: ' + err.message, 'error');
       }
@@ -3270,7 +3298,6 @@ async function restockProduct(id) {
     showToast('Could not load product: ' + err.message, 'error');
   }
 }
-
 
 
 
