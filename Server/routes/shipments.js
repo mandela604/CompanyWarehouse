@@ -796,82 +796,100 @@ router.put('/shipments/:id', async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  try {
-    const { id } = req.params;
-    const { toId, products } = req.body;
+try {
+  const { id } = req.params;
+  const { toId, products: newProducts } = req.body;
 
-    if (!toId || !products?.length) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: 'Missing toId or products' });
-    }
-
-    const shipment = await Shipment.findOne({ id }).session(session);
-    if (!shipment) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Shipment not found' });
-    }
-
-    if (shipment.status !== 'In Transit') {
-      await session.abortTransaction();
-      return res.status(400).json({ message: 'Only In Transit shipments can be edited' });
-    }
-
-    // Fetch new destination name
-    let toName;
-    const warehouse = await Warehouse.findOne({ id: toId }).session(session);
-    if (warehouse) {
-      toName = warehouse.name;
-    } else {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Destination warehouse not found' });
-    }
-
-    // Re-validate + enrich + re-check stock (safe & consistent with create)
-    for (const p of products) {
-      const prod = await Product.findOne({ id: p.productId }).session(session);
-      if (!prod) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          message: `Cannot edit: Product ${p.productId} no longer exists`
-        });
-      }
-
-      // Enrich with current real values
-      p.unitPrice = prod.unitPrice;
-      p.productSku = prod.sku;
-      p.name = prod.name;
-
-      // Re-check stock
-      if (p.qty > prod.qty) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          message: `Not enough stock for ${prod.name} (requested: ${p.qty}, available: ${prod.qty})`
-        });
-      }
-    }
-
-    // Update shipment (no need for extra map — data already enriched)
-    shipment.to = { id: toId, name: toName };
-    shipment.products = products;  // ← clean & correct
-    shipment.lastUpdated = new Date();
-
-    await shipment.save({ session });
-
-    await session.commitTransaction();
-    res.json({ message: 'Shipment updated', shipment });
-
-  } catch (err) {
+  if (!toId || !newProducts?.length) {
     await session.abortTransaction();
-    console.error('Shipment update failed:', err);
-    console.error('Shipment update failed:', {
-      error: err.message,
-      stack: err.stack,
-      payload: req.body
-    });
-    res.status(500).json({ message: 'Failed to update shipment', error: err.message });
-  } finally {
-    session.endSession();
+    return res.status(400).json({ message: 'Missing toId or products' });
   }
+
+  const shipment = await Shipment.findOne({ id }).session(session);
+  if (!shipment) {
+    await session.abortTransaction();
+    return res.status(404).json({ message: 'Shipment not found' });
+  }
+
+  if (shipment.status !== 'In Transit') {
+    await session.abortTransaction();
+    return res.status(400).json({ message: 'Only In Transit shipments can be edited' });
+  }
+
+  // 1. Revert old inTransit from source (important!)
+  for (const oldP of shipment.products) {
+    if (shipment.fromType === 'Company') {
+      await Company.updateOne(
+        { id: shipment.from.id },
+        { $inc: { inTransit: -oldP.qty } },
+        { session }
+      );
+    } else if (shipment.fromType === 'Warehouse') {
+      await WarehouseInventory.updateOne(
+        { warehouseId: shipment.from.id, productId: oldP.productId },
+        { $inc: { inTransit: -oldP.qty } },
+        { session }
+      );
+    }
+  }
+
+  // 2. Validate & enrich new products + check current stock
+  const enrichedProducts = [];
+  for (const p of newProducts) {
+    const prod = await Product.findOne({ id: p.productId }).session(session);
+    if (!prod) throw new Error(`Product ${p.productId} not found`);
+
+    const requestedQty = Number(p.qty);
+    if (requestedQty > prod.qty) {
+      throw new Error(`Not enough stock for ${prod.name}: ${prod.qty} available`);
+    }
+
+    enrichedProducts.push({
+      productId: p.productId,
+      name: prod.name,
+      productSku: prod.sku,
+      unitPrice: prod.unitPrice,
+      qty: requestedQty
+    });
+  }
+
+  // 3. Apply new inTransit to source
+  for (const newP of enrichedProducts) {
+    if (shipment.fromType === 'Company') {
+      await Company.updateOne(
+        { id: shipment.from.id },
+        { $inc: { inTransit: newP.qty } },
+        { session }
+      );
+    } else if (shipment.fromType === 'Warehouse') {
+      await WarehouseInventory.updateOne(
+        { warehouseId: shipment.from.id, productId: newP.productId },
+        { $inc: { inTransit: newP.qty } },
+        { session }
+      );
+    }
+  }
+
+  // 4. Update destination name
+  const warehouse = await Warehouse.findOne({ id: toId }).session(session);
+  if (!warehouse) throw new Error('Destination warehouse not found');
+
+  // 5. Save updated shipment
+  shipment.to = { id: toId, name: warehouse.name };
+  shipment.products = enrichedProducts;
+  shipment.lastUpdated = new Date();
+
+  await shipment.save({ session });
+
+  await session.commitTransaction();
+  res.json({ message: 'Shipment updated', shipment });
+} catch (err) {
+  await session.abortTransaction();
+  console.error('Edit shipment failed:', err);
+  res.status(500).json({ message: err.message || 'Failed to update shipment' });
+} finally {
+  session.endSession();
+}
 });
 
 module.exports = router;

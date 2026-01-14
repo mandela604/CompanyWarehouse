@@ -2626,8 +2626,11 @@ async function confirmEditShipment(shipmentId) {
 
     refreshAll();
     renderShipments();
-
-    setTimeout(closeModal, 1200);
+    setTimeout(() => {
+  closeModal();
+  refreshAll();        
+}, 1200);
+    
 
   } catch (err) {
     showToast(err.message || 'Update failed', 'error');
