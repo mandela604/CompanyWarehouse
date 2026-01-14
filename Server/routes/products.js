@@ -245,7 +245,65 @@ if (company.inTransit > 0) {
   }
 });
 
+// POST /api/products/:id/restock
+router.post('/products/:id/restock', ensureAdmin, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    const { addedQty } = req.body;
+    if (!Number.isInteger(addedQty) || addedQty < 1) {
+      return res.status(400).json({ message: 'Added quantity must be a positive integer' });
+    }
+
+    const product = await Product.findOne({ id: req.params.id }).session(session);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    // Log the restock
+    await RestockLog.create([{
+      productId: product.id,
+      productName: product.name,
+      addedQty,
+      restockedBy: req.session.user.name || 'Admin',
+      restockedById: req.session.user.id || null,
+      date: new Date()
+    }], { session });
+
+    // Update qty
+    product.qty += addedQty;
+    product.lastUpdated = new Date();
+    await product.save({ session });
+
+    // Update company total
+    await Company.updateOne(
+      { id: product.companyId },
+      { $inc: { totalStock: addedQty } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ success: true, newQty: product.qty, added: addedQty });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ message: err.message || 'Restock failed' });
+  }
+});
+
+// GET /api/products/:id/restocks
+router.get('/products/:id/restocks', ensureAuth, async (req, res) => {
+  try {
+    const logs = await RestockLog.find({ productId: req.params.id })
+      .sort({ date: -1 })     // newest first
+      .lean();                // faster, plain JS objects
+
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load history' });
+  }
+});
 
 
 // 🔴 DELETE PRODUCT (Admin only)
