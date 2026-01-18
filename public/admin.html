@@ -2152,16 +2152,17 @@ async function renderDetailedSalesReport(page = 1) {
 
     sales.forEach(s => {
       s.items.forEach(item => {
-        const lineTotal = item.qty * (item.unitPrice || 0);
+        const lineTotal = (item.qtySold || 0) * (item.unitPrice || 0);
+      
         pageTotalValue += lineTotal;
         flattened.push({
-          date: s.date,
-          product: item.productName,
-          qty: item.qty,
+          date: s.date || '—',
+          product: item.productName || 'Unknown',
+          qty: item.qtySold || 0,       
           rep: s.repName || '—',
           total: lineTotal,
-          outlet: s.outletName,
-          status: s.status,
+          outlet: s.outletName || '—',
+          status: s.status || '—',
           sentFrom: s.sentFrom || '—'
         });
       });
