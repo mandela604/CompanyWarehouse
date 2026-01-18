@@ -2126,6 +2126,10 @@ async function renderDetailedSalesReport(page = 1) {
   const tbody = $('#detailedSalesTable tbody');
   tbody.innerHTML = '<tr><td colspan="8">Loading detailed sales...</td></tr>';
 
+  console.log("=== Detailed Sales Report Started ===");
+  console.log("Page:", page);
+  console.log("Current filters:", detailedSalesFilter);
+
   try {
     const q = new URLSearchParams({ page, limit: DETAILED_SALES_PER_PAGE });
     if (detailedSalesFilter.start) q.set('startDate', detailedSalesFilter.start);
@@ -2133,20 +2137,54 @@ async function renderDetailedSalesReport(page = 1) {
     if (detailedSalesFilter.outletId) q.set('outletId', detailedSalesFilter.outletId);
     if (detailedSalesFilter.repId) q.set('repId', detailedSalesFilter.repId);
 
-    const res = await fetch(`/api/sales?${q.toString()}`);
-    if (!res.ok) throw new Error('API error');
+    const url = `/api/sales?${q.toString()}`;
+    console.log("Fetching URL:", url);
+
+    const res = await fetch(url);
+    console.log("Response status:", res.status);
+    console.log("Response ok?", res.ok);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("API failed with status:", res.status, "→", errorText);
+      throw new Error(`API error: ${res.status} - ${errorText}`);
+    }
 
     const json = await res.json();
+    console.log("Full JSON response from backend:", json);
+
     const sales = json.data || [];
+    console.log(`Received ${sales.length} sales groups`);
+
     let flattened = [];
     let pageTotalValue = 0;
 
-    sales.forEach(s => {
-      if (s.items && Array.isArray(s.items)) {
-        s.items.forEach(item => {
-          const qty = item.qtySold || item.qty || 0;                    // ← fixed
+    sales.forEach((s, index) => {
+      console.log(`Processing sale group ${index + 1}:`, {
+        id: s.id,
+        date: s.date,
+        outlet: s.outletName,
+        rep: s.repName,
+        itemCount: s.itemCount,
+        totalQty: s.totalQty,
+        hasItems: !!s.items,
+        itemsLength: s.items?.length || 0
+      });
+
+      if (s.items && Array.isArray(s.items) && s.items.length > 0) {
+        s.items.forEach((item, itemIndex) => {
+          const qty = item.qtySold || item.qty || 0;
           const lineTotal = qty * (item.unitPrice || 0);
           pageTotalValue += lineTotal;
+
+          console.log(`  → Item ${itemIndex + 1}:`, {
+            product: item.productName,
+            qtySold: item.qtySold,
+            qty: item.qty,
+            finalQtyUsed: qty,
+            unitPrice: item.unitPrice,
+            lineTotal
+          });
 
           flattened.push({
             date: s.date || '—',
@@ -2159,11 +2197,22 @@ async function renderDetailedSalesReport(page = 1) {
             sentFrom: s.sentFrom || '—'
           });
         });
+      } else {
+        console.warn(`  → Sale ${index + 1} has NO items or empty items array`);
       }
     });
 
+    console.log("Total flattened rows created:", flattened.length);
+    console.log("Page total value:", pageTotalValue);
+
     if (flattened.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="padding:60px; text-align:center; color:#999; font-size:16px;">No sales items found with current filters</td></tr>';
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="padding:60px; text-align:center; color:#666; font-size:16px;">
+            No detailed items found.<br>
+            <small>(Got ${sales.length} sales groups, but 0 line items — check console logs)</small>
+          </td>
+        </tr>`;
     } else {
       tbody.innerHTML = flattened.map(row => `
         <tr>
@@ -2186,10 +2235,14 @@ async function renderDetailedSalesReport(page = 1) {
 
     renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" class="error">Error: ${err.message}</td></tr>`;
+    console.error("Detailed report crashed:", err);
+    tbody.innerHTML = `<tr><td colspan="8" class="error">Error loading report: ${err.message}</td></tr>`;
     showToast('Failed to load detailed sales report', 'error');
   }
 }
+
+
+
 // Update navigateTo to initialize picker when opening the section
 const originalNavigate = navigateTo;
 navigateTo = function(route) {
