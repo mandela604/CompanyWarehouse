@@ -4009,23 +4009,16 @@ let reportPicker = null;
 
 // ─── Button to open Sales Report ───────────────────────────────────
 document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  $all('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
-  const sec = document.getElementById('salesReportSection');
-  sec.classList.add('active');
-  sec.style.display = 'block';
-  $all('.nav a').forEach(a => a.classList.remove('active'));
-
+  navigateTo('salesReport');           // ← use the existing function!
   if (!reportPicker) initReportDatePicker();
   loadReportFilters();
   renderSalesReport();
 });
 
+
 // ─── Product Report just opens existing reports section ────────────
 document.getElementById('viewProductReportBtn')?.addEventListener('click', () => {
-  $all('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
-  document.getElementById('reportsSection').classList.add('active');
-  document.getElementById('reportsSection').style.display = 'block';
-  $all('.nav a').forEach(a => a.classList.remove('active'));
+  navigateTo('reports');               // ← reuse again
 });
 
 // ─── Date Picker for Report ────────────────────────────────────────
