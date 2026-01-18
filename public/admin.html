@@ -1180,7 +1180,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
  // Button to open the new detailed report
 document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  navigateTo('detailedSalesReport');
+  // Force show the section
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  
+  const targetSection = document.getElementById('detailedSalesReportSection');
+  if (targetSection) {
+    targetSection.classList.add('active');
+    targetSection.style.display = 'block !important'; // brute force
+    console.log("Forced detailedSalesReportSection visible");
+  }
+
+  // Update nav active state
+  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector('.nav a[data-route="detailedSalesReport"]');
+  if (navLink) navLink.classList.add('active');
+
   loadDetailedSalesFilters();
   renderDetailedSalesReport();
 });
@@ -2239,6 +2256,10 @@ async function renderDetailedSalesReport(page = 1) {
   console.log("Number of <tr> tags now in tbody:", tbody.querySelectorAll('tr').length);
 }
     renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
+    console.log("Section visibility check after render:",
+  document.getElementById('detailedSalesReportSection').style.display,
+  document.getElementById('detailedSalesReportSection').classList.contains('active')
+);
   } catch (err) {
     console.error("Detailed report crashed:", err);
     tbody.innerHTML = `<tr><td colspan="8" class="error">Error loading report: ${err.message}</td></tr>`;
