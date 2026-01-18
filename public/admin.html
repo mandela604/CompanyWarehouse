@@ -2008,6 +2008,192 @@ async function renderSalesSummary() {
 
 
    
+// New report variables
+let detailedCurPage = 1;
+const DETAILED_SALES_PER_PAGE = 20; // you can adjust this
+
+let detailedSalesFilter = {
+  start: null,
+  end: null,
+  outletId: null,
+  repId: null
+};
+
+// Button to open the new report
+document.getElementById('salesReportBtn')?.addEventListener('click', () => {
+  navigateTo('detailedSalesReport');
+  loadDetailedSalesFilters();     // populate dropdowns
+  renderDetailedSalesReport();    // load data
+});
+
+// Back button already uses navigateTo('products')
+
+// Filter loading (copy of loadSalesFilters but for new ids)
+async function loadDetailedSalesFilters() {
+  try {
+    const outRes = await fetch('/api/outlets');
+    const outlets = await outRes.json();
+    const outletSelect = $('#detailedOutletFilter');
+    outletSelect.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.textContent = o.name;
+      outletSelect.appendChild(opt);
+    });
+
+    const accRes = await fetch('/api/accounts');
+    const accounts = await accRes.json();
+    const reps = accounts.filter(a => a.role === 'rep');
+    const repSelect = $('#detailedRepFilter');
+    repSelect.innerHTML = '<option value="">All Sales Reps</option>';
+    reps.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      repSelect.appendChild(opt);
+    });
+
+    // Change listeners
+    outletSelect.onchange = () => {
+      detailedSalesFilter.outletId = outletSelect.value || null;
+      detailedCurPage = 1;
+      renderDetailedSalesReport();
+    };
+
+    repSelect.onchange = () => {
+      detailedSalesFilter.repId = repSelect.value || null;
+      detailedCurPage = 1;
+      renderDetailedSalesReport();
+    };
+  } catch (err) {
+    console.error('Failed to load detailed filters', err);
+  }
+}
+
+// Clear filters
+function clearDetailedSalesFilter() {
+  detailedSalesFilter = { start: null, end: null, outletId: null, repId: null };
+  $('#detailedSalesDateDisplay').textContent = 'All time';
+  if (detailedSalesPicker) {
+    detailedSalesPicker.clear();
+    detailedSalesPicker.setDate([]);
+  }
+  $('#detailedOutletFilter').value = '';
+  $('#detailedRepFilter').value = '';
+  detailedCurPage = 1;
+  renderDetailedSalesReport();
+}
+
+// Date picker for detailed report
+let detailedSalesPicker = null;
+
+function initDetailedSalesDatePicker() {
+  const container = $('#detailedSalesDateContainer');
+  container.innerHTML = '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Pick date range';
+  input.style.cssText = 'padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+
+  detailedSalesPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const start = dates[0] < dates[1] ? dates[0] : dates[1];
+        const end = dates[0] < dates[1] ? dates[1] : dates[0];
+        detailedSalesFilter.start = start.toISOString().slice(0,10);
+        detailedSalesFilter.end = end.toISOString().slice(0,10);
+        $('#detailedSalesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        detailedSalesFilter.start = detailedSalesFilter.end = null;
+        $('#detailedSalesDateDisplay').textContent = 'All time';
+      }
+      detailedCurPage = 1;
+      renderDetailedSalesReport();
+    }
+  });
+}
+
+// Main render function - flattened per-product view
+async function renderDetailedSalesReport(page = 1) {
+  detailedCurPage = page;
+  const tbody = $('#detailedSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ page, limit: DETAILED_SALES_PER_PAGE });
+    if (detailedSalesFilter.start) q.set('startDate', detailedSalesFilter.start);
+    if (detailedSalesFilter.end) q.set('endDate', detailedSalesFilter.end);
+    if (detailedSalesFilter.outletId) q.set('outletId', detailedSalesFilter.outletId);
+    if (detailedSalesFilter.repId) q.set('repId', detailedSalesFilter.repId);
+
+    const res = await fetch(`/api/sales?${q.toString()}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const sales = json.data || [];
+    let flattened = [];
+    let pageTotalValue = 0;
+
+    sales.forEach(s => {
+      s.items.forEach(item => {
+        const lineTotal = item.qty * (item.unitPrice || 0);
+        pageTotalValue += lineTotal;
+        flattened.push({
+          date: s.date,
+          product: item.productName,
+          qty: item.qty,
+          rep: s.repName || '—',
+          total: lineTotal,
+          outlet: s.outletName,
+          status: s.status,
+          sentFrom: s.sentFrom || '—'
+        });
+      });
+    });
+
+    if (flattened.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No matching sales found</td></tr>';
+    } else {
+      tbody.innerHTML = flattened.map(row => `
+        <tr>
+          <td>${row.date}</td>
+          <td>${row.product}</td>
+          <td>${row.qty}</td>
+          <td>${row.rep}</td>
+          <td style="text-align:right; font-weight:600;">${formatNGN(row.total)}</td>
+          <td>${row.outlet}</td>
+          <td><span class="pill">${row.status}</span></td>
+          <td>${row.sentFrom}</td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#f0f9ff; font-weight:bold;">
+          <td colspan="7" style="text-align:right; padding:14px;">Page Total:</td>
+          <td style="padding:14px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
+        </tr>
+      `;
+    }
+
+    renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load report</td></tr>';
+    console.error(err);
+  }
+}
+
+// Update navigateTo to initialize picker when opening the section
+const originalNavigate = navigateTo;
+navigateTo = function(route) {
+  originalNavigate(route);
+  if (route === 'detailedSalesReport') {
+    if (!detailedSalesPicker) initDetailedSalesDatePicker();
+  }
+};
+
+
   function showModal(html) {
   const backdrop = $('#modalBackdrop');
   const modal = $('#modal');
