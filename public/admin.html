@@ -1166,41 +1166,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   }).format(d);
 }
 
-
-   function navigateTo(route) {
-  // Hide everything first
+function navigateTo(route) {
+  // Hide all sections
   $all('.section').forEach(s => {
     s.classList.remove('active');
-    s.style.display = 'none';           // explicit hide
+    s.style.display = 'none';
   });
 
   const target = $(`#${route}Section`);
   if (target) {
     target.classList.add('active');
-    
-    // Force show — this now wins because no inline style fights back
-    target.style.display = 'block';
-    
-    // Extra safety in case some other code resets it
-    setTimeout(() => {
-      target.style.display = 'block';
-    }, 0);
+    target.style.display = 'block';           // Force show
 
-    console.log(`Activated ${route}Section → display now = ${target.style.display}`);
+    // Extra safety
+    setTimeout(() => { target.style.display = 'block'; }, 0);
+
+    console.log(`Activated ${route}Section → display: ${target.style.display}`);
   }
 
-  // Update nav highlight
+  // Restore nav active state
   $all('.nav a').forEach(a => a.classList.remove('active'));
   const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
   if (navLink) navLink.classList.add('active');
 
-  // Special cases
-  if (route === 'detailedSalesReport') {
+  // Re-run the rendering logic for each route (this was missing!)
+  if (route === 'overview') {
+    refreshAll();
+  } else if (route === 'warehouses') {
+    renderWarehouses();
+  } else if (route === 'outlets') {
+    renderOutlets();
+  } else if (route === 'products') {
+    currentPage = 1;
+    renderProducts();
+  } else if (route === 'accounts') {
+    renderAccounts();
+  } else if (route === 'reports') {
+    // If you have renderReports(), call it here
+  } else if (route === 'sales') {
+    loadSalesFilters();
+    renderSales();
+  } else if (route === 'settings') {
+    renderSettings();
+  } else if (route === 'detailedSalesReport') {
     if (!detailedSalesPicker) initDetailedSalesDatePicker();
+    loadDetailedSalesFilters();
+    renderDetailedSalesReport();
+  } else if (route === 'fullSales') {
+    // Your existing fullSales logic
   }
-  if (route === 'salesViewer') renderSalesViewerPage?.();
-}
 
+  // Optional: log for debug
+  console.log(`Navigated to: ${route}`);
+}
 
  // Button to open the new detailed report
 document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
