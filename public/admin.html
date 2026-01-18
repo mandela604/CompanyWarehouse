@@ -775,6 +775,52 @@
         </div>
       </section>
 
+
+      <!-- ==================== DETAILED SALES REPORT ==================== -->
+<section id="detailedSalesReportSection" class="section" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <h2 style="margin:0">Detailed Sales Report (per product sold)</h2>
+    <button class="btn secondary" onclick="navigateTo('products')">← Back to Products</button>
+  </div>
+
+  <!-- Filters - almost identical to sales section -->
+  <div style="margin:16px 0 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div id="detailedSalesDateContainer" style="min-width:220px;"></div>
+      <select id="detailedOutletFilter" class="sales-filter-input">
+        <option value="">All Outlets</option>
+      </select>
+      <select id="detailedRepFilter" class="sales-filter-input">
+        <option value="">All Sales Reps</option>
+      </select>
+      <button class="btn secondary" onclick="clearDetailedSalesFilter()">Clear Filters</button>
+      <div class="small muted" id="detailedSalesDateDisplay">All time</div>
+    </div>
+    <button id="printDetailedSalesBtn" class="btn" style="background:var(--blue); color:white; white-space:nowrap;">
+      Print This Report
+    </button>
+  </div>
+
+  <div class="table">
+    <table id="detailedSalesTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Product</th>
+          <th>Qty Sold</th>
+          <th>Sales Rep</th>
+          <th style="text-align:right;">Total Value</th>
+          <th>Outlet</th>
+          <th>Status</th>
+          <th>Sent From</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="detailedSalesPagination"></div>
+  </div>
+</section>
+
       <!-- ==================== FULL-PAGE SALES VIEWER ==================== -->
       <section id="fullSalesSection" class="section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
