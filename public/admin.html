@@ -1167,40 +1167,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 
-    function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
-      const target = $(`#${route}Section`);
-      if (target) target.classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (route === 'salesViewer') renderSalesViewerPage();
-    }
+ function navigateTo(route) {
+  // Hide ALL sections first
+  $all('.section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none'; // force hide
+  });
+
+  const target = $(`#${route}Section`);
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'block !important'; // force show + override any hiding
+    console.log(`Activated ${route}Section → display: ${target.style.display}`);
+  }
+
+  // Update nav links
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+  if (navLink) navLink.classList.add('active');
+
+  // Special init for detailed sales
+  if (route === 'detailedSalesReport') {
+    if (!detailedSalesPicker) initDetailedSalesDatePicker();
+  }
+}
 
 
  // Button to open the new detailed report
 document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  // Force show the section
-  document.querySelectorAll('.section').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none';
-  });
-  
-  const targetSection = document.getElementById('detailedSalesReportSection');
-  if (targetSection) {
-    targetSection.classList.add('active');
-    targetSection.style.display = 'block !important'; // brute force
-    console.log("Forced detailedSalesReportSection visible");
-  }
-
-  // Update nav active state
-  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-  const navLink = document.querySelector('.nav a[data-route="detailedSalesReport"]');
-  if (navLink) navLink.classList.add('active');
-
+  navigateTo('detailedSalesReport');
   loadDetailedSalesFilters();
   renderDetailedSalesReport();
 });
+
 
 document.getElementById('viewProductReportBtn').addEventListener('click', () => {
   navigateTo('reports');  // Navigates to #reportsSection (existing in your code; we'll enhance it later)
