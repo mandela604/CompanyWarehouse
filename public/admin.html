@@ -2269,16 +2269,6 @@ async function renderDetailedSalesReport(page = 1) {
 
 
 
-// Update navigateTo to initialize picker when opening the section
-const originalNavigate = navigateTo;
-navigateTo = function(route) {
-  originalNavigate(route);
-  if (route === 'detailedSalesReport') {
-    if (!detailedSalesPicker) initDetailedSalesDatePicker();
-  }
-};
-
-
   function showModal(html) {
   const backdrop = $('#modalBackdrop');
   const modal = $('#modal');
