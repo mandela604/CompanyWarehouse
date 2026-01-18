@@ -1167,39 +1167,64 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 
-    function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
-      const target = $(`#${route}Section`);
-      if (target) target.classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (route === 'salesViewer') renderSalesViewerPage();
-    }
-
-
- // Button to open the new detailed report
-document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  // Force show the section
-  document.querySelectorAll('.section').forEach(s => {
+function navigateTo(route) {
+  // Hide ALL sections first
+  $all('.section').forEach(s => {
     s.classList.remove('active');
     s.style.display = 'none';
   });
-  
-  const targetSection = document.getElementById('detailedSalesReportSection');
-  if (targetSection) {
-    targetSection.classList.add('active');
-    targetSection.style.display = 'block !important'; // brute force
-    console.log("Forced detailedSalesReportSection visible");
+
+  // Show the requested one
+  const target = $(`#${route}Section`);
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'block';
   }
 
-  // Update nav active state
-  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-  const navLink = document.querySelector('.nav a[data-route="detailedSalesReport"]');
+  // Update active menu link
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
   if (navLink) navLink.classList.add('active');
 
-  loadDetailedSalesFilters();
-  renderDetailedSalesReport();
+  // Route-specific actions
+  switch (route) {
+    case 'overview':
+      refreshAll();
+      break;
+    case 'warehouses':
+      renderWarehouses();
+      break;
+    case 'outlets':
+      renderOutlets();
+      break;
+    case 'products':
+      currentPage = 1;
+      renderProducts();
+      break;
+    case 'accounts':
+      renderAccounts();
+      break;
+    case 'sales':
+      loadSalesFilters();
+      renderSales();
+      break;
+    case 'settings':
+      renderSettings();
+      break;
+    case 'detailedSalesReport':
+      if (!detailedSalesPicker) initDetailedSalesDatePicker();
+      loadDetailedSalesFilters();
+      renderDetailedSalesReport();
+      break;
+    case 'fullSales':
+      if (!fullSalesPicker) initFullSalesPicker();
+      renderFullSales();
+      break;
+  }
+}
+ // Button to open the new detailed report
+document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
+  navigateTo('detailedSalesReport');
 });
 
 document.getElementById('viewProductReportBtn').addEventListener('click', () => {
@@ -2266,7 +2291,6 @@ async function renderDetailedSalesReport(page = 1) {
     showToast('Failed to load detailed sales report', 'error');
   }
 }
-
 
 
 
