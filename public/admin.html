@@ -3233,6 +3233,7 @@ if (e.target.classList.contains('view-details')) {
 let isRenderingProducts = false;
 
 // REPLACE your entire current nav click handler with this one:
+/*
 document.querySelectorAll('.nav a').forEach(a => {
   a.addEventListener('click', async e => {
     e.preventDefault();
@@ -3296,6 +3297,8 @@ document.querySelectorAll('.nav a').forEach(a => {
     }
   });
 });
+*/
+
 
   /*  $('#exportBtn').addEventListener('click',()=>{
       const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');

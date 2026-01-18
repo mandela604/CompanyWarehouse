@@ -1,3330 +1,381 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Warehouse Admin — Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Report — Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    :root{
-      --blue:#0b5ed7;
-      --dark-red:#b71c1c;
-      --bg:#f6f8fb;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --glass: rgba(255,255,255,0.75);
-      --shadow: 0 6px 18px rgba(11,94,215,0.08);
-      --radius:12px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-      background:linear-gradient(180deg,var(--bg),#eef3fb);
-      color:#111827;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --green-600: #16a34a;
+      --red-600: #dc2626;
+      --radius: 10px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
-    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
-    @media (max-width:900px){.app{grid-template-columns:1fr}}
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
 
-    .sidebar{background:linear-gradient(180deg,var(--card),#fbfdff);border-radius:16px;padding:18px;box-shadow:var(--shadow);height:calc(100vh - 40px);position:sticky;top:20px}
-    .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
-    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--dark-red));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
-    .brand h2{font-size:16px;margin:0}
-    .small{font-size:12px;color:var(--muted)}
-    .nav{margin-top:18px}
-    .nav a{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;color:#0f172a;text-decoration:none;margin-bottom:6px}
-    .nav a.active{background:linear-gradient(90deg,rgba(11,94,215,0.08),rgba(183,17,28,0.03));box-shadow:inset 0 0 0 1px rgba(11,94,215,0.03)}
-    .nav a:hover{background:#f1f5ff}
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
 
-    .hamburger{display:none;position:fixed;left:14px;top:14px;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 8px 22px rgba(2,6,23,0.08);z-index:40}
-    @media (max-width:900px){.sidebar{position:fixed;left:-320px;top:0;height:100vh;transition:left .25s;z-index:40;padding:18px;border-radius:0} .sidebar.open{left:0} .hamburger{display:block}}
+    header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 16px 0;
+      margin-bottom: 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
 
-    main{padding:6px 0}
-    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-    .search{display:flex;gap:12px;align-items:center}
-    .search input{padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;background:white;min-width:220px}
-    .actions{display:flex;gap:8px;align-items:center}
-    .btn{padding:10px 14px;border-radius:10px;border:none;background:var(--blue);color:white;cursor:pointer}
-    .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
 
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
-    @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-outline {
+      background: white;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+    }
+
+    .btn-outline:hover { background: var(--gray-100); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
     .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 18px;
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
       box-shadow: var(--shadow);
-      border: 1px solid #e5e7eb;
-      position: relative;
+      border: 1px solid var(--gray-200);
+    }
+
+    .card-label {
+      font-size: 0.875rem;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .card-change {
+      font-size: 0.875rem;
+      margin-top: 8px;
+    }
+
+    .positive { color: var(--green-600); }
+    .negative { color: var(--red-600); }
+
+    .filters {
+      background: white;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    select, input[type="date"], input[type="text"] {
+      padding: 10px 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      min-width: 160px;
+    }
+
+    .table-container {
+      background: white;
+      border-radius: var(--radius);
       overflow: hidden;
-      transition: all 0.25s ease;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--gray-200);
     }
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, var(--blue), var(--dark-red));
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
     }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 32px rgba(11,94,215,0.15);
-      border-color: rgba(11,94,215,0.15);
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
     }
-    .card h3 {
-      margin: 0 0 6px;
-      font-size: 13px;
+
+    th {
+      background: var(--gray-100);
       font-weight: 600;
-      color: var(--muted);
+      color: var(--gray-700);
+      font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .card .value {
-      font-size: 24px;
+
+    tr:hover {
+      background: rgba(37,99,235,0.04);
+    }
+
+    .status {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-completed { background: #dcfce7; color: #166534; }
+    .status-pending   { background: #fef3c7; color: #92400e; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+    .amount {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .total-row {
+      background: #eff6ff;
       font-weight: 700;
-      color: #111827;
-      margin: 4px 0;
-    }
-    .card .small-note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
+      font-size: 1.05rem;
     }
 
-    .panel{display:flex;gap:16px;align-items:stretch}
-    .panel-left{flex:2;display:flex;flex-direction:column}
-    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
-
-    .table {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 0;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      border: 1px solid #e5e7eb;
-      flex: 1;
-    }
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{
-      background:#f8fafc;color:var(--muted);font-weight:600;text-transform:uppercase;
-      letter-spacing:0.5px;padding:14px 12px;text-align:left;font-size:11px
-    }
-    td{padding:14px 12px;border-bottom:1px solid #eef3fb;color:#111827}
-    tr:hover{background:rgba(11,94,215,0.03)}
-    tr:last-child td{border-bottom:none}
-
-    .widget {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-      border: 1px solid #e5e7eb;
-      position: relative;
-      overflow: hidden;
-      flex: 1;
-    }
-    .widget::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, var(--blue), var(--dark-red));
-    }
-    .widget h4 {
-      margin: 0 0 16px;
-      font-size: 14px;
-      font-weight: 700;
-      color: #111827;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .widget h4::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--blue);
+    @media print {
+      .filters, .btn, header { display: none !important; }
+      body { background: white; }
+      .container { padding: 0; max-width: none; }
+      .card { box-shadow: none; border: 1px solid #ddd; }
     }
 
-    .mini-list{display:grid;gap:10px}
-    .mini-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px;border-radius:10px;background:linear-gradient(90deg,#fff,#fafcff)}
-
-    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
-    .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:680px}
-    .modal h4{margin:0 0 14px}
-    .form-row{display:flex;gap:10px;margin-bottom:10px}
-    .form-row input,.form-row select,textarea{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb}
-
-    .muted{color:var(--muted)}
-    .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);font-weight:600;color:var(--blue);display:inline-block}
-
-    .inline-list{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px}
-    .box{
-      background:var(--card);
-      border-radius:14px;
-      padding:18px;
-      box-shadow:var(--shadow);
-      flex:1 1 220px;
-      border:1px solid #e5e7eb;
-      position:relative;
-      overflow:hidden;
-      transition:all 0.25s ease;
+    @media (max-width: 768px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .filters { flex-direction: column; align-items: stretch; }
     }
-    .box::before{
-      content:'';
-      position:absolute;
-      top:0;left:0;right:0;
-      height:4px;
-      background:linear-gradient(90deg,var(--blue),var(--dark-red));
-    }
-    .box:hover{
-      transform:translateY(-4px);
-      box-shadow:0 16px 32px rgba(11,94,215,0.15);
-      border-color:rgba(11,94,215,0.15);
-    }
-    .box h4{
-      margin:0 0 8px;
-      font-size:16px;
-      font-weight:700;
-      color:#111827;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .box h4::before{
-      content:'';
-      width:8px;height:8px;
-      border-radius:50%;
-      background:var(--blue);
-    }
-    .box .location{font-size:13px;color:var(--muted);margin:0 0 12px}
-    .box .stats{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
-    .box .stock{font-weight:700;font-size:20px;color:var(--blue)}
-    .box .badge{background:rgba(11,94,215,0.1);color:var(--blue);padding:4px 10px;border-radius:999px;font-weight:600;font-size:12px}
-
-    .section{display:none}
-    .section.active{display:block}
-
-
-    .inner-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-  font-size: 13px;
-}
-
-.inner-table th {
-  background: #f8fafc;
-  color: var(--muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 10px 8px;
-  text-align: left;
-  border-bottom: 1px solid #eef3fb;
-}
-
-.inner-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #f1f5ff;
-}
-
-.inner-table tr:hover {
-  background: rgba(11,94,215,0.03);
-}
-
-
-.loader{
-  display:none;
-  text-align:center;
-  margin-top:10px;
-}
-.loader span{
-  display:inline-block;
-  width:8px;
-  height:8px;
-  margin:0 2px;
-  background:#0b5ed7;
-  border-radius:50%;
-  animation:blink 1s infinite;
-}
-.loader span:nth-child(2){ animation-delay:0.2s; }
-.loader span:nth-child(3){ animation-delay:0.4s; }
-
-@keyframes blink{
-  0%,80%,100%{ opacity:0; }
-  40%{ opacity:1; }
-}
-
-.pagination {
-  margin: 20px 0;
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-}
-
-.pagination button {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  background: #f0f0f0;
-  color: #999;
-  cursor: not-allowed;
-}
-
-.pagination button.active {
-  background: var(--blue);
-  color: white;
-  border-color: var(--blue);
-}
-
-/* GIVE MORE SPACE TO THE RIGHT OF RECENT SHIPMENTS TABLE */
-/* Updated column widths for grouped Recent Shipments */
-/* Perfectly aligned Recent Shipments table */
-#shipmentTable {
-  table-layout: fixed;
-  width: 100%;
-}
-#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 13%; } /* Date */
-#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; text-align: center; } /* Items */
-#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; text-align: center; } /* Qty */
-#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 20%; } /* To */
-#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 16%; text-align: right; } /* Total Value */
-#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; text-align: center; } /* Status */
-#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) {
-  width: 17%;
-  text-align: right;
-  padding-right: 16px;
-}
-
-/* Prevent text wrapping in headers and critical cells */
-#shipmentTable th,
-#shipmentTable td:nth-child(2),
-#shipmentTable td:nth-child(3),
-#shipmentTable td:nth-child(6) {
-  white-space: nowrap;
-}
-
-/* Better button styling in Action column */
-#shipmentTable .view-details,
-#shipmentTable .cancel-shipment {
-  font-size: 11px;
-  padding: 6px 12px;
-  margin: 0 4px;
-  min-width: 60px;
-}
-
-
-/* ADDITIONAL CSS STYLING FOR TABLES*/
-/* Fix header alignment to match data cells */
-#shipmentTable th {
-  text-align: center; /* default for most columns */
-  white-space: nowrap;
-}
-
-#shipmentTable th:nth-child(1) { text-align: left; }   /* Date: left */
-#shipmentTable th:nth-child(4) { text-align: left; }   /* To: left (long names) */
-#shipmentTable th:nth-child(5) { text-align: right; }  /* Total Value: right */
-#shipmentTable th:nth-child(7) { text-align: right; }  /* Action: right */
-
-/* Keep your existing column widths */
-#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 13%; }
-#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; }
-#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; }
-#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 20%; }
-#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 16%; }
-#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }
-#shipmentTable th:nth-child(7), #shipmentTable td:nth-child(7) { width: 17%; padding-right: 16px; }
-
-
-
-
-
-
-
-/* FINAL: PERFECTLY ALIGNED & CENTERED RECENT SHIPMENTS TABLE (Admin Overview) */
-#shipmentTable {
-  table-layout: fixed;
-  width: 100%;
-}
-
-/*#shipmentTable th,
-#shipmentTable td {
-  text-align: center !important;
-  vertical-align: middle;
-  padding: 12px 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-} /*
-
-/* Column widths — balanced and add up to 100% */
-#shipmentTable th:nth-child(1), #shipmentTable td:nth-child(1) { width: 14%; text-align: left; }     /* Date - left aligned */
-#shipmentTable th:nth-child(2), #shipmentTable td:nth-child(2) { width: 12%; }                      /* Items */
-#shipmentTable th:nth-child(3), #shipmentTable td:nth-child(3) { width: 10%; }                      /* Qty */
-#shipmentTable th:nth-child(4), #shipmentTable td:nth-child(4) { width: 18%; text-align: left; }    /* To - left for long names */
-#shipmentTable th:nth-child(5), #shipmentTable td:nth-child(5) { width: 15%; text-align: right; }   /* Total Value - right */
-#shipmentTable th:nth-child(6), #shipmentTable td:nth-child(6) { width: 12%; }                      /* Status */
-/* Action column: right-aligned, with space for two buttons */
-/* Fix Action column in Recent Shipments (Overview) */
-#shipmentTable th:nth-child(7),
-#shipmentTable td:nth-child(7) {
-  width: 22% !important;           /* Give more space */
-  text-align: right !important;     /* Align buttons to the right */
-  padding-right: 20px !important;
-  white-space: nowrap;
-  overflow: visible !important;     /* Prevent "..." cutting off buttons */
-}
-
-/* Style the buttons nicely */
-#shipmentTable .view-details,
-#shipmentTable .cancel-shipment {
-  font-size: 11px !important;
-  padding: 6px 12px !important;
-  margin: 0 4px !important;
-  border-radius: 8px !important;
-  min-width: 60px;
-}
-
-</style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  </style>
 </head>
 <body>
 
-  <button class="hamburger" id="hambBtn" aria-label="menu">Menu</button>
+<div class="container">
 
-  <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="logo">W</div>
-        <div>
-          <h2>WareAdmin</h2>
-          <div class="small">Inventory • Nigeria</div>
-        </div>
+  <header>
+    <div class="header-content">
+      <h1>Sales Report</h1>
+      <div>
+        <button class="btn btn-primary" onclick="window.print()">Print / Export</button>
       </div>
+    </div>
+  </header>
 
-      <div class="nav">
-        <a href="#" class="active" data-route="overview">Overview</a>
-        <a href="#" data-route="warehouses">Warehouses</a>
-        <a href="#" data-route="outlets">Outlets</a>
-        <a href="#" data-route="products">Products / Inventory</a>
-        <a href="#" data-route="accounts">Accounts</a>
-     <!--   <a href="#" data-route="reports">Reports</a> -->
-        <a href="#" data-route="settings">Settings</a>
-        <a href="#" data-route="sales">Sales Records</a>
-      </div>
-
-      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
-        <button class="btn" id="createWarehouseBtn">+ Create Warehouse</button>
-        <button class="btn" style="background:var(--dark-red)" id="createOutletBtn">+ Create Outlet</button>
-        <button class="btn" id="shipToWarehouseBtn">+ Ship to Warehouse</button>
-      <!-- <button class="btn" id="shipToOutletBtn" style="background:#d97706">+ Ship to Outlet</button>
-        <button class="btn secondary" id="addProductBtn">+ Add Product</button> -->
-      </div>
-    </aside>
-
-    <main>
-      <div class="topbar">
-        <div class="search">
-          <input id="globalSearch" placeholder="Search products, warehouses, outlets...">
-          <div class="small muted" id="currentWarehouse">Viewing: All Warehouses</div>
-        </div>
-        <div class="actions">
-          <div class="small muted">Admin</div>
-          <button class="btn secondary" id="exportBtn"></button>
-          <button class="btn" id="newReportBtn"></button>
-          <button class="btn secondary" onclick="logout()">Logout</button>
-           <button class="btn " id="createCompanyBtn">Create Company</button>
-          <button class="btn" id="editCompanyBtn">Edit Company</button>
-    
-        </div>
-      </div>
-
-      <!-- ==================== OVERVIEW ==================== -->
-      <section id="overviewSection" class="section active">
-        <div class="grid" id="overviewCards"></div>
-
-        <div class="panel">
-          <div class="panel-left">
-            <div class="table">
-              <h3 style="margin:0 0 16px;padding:0 16px">Recent Shipments</h3>
-              <table id="shipmentTable">
-                <thead>
-                  <tr>
-  <th>Date</th>
-  <th>Items</th>
-  <th>Qty</th>
-  <th>To</th>
-  <th>Total Value</th>
-  <th>Status</th>
-  <th>Action</th>
-</tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-
-          <aside class="panel-right">
-            <div class="widget">
-              <h4>Top Warehouses</h4>
-              <div class="mini-list" id="quickStats"></div>
-            </div>
-            <div class="widget">
-              <h4>Top Outlets</h4>
-              <div class="mini-list" id="topOutlets"></div>
-            </div>
-            <div class="widget" id="pendingWidget">
-              <h4>Pending Receipts</h4>
-              <div class="mini-list" id="pendingList"></div>
-            </div>
-          </aside>
-        </div>   
-      </section>
-
-      <!-- ==================== WAREHOUSES ==================== -->
-      <section id="warehousesSection" class="section">
-        <h2 style="margin-top:0">All Warehouses</h2>
-        <div class="inline-list" id="warehousesList"></div>
-      </section>
-
-      <!-- ==================== OUTLETS ==================== -->
-      <section id="outletsSection" class="section">
-        <h2 style="margin-top:0">All Outlets</h2>
-        <div class="inline-list" id="outletsList"></div>
-      </section>
-
-      <!-- ==================== PRODUCTS ==================== -->
-      <section id="productsSection" class="section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-  <h2 style="margin:0">Products / Inventory</h2>
-  <button class="btn" id="addProductBtn">+ Add Product</button>
-</div>
-        <div class="table">
-          <table id="productTable">
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Name</th>
-                <th>In Stock</th>
-                <th>Warehouse</th>
-                <th>Unit Price</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div id="pagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap"></div>
-        </div>
-      </section>
-
-      <!-- ==================== ACCOUNTS ==================== -->
-      <section id="accountsSection" class="section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <h2 style="margin:0">Accounts</h2>
-          <button class="btn" id="addUserBtn">+ Add User</button>
-        </div>
-        <div class="table">
-          <table id="accountsTable">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ==================== REPORTS ==================== -->
-      <section id="reportsSection" class="section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h2 style="margin:0">Reports</h2>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="reportFilter" class="btn secondary" style="padding:8px 12px;border-radius:10px;font-size:13px">
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month" selected>This Month</option>
-            </select>
-            <button class="btn" id="exportReportBtn">Export PDF</button>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div class="card"><h3>Total Revenue</h3><div class="value">—</div><div class="small-note">All time</div></div>
-          <div class="card"><h3>Total Stock</h3><div class="value">—</div><div class="small-note">All warehouses</div></div>
-          <div class="card"><h3>Units Sold</h3><div class="value">—</div><div class="small-note">This month</div></div>
-          <div class="card"><h3>Low Stock</h3><div class="value">—</div><div class="small-note">Items < 50 units</div></div>
-        </div>
-
-        <div class="table" style="margin-top:20px">
-          <h3 style="margin:0 0 12px">Top Products</h3>
-          <table id="topProductsTable">
-            <thead><tr><th>SKU</th><th>Name</th><th>Sold</th><th>Revenue</th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <div id="reportPagination" style="margin-top:12px; display:flex; justify-content:center; gap:8px; flex-wrap:wrap"></div>
-        </div>
-      </section>
-
-      <!-- ==================== SALES RECORDS ==================== -->
-      <section id="salesSection" class="section">
-        <h2 style="margin-top:0">All Sales Records</h2>
-        <div style="margin:16px 0; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-  <div id="salesDateContainer" style="min-width:220px;"></div>
-  <button class="btn secondary" onclick="clearSalesFilter()">Clear Filter</button>
-  <div class="small muted" id="salesDateDisplay">All time</div>
-</div>
-        <div style="margin-bottom: 12px; text-align: right;">
-  <button id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
-    Print This Page
-  </button>
-</div>
-      <div id="salesDateContainer" style="width:150px;"></div>
-
-      <div id="salesDateDisplay" ></div>
-       <div id="salesUnits"></div>
-      <div id="salesRevenue"></div>
-      <div class="table">
-          <table id="salesTable">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Products<br><small style="font-weight:normal;color:#888;">(name × qty)</small></th>
-                <th>Total Qty</th>
-                <th>Items</th>
-                <th>Outlet</th>
-                <th>Sales Rep (Recorder)</th>
-              <!--  <th>Manager (Approver)</th> -->
-                <th>Status</th>
-                <th>Sent From</th>
-               <th>Details</th> 
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        <div class="pagination" id="salesPagination"></div>
-        <div style="margin-bottom: 12px; text-align: right;">
-  <button style="display: none;" id="printSalesBtn" class="btn" style="background:var(--blue); color:white;">
-    Print This Page
-  </button>
-</div>
-        </div>
-      </section>
-
-      <!-- ==================== FULL-PAGE SALES VIEWER ==================== -->
-      <section id="fullSalesSection" class="section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h2 style="margin:0" id="fullSalesTitle">Sales for …</h2>
-          <button class="btn secondary" id="backFromFullSalesBtn">← Back</button>
-        </div>
-
-        <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
-          <input type="text" id="fullSalesDatePicker" placeholder="All time" 
-                 style="padding:8px 12px;border-radius:10px;border:1px solid #e6eefb;font-size:13px;min-width:220px">
-        </div>
-
-        <div class="table">
-          <table id="fullSalesTable">
-            <thead>
-              <tr>
-                <th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Sales Rep</th>
-                <th>Unit Price</th><th>Line Total</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div id="fullSalesPagination" style="margin-top:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap"></div>
-        </div>
-      </section>
-
-      <!-- ==================== SETTINGS ==================== -->
-      <section id="settingsSection" class="section">
-        <h2 style="margin-top:0">Settings</h2>
-
-        <div class="widget">
-          <h4>System Configuration</h4>
-          <div class="form-row">
-            <label>Low Stock Threshold</label>
-            <input id="lowStockThreshold" type="number" value="50" style="flex:0 0 100px">
-            <button class="btn secondary" onclick="saveLowStockThreshold()">Save</button>
-          </div>
-        </div>
-
-        <div class="widget">
-          <h4>Users</h4>
-          <div class="table">
-            <table id="settingsUsersTable">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Role</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Manages</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="widget">
-          <h4>My Profile (Admin)</h4>
-          <div class="form-row"><input id="adminEmail" placeholder="Email" /></div>
-          <div class="form-row"><input id="adminPhone" placeholder="Phone" /></div>
-          <div class="form-row"><input id="adminPassword" type="password" placeholder="New Password (leave blank to keep)" /></div>
-          <div style="text-align:right">
-            <button class="btn secondary" onclick="saveAdminProfile()">Update Profile</button>
-          </div>
-        </div>
-      </section>
-    </main>
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="card">
+      <div class="card-label">Total Revenue</div>
+      <div class="card-value">₦12,845,670</div>
+      <div class="card-change positive">+18.4% from last month</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Orders Completed</div>
+      <div class="card-value">1,847</div>
+      <div class="card-change positive">+12.1% from last month</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Average Order Value</div>
+      <div class="card-value">₦6,952</div>
+      <div class="card-change negative">-2.3% from last month</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Top Outlet</div>
+      <div class="card-value">Lekki Phase 1</div>
+      <div class="card-change">₦4,218,900 (32.8% of total)</div>
+    </div>
   </div>
 
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal" id="modal"></div>
-  </div>
-
-
-  <div id="toastContainer" style="
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 1000;
-  pointer-events: none;
-"></div>
-<div class="loader" id="globalLoader">
-  <span></span><span></span><span></span>
-</div>
-
-
-
-
-
-<div class="modal-backdrop" id="viewModal">
-  <div class="modal" style="max-width:700px;">
-    <h3>Sale Details</h3>
-    <div style="margin-bottom:16px;color:#666;">
-      Date: <strong id="saleDate"></strong> | 
-      Items: <strong id="itemCount"></strong>
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Period:</label>
+      <select>
+        <option>This Month</option>
+        <option>Last 30 Days</option>
+        <option>This Week</option>
+        <option>Custom Range</option>
+      </select>
     </div>
 
-    <table style="width:100%;margin:16px 0;">
-      <thead style="background:#f0f0f0;">
+    <div class="filter-group">
+      <label>From:</label>
+      <input type="date" value="2026-01-01"/>
+    </div>
+
+    <div class="filter-group">
+      <label>To:</label>
+      <input type="date" value="2026-01-19"/>
+    </div>
+
+    <div class="filter-group">
+      <label>Outlet:</label>
+      <select>
+        <option value="">All Outlets</option>
+        <option>Lekki Phase 1</option>
+        <option>Ikeja GRA</option>
+        <option>Abuja Central</option>
+        <option>Port Harcourt</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Sales Rep:</label>
+      <select>
+        <option value="">All Reps</option>
+        <option>Chinedu Okeke</option>
+        <option>Aisha Ibrahim</option>
+        <option>Emeka Nwosu</option>
+      </select>
+    </div>
+
+    <button class="btn btn-outline">Clear Filters</button>
+  </div>
+
+  <!-- Main Table -->
+  <div class="table-container">
+    <table>
+      <thead>
         <tr>
-          <th style="text-align:left;padding:10px;">Product</th>
-          <th style="width:80px;">Qty</th>
-          <th style="width:120px;">Unit Price</th>
-          <th style="width:120px;">Line Total</th>
+          <th>Date & Time</th>
+          <th>Order ID</th>
+          <th>Customer / Outlet</th>
+          <th>Sales Rep</th>
+          <th>Items</th>
+          <th>Qty</th>
+          <th style="text-align:right">Amount</th>
+          <th>Payment</th>
+          <th>Status</th>
         </tr>
       </thead>
-      <tbody id="viewItems"></tbody>
+      <tbody>
+        <tr>
+          <td>19 Jan 2026, 09:42 AM</td>
+          <td>#INV-2026019-7842</td>
+          <td>Lekki Phase 1 Outlet</td>
+          <td>Chinedu Okeke</td>
+          <td>5 items</td>
+          <td>38</td>
+          <td class="amount" style="text-align:right">₦1,284,500</td>
+          <td>Card • POS</td>
+          <td><span class="status status-completed">Completed</span></td>
+        </tr>
+        <tr>
+          <td>19 Jan 2026, 08:15 AM</td>
+          <td>#INV-2026019-7841</td>
+          <td>Ikeja GRA</td>
+          <td>Aisha Ibrahim</td>
+          <td>3 items</td>
+          <td>14</td>
+          <td class="amount" style="text-align:right">₦428,900</td>
+          <td>Transfer</td>
+          <td><span class="status status-completed">Completed</span></td>
+        </tr>
+        <tr>
+          <td>18 Jan 2026, 16:30 PM</td>
+          <td>#INV-2026018-7839</td>
+          <td>Abuja Central</td>
+          <td>Emeka Nwosu</td>
+          <td>7 items</td>
+          <td>62</td>
+          <td class="amount" style="text-align:right">₦2,145,000</td>
+          <td>Cash</td>
+          <td><span class="status status-pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td>18 Jan 2026, 11:20 AM</td>
+          <td>#INV-2026018-7835</td>
+          <td>Lekki Phase 1 Outlet</td>
+          <td>Chinedu Okeke</td>
+          <td>2 items</td>
+          <td>8</td>
+          <td class="amount" style="text-align:right">₦189,750</td>
+          <td>Card</td>
+          <td><span class="status status-cancelled">Cancelled</span></td>
+        </tr>
+        <!-- ... more rows can be added ... -->
+        <tr class="total-row">
+          <td colspan="5" style="text-align:right">Page Total (showing 4 of 1,847 orders)</td>
+          <td>122</td>
+          <td style="text-align:right" class="amount">₦4,048,150</td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700; background:#f0f7ff;">
+          <td colspan="5" style="text-align:right">Overall Report Total</td>
+          <td>8,942 units</td>
+          <td style="text-align:right" class="amount">₦12,845,670</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
     </table>
-
-    <div style="text-align:right;margin:20px 0;font-size:20px;font-weight:700;">
-      Grand Total: <span class="grand-total" style="color:var(--blue);">₦0</span>
-    </div>
-
-    <div style="text-align:right;">
-      <button class="btn secondary" onclick="printSale()">Print Receipt</button>
-      <button class="btn secondary" style="margin-left:8px;" onclick="$('#viewModal').style.display='none'">Close</button>
-    </div>
   </div>
+
 </div>
 
-
-
-
-
-
-
-
-
-  <script>
-
-// Close mobile sidebar when clicking outside
-document.addEventListener('click', (e) => {
-  const sidebar = document.getElementById('sidebar');
-  const hambBtn = document.getElementById('hambBtn');
-  const clicked = e.target;
-
-  // If sidebar is open AND click is NOT on the hamburger button AND NOT inside the sidebar → close it
-  if (sidebar.classList.contains('open') &&
-      !hambBtn.contains(clicked) &&
-      !sidebar.contains(clicked)) {
-    sidebar.classList.remove('open');
-  }
-});
-
-// Optional: Close with Escape key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.getElementById('sidebar').classList.remove('open');
-  }
-});
-
-
-function logout() {
-  fetch('/api/logout', {
-    method: 'POST',
-    credentials: 'include'
-  })
-  .then(res => res.json())
-  .then(data => window.location.href = data.redirect);
-}
-
-
-
-function showLoader() {
-  document.getElementById('globalLoader').style.display = 'block';
-}
-
-function hideLoader() {
-  document.getElementById('globalLoader').style.display = 'none';
-}
-
-
-    
-// Toast function
-function showToast(message, type = 'info', duration = 3000) {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  const colors = { info: '#0b5ed7', success: '#10b981', error: '#b71c1c' };
-  const toast = document.createElement('div');
-  toast.textContent = message;
-  toast.style.background = colors[type] || colors.info;
-  toast.style.color = 'white';
-  toast.style.padding = '10px 16px';
-  toast.style.borderRadius = '8px';
-  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-  toast.style.opacity = '0';
-  toast.style.transition = 'opacity 0.3s, transform 0.3s';
-  toast.style.transform = 'translateY(20px)';
-
-  container.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-  });
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(20px)';
-    toast.addEventListener('transitionend', () => toast.remove());
-  }, duration);
-}
-
-
-
-
-document.addEventListener('DOMContentLoaded', async () => {
-   await checkAuth();
-
-   if (currentUser.role !== 'admin') {
-    return showToast('Access denied', 'error');
-  }
-
-  const createBtn = $('#createCompanyBtn');
-  const editBtn = $('#editCompanyBtn');
-
-  let company = null;
-
-  // Fetch existing company
-  try {
-    const res = await fetch('/api/company');
-    if (res.ok) {
-      company = await res.json();
-      if (company && company.id) {
-        createBtn.style.display = 'none';
-        editBtn.style.display = 'inline-block';
-      } else {
-        createBtn.style.display = 'inline-block';
-        editBtn.style.display = 'none';
-      }
-    }
-  } catch (err) {
-    console.error(err);
-      showToast('Failed to load company info, reload the page', 'error');
-  }
-
-  // Show modal function
-  function showCompanyModal(title, data = {}) {
-    showModal(`
-      <h4>${title}</h4>
-      <div class="form-row"><input id="cName" placeholder="Company Name" value="${data.name || ''}" /></div>
-      <div class="form-row"><input id="cLocation" placeholder="Location" value="${data.location || ''}" /></div>
-      <div class="form-row"><input id="cAddress" placeholder="Address" value="${data.address || ''}" /></div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveCompany">Save</button>
-      </div>
-    `);
-
-    $('#saveCompany').onclick = async () => {
-      const name = $('#cName').value.trim();
-      const location = $('#cLocation').value.trim();
-      const address = $('#cAddress').value.trim();
-
-      if (!name || !location) return showToast('Name and location are required', 'error');
-
-      try {
-        const method = data.id ? 'PUT' : 'POST';
-        const url = '/api/company';
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            location,
-            address,
-            adminId: currentUser.id,
-            adminName: currentUser.name 
-          })
-        });
-
-        const result = await res.json();
-        if (!res.ok) return showToast('error, try again: ' + (result?.message || 'Failed'), 'error');
-
-        showToast(data.id ? 'Company updated' : 'Company created', 'success');
-        company = result;
-        createBtn.style.display = 'none';
-        editBtn.style.display = 'inline-block';
-        closeModal();
-      } catch (err) {
-        console.error(err);
-         showToast('server error: ' + (err?.message || 'Failed'), 'error');
-      }
-    };
-  }
-
-  // Create company
-  createBtn.onclick = () => showCompanyModal('Create Company');
-
-  // Edit company
-  editBtn.onclick = () => showCompanyModal('Edit Company', company);
-});
-
-
-
-    async function checkAuth() {
-  const r = await fetch('/api/auth/me');   // tiny endpoint you add
-  if (!r.ok) { window.location = '/login.html'; return; }
-  const user = await r.json();
-  currentUser = {id:user.id, role:user.role};
-}
-
-
-
-
-
- const STATUS = {
-  IN_TRANSIT: 'In Transit',
-  DELIVERED:  'delivered',
-  CANCELLED:  'cancelled',
-  RECEIVED:   'Received',
-  REJECTED:   'Rejected'
-};
-
-    function isAdmin() { return currentUser.role === 'admin'; }
-
-   // function $(s){return document.querySelector(s)}
-   // function $all(s){return document.querySelectorAll(s)}
-
-    const $ = document.querySelector.bind(document);
-    const $all = document.querySelectorAll.bind(document);
-
-
-    function formatNGN(n){ return '₦' + (n||0).toLocaleString(); }
- function niceDate(d) {
-  d = new Date(d);
-  return isNaN(d) ? '' : new Intl.DateTimeFormat('en-GB', {
-    day:'numeric',
-    month:'short',
-    year:'numeric'
-  }).format(d);
-}
-
-
-    function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
-      const target = $(`#${route}Section`);
-      if (target) target.classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (route === 'salesViewer') renderSalesViewerPage();
-    }
-
-   async function renderOverviewCards() {
-  const cards = $('#overviewCards');
-  cards.innerHTML = '<div class="muted">Loading...</div>';
-
-  try {
-    // Fetch company data from backend 
-   const res = await fetch(`/api/company`);
-   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-   const company = await res.json();
-
-   if (!company || !company.id) {
-  cards.innerHTML = `<div style="text-align:center;padding:50px;color:#666">
-    <h3>No company yet</h3>
-    <p>Create your company to see stats</p>
-  </div>`;
-  return;
-}
-    cards.innerHTML = '';
-
-    const items = [
-      { title: 'Products Sent', value: company.totalShipments, sub: 'Total shipments' },
-      { title: 'In Transit', value: company.inTransit || 0, sub: 'Awaiting manager approval' }, 
-      { title: 'Total Inventory', value: company.totalStock, sub: 'All warehouses (qty)' }
-    ];
-
-    items.forEach(it => {
-      const c = document.createElement('div');
-      c.className = 'card';
-      c.innerHTML = `<h3>${it.title}</h3>
-                     <div class="value">${it.value}</div>
-                     <div class="small-note">${it.sub}</div>`;
-      cards.appendChild(c);
-    });
-
-    const salesCard = document.createElement('div');
-    salesCard.className = 'card sales-summary';
-    salesCard.id = 'salesSummaryCard';
-   /* salesCard.innerHTML = `
-      <div class="header">
-        <h3>Total Sales</h3>
-        <div id="salesDateDisplay" class="small muted">All time</div>
-      </div>
-      <div class="body">
-        <div><strong id="salesUnits">${company.totalUnitsSold || 0}</strong> units</div>
-        <div><strong id="salesRevenue">₦${Number(company.totalRevenue || 0).toLocaleString()}</strong></div>
-      </div>`; */
-
-      salesCard.innerHTML = `
-  <div class="header">
-    <h3>Total Sales</h3>
-  </div>
-  <div class="body">
-    <div><strong id="salesRevenue">₦${Number(company.totalRevenue || 0).toLocaleString()}</strong></div>
-  </div>`;
-
-    cards.appendChild(salesCard);
-
-    initSalesDatePicker();
-    renderSalesSummary();
-  } catch (err) {
-    cards.innerHTML = `<div class="error">Failed: ${err.message}</div>`;
-     showToast('server error: ' + (err?.message || 'Failed'), 'error');
-    
-  }
-}
-
-
-async function renderShipments() {
-  const tbody = $('#shipmentTable tbody');
-  tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
-  try {
-    const res = await fetch('/api/shipments');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const shipments = await res.json();
-
-    tbody.innerHTML = '';
-    if (shipments.data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="muted">No shipments found</td></tr>';
-      return;
-    }
-
-    shipments.data.slice(0, 6).forEach(s => {
-      const itemCount = s.products.length;
-      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
-      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${niceDate(new Date(s.date))}</td>
-        <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
-        <td style="text-align:center;"><strong>${totalQty}</strong></td>
-        <td>${s.to?.name || s.warehouseName || '—'}</td>
-        <td style="text-align:right;">${formatNGN(totalValue)}</td>
-        <td><span class="pill">${s.status}</span></td>
-        <td style="text-align: right; white-space: nowrap; padding-right: 20px;">
-  <button class="view-details btn"
-          style="font-size:11px; padding:6px 12px; background:var(--blue); color:white; border-radius:8px; margin-right:6px;"
-          data-id="${s.id}">
-    View
-  </button>
-  ${s.status === 'In Transit' ? 
-    `<button class="cancel-shipment btn"
-            style="font-size:11px; padding:6px 12px; background:#dc3545; color:white; border-radius:8px;"
-            data-id="${s.id}">
-      Cancel
-    </button>` 
-    : ''
-  }
-</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="error">Failed: ${err.message}</td></tr>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-  }
-}
-
-   const ITEMS_PER_PAGE = 10;
-let currentPage = 1;
-let totalPages = 1;
-
-
-async function renderProducts() {
-  const tbody = $('#productTable tbody');
-  const pagination = $('#pagination');
-  tbody.innerHTML = '';
-  pagination.innerHTML = '';
-
-  try {
-    // Fetch paginated data
-    const res = await fetch(`/api/products?page=${currentPage}&limit=${ITEMS_PER_PAGE}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    totalPages = data.totalPages || 1;
-
-    // Render table rows
-    data.products.forEach(p => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${p.sku}</td>
-        <td>${p.name}</td>
-        <td><strong>${p.qty}</strong></td>
-        <td>${p.companyName}</td>
-        <td>${formatNGN(p.unitPrice)}</td>
-        <td>
-          <button class="btn secondary" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editProduct('${p.id}')">Edit</button>
-          <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="confirmDeleteProduct('${p.id}')">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    // Render pagination only if totalPages > 0
-    if (totalPages > 0) {
-      const prevBtn = document.createElement('button');
-      prevBtn.className = 'btn secondary';
-      prevBtn.textContent = 'Prev';
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.onclick = () => { currentPage--; renderProducts(); };
-      pagination.appendChild(prevBtn);
-
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.className = i === currentPage ? 'btn' : 'btn secondary';
-        btn.textContent = i;
-        btn.onclick = () => { currentPage = i; renderProducts(); };
-        pagination.appendChild(btn);
-      }
-
-      const nextBtn = document.createElement('button');
-      nextBtn.className = 'btn secondary';
-      nextBtn.textContent = 'Next';
-      nextBtn.disabled = currentPage === totalPages;
-      nextBtn.onclick = () => { currentPage++; renderProducts(); };
-      pagination.appendChild(nextBtn);
-    }
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="error">Failed: ${err.message}</td></tr>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-  }
-}
-
-
-async function renderQuickStats() {
-  const el = $('#quickStats');
-  el.innerHTML = '<div class="muted small">Loading...</div>';
-
-  try {
-    const res = await fetch('/api/stats/warehouse-stock');
-    if (!res.ok) throw new Error();
-    let data = await res.json();
-
-    // Sort descending by stock
-    data.sort((a, b) => b.totalStock - a.totalStock);
-
-    el.innerHTML = '';
-    data.slice(0, 2).forEach(w => {
-      const div = document.createElement('div');
-      div.className = 'mini-item';
-      div.innerHTML = `<div>${w.name}<br><small class="muted">${w.location}</small></div><div><strong>${w.totalStock.toLocaleString()}</strong></div>`;
-      el.appendChild(div);
-    });
-
-    if (data.length === 0) el.innerHTML = '<div class="muted small">No warehouses</div>';
-  } catch(err) {
-    el.innerHTML = '<div class="muted small">Failed to load</div>';
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-
-   async function renderTopOutlets() {
-  const el = $('#topOutlets');
-  el.innerHTML = '<div class="muted small">Loading...</div>';
-
-  try {
-    const sort = 'stock'; // or 'revenue' if you want sales later
-    const res = await fetch(`/api/stats/top-outlets?sort=${sort}&limit=2`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-
-    el.innerHTML = '';
-    data.slice(0, 2).forEach(o => {
-      const value = sort === 'revenue' ? formatNGN(o.revenue) : o.totalStock.toLocaleString();
-
-      const div = document.createElement('div');
-      div.className = 'mini-item';
-      div.innerHTML = `
-        <div>${o.name}<br><small class="muted">${o.location}</small></div>
-        <div class="pill">${value}</div>
-      `;
-      el.appendChild(div);
-    });
-
-    if (data.length === 0) el.innerHTML = '<div class="muted small">No outlets</div>';
-  } catch(err)  {
-    el.innerHTML = '<div class="muted small">Failed</div>';
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-    
-   async function renderPending() {
-  $('#pendingWidget').style.display = 'none';
-  const list = $('#pendingList');
-  list.innerHTML = '';
-
-  try {
-    const res = await fetch('/api/shipments');
-    if (!res.ok) throw new Error(`Failed to fetch shipments: ${res.status}`);
-    const shipments = await res.json();
-
-    const pending = shipments.data.filter(s => s.status === 'In Transit');
-
-    if (pending.length === 0) {
-      list.innerHTML = '<div class="mini-item muted">No pending shipments</div>';
-      return;
-    }
-
-    pending.forEach(s => {
-      const div = document.createElement('div');
-      div.className = 'mini-item';
-      div.innerHTML = `<div>${s.productName} × ${s.qty}</div>`;
-      list.appendChild(div);
-    });
-  } catch (err) {
-    list.innerHTML = `<div class="mini-item muted">Error: ${err.message}</div>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-async function renderWarehouses() {
-  const container = document.getElementById('warehousesList');
-  container.innerHTML = '<div class="muted">Loading...</div>';
-
-  try {
-    const res = await fetch('/api/warehouses');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const warehouses = await res.json();
-
-    container.innerHTML = '';
-
-    warehouses.forEach(w => {
-      // Ensure defaults for missing fields
-      const totalOutlets = w.totalOutlets || 0;
-      const totalProducts = w.totalProducts || 0;
-      const totalShipments = w.totalShipments || 0;
-      const totalStock = w.totalStock || 0;
-      const totalRevenue = w.totalRevenue || 0;
-
-      const box = document.createElement('div');
-      box.className = 'box';
-      box.innerHTML = `
-        <h4 style="display:flex; justify-content:space-between; gap:8px; margin-bottom:6px">
-          <span>${w.name}</span>
-          <div>
-            <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editWarehouse('${w.id}')">Edit</button>
-            <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="confirmDeleteWarehouse('${w.id}')">Delete</button>
-          </div>
-        </h4>
-        <p class="location">${w.location}</p>
-        <p class="small muted" style="margin:4px 0">Manager: <strong>${w.manager || '—'}</strong></p>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; font-size:12px">
-          <div><strong>${totalOutlets}</strong> Outlets</div>
-          <div><strong>${totalProducts}</strong> Products</div>
-          <div><strong>${totalShipments}</strong> Shipments</div>
-          <div><strong>${formatNGN(totalRevenue)}</strong> Revenue</div>
-        </div>
-
-        <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
-          <div><div class="stock">${totalStock}</div><div class="badge">In Stock</div></div>
-         <a href="/warehouse.html?warehouseId=${w.id}" 
-          target="_blank"
-          class="btn" 
-          style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
-          Open Dashboard
-         </a>
-   </div>
-      `;
-      container.appendChild(box);
-    });
-
-  } catch (err) {
-    container.innerHTML = `<div class="error">Failed: ${err.message}</div>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-  async function renderOutlets() {
-  const container = document.getElementById('outletsList');
-  container.innerHTML = '<div class="muted">Loading outlets...</div>';
-
-  try {
-    const res = await fetch('/api/outlets'); // call your backend
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const outlets = await res.json();
-
-    container.innerHTML = '';
-
-    outlets.forEach(o => {
-      const totalStock = o.totalStock || 0;
-      const revenue = o.revenue || 0;
-
-      const box = document.createElement('div');
-      box.className = 'box';
-      box.innerHTML = `
-        <h4 style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px">
-          <span>${o.name}</span>
-          <div>
-            <button class="btn secondary" style="font-size:10px; padding:2px 6px; margin-right:4px" onclick="editOutlet('${o.id}')">Edit</button>
-            <button class="btn" style="background:var(--dark-red); font-size:10px; padding:2px 6px" onclick="confirmDeleteOutlet('${o.id}')">Delete</button>
-          </div>
-        </h4>
-        <p class="location">${o.location}</p>
-    ${o.repNames && o.repNames.length > 0
-  ? `<p class="small muted" style="margin:4px 0">
-       Sales Rep${o.repNames.length > 1 ? 's' : ''}:
-       <strong>
-         ${o.repNames.slice(0, 2).join(', ')}${o.repNames.length > 2 ? ` +${o.repNames.length - 2} other${o.repNames.length - 2 > 1 ? 's' : ''}` : ''}
-       </strong>
-     </p>`
-  : `<p class="small muted" style="margin:4px 0">Sales Rep: <strong>None assigned</strong></p>`
-}
-        ${o.phone 
-          ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
-          : ''
-        }
-        <div class="stats" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px">
-          <div><div class="stock">${Number(totalStock || 0).toLocaleString()}</div><div class="badge">In Stock</div></div>
-          <div><div class="stock">${formatNGN(revenue)}</div><div class="badge">Sales</div></div>
- </div>
-                <a href="/outlet.html?outletId=${o.id}" 
-     target="_blank"
-     class="btn" 
-     style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
-     Open Dashboard
-  </a>
-      `;
-      container.appendChild(box);
-    });
-
-  } catch (err) {
-    console.error('Fetch error:', err);
-    container.innerHTML = `<div class="muted">Failed to load: ${err.message}</div>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-  async function renderAccounts() {
-  const tbody = $('#accountsTable tbody');
-  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-
-  try {
-    const res = await fetch('/api/accounts');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const accounts = await res.json();
-
-    tbody.innerHTML = '';
-    accounts.forEach(acc => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${acc.name}</strong></td>
-        <td><span class="pill">${acc.role}</span></td>
-        <td>${acc.email || '—'}</td>
-        <td>${acc.phone || '—'}</td>
-        <td><span class="pill" style="background:rgba(34,197,94,0.1);color:#166534">Active</span></td>
-        <td>
-          <button class="btn" style="font-size:11px;padding:4px 8px;margin-right:4px" onclick="editUser('${acc.id}')">Edit</button>
-          <button class="btn" style="background:var(--dark-red);font-size:11px;padding:4px 8px" onclick="confirmDeleteUser('${acc.id}')">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6">Failed: ${err.message}</td></tr>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-
-    function renderPag(c,total,cur,cb){
-      const pages=Math.ceil(total/ITEMS_PER_PAGE); c.innerHTML='';
-      const prev=document.createElement('button'); prev.textContent='← Prev'; prev.disabled=cur===1; prev.onclick=()=>cb(cur-1); c.appendChild(prev);
-      for(let i=1;i<=pages;i++){
-        if(i===1||i===pages||Math.abs(i-cur)<=2){
-          const b=document.createElement('button'); b.textContent=i; b.className=i===cur?'active':''; b.onclick=()=>cb(i); c.appendChild(b);
-        }else if(c.lastChild && c.lastChild.textContent!=='...'){
-          const d=document.createElement('span'); d.textContent='...'; d.style.padding='0 8px'; c.appendChild(d);
-        }
-      }
-      const next=document.createElement('button'); next.textContent='Next →'; next.disabled=cur===pages; next.onclick=()=>cb(cur+1); c.appendChild(next);
-    }
-
-
-  function applySalesFilter() {
-  salesFilter.start = $('#filterStart').value;
-  salesFilter.end = $('#filterEnd').value;
-  curSales = 1;
-  renderSales();
-}
-   
-
-
-function clearSalesFilter() {
-  $('#filterStart').value = '';
-  $('#filterEnd').value = '';
-  salesFilter = { start: null, end: null };
-  curSales = 1;
-  renderSales();
-}
-
-
- const SALES_PER_PAGE = 10; // items per page
-let curSales = 1;          // current page
-let salesFilter = { start: null, end: null }; // optional filters
-
-async function renderSales(page = 1) {
-  curSales = page;
-  const tbody = $('#salesTable tbody');
-  tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
-
-  try {
-    // build query params
-    const q = new URLSearchParams({ page, limit: SALES_PER_PAGE });
-    if (salesFilter.start) q.set('startDate', salesFilter.start);
-    if (salesFilter.end) q.set('endDate', salesFilter.end);
-
-    // fetch paginated sales from backend
-    const res = await fetch(`/api/sales?${q.toString()}`);
-    const json = await res.json();
-
-    if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
-
-    const sales = json.data || [];
-    window.lastSalesData = { data: sales };
-    const totalCount = json.totalCount || 0;
-
-    if (!sales.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="muted">No sales</td></tr>';
-    } else {
-      let pageGrandTotal = 0;
-
-tbody.innerHTML = sales.map(s => {
-  pageGrandTotal += s.totalAmount || 0;
-
-  // Build product list: each product on new line with quantity
-  const productLines = s.items && s.items.length > 0
-    ? s.items.map(item => `<strong>${item.productName}</strong> × ${item.qty}`).join('<br>')
-    : 'No items';
-
-  return `
-    <tr>
-      <td style="vertical-align:top;">${s.date}</td>
-      <td style="vertical-align:top; line-height:1.6;">${productLines}</td>
-      <td style="vertical-align:top;"><strong>${s.totalQty}</strong></td>
-      <td style="vertical-align:top;">${s.itemCount} item${s.itemCount > 1 ? 's' : ''}</td>
-      <td style="vertical-align:top;">${s.outletName}</td>
-      <td style="vertical-align:top;">${s.repName || '—'}</td>
-      <td style="vertical-align:top;"><span class="pill">${s.status}</span></td>
-      <td style="vertical-align:top;">
-        ${s.sentFrom || '—'}
-        ${s.senderPhone ? `<br><small>${s.senderPhone}</small>` : ''}
-      </td>
-      <td style="white-space:nowrap; vertical-align:top;">
-        <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
-      </td>
-    </tr>
-  `;
-}).join('') +
-
-// Grand Total Row
-`<tr style="background:#e3f2fd; font-weight:700; border-top:3px double #1976d2;">
-  <td colspan="8" style="text-align:right; padding:16px 12px; font-size:15px;">
-    Grand Total (this page):
-  </td>
-  <td style="text-align:left; padding:16px 12px; font-size:15px; color:#0b5ed7;">
-    ${formatNGN(pageGrandTotal)}
-  </td>
-</tr>`;
-    }
-
-    // render pagination buttons
-    renderPag($('#salesPagination'), totalCount, curSales, n => renderSales(n));
-
-  } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999">Failed to load sales</td></tr>';
-    console.error('Failed to load sales:', err);
-    showToast('Server error: ' + (err?.message || 'Failed'), 'error');
-  }
-}
-
-function viewSale(groupId) {
-  const sale = window.lastSalesData?.data.find(s => s.id === groupId);
-  if (!sale) return showToast('Sale not found', 'error');
-
-  // Set date, items count, and who recorded
-  $('#saleDate').textContent = `${sale.date} ${sale.time} | Recorded by: ${sale.repName}`;
-  $('#itemCount').textContent = `${sale.itemCount} item${sale.itemCount > 1 ? 's' : ''}`;
-
-  // Build items table
-  let itemsHTML = '';
-  let grandTotal = 0;
-  sale.items.forEach(item => {
-    const lineTotal = item.qty * item.unitPrice;
-    grandTotal += lineTotal;
-
-    itemsHTML += `
-      <tr>
-        <td><strong>${item.productName}</strong></td>
-        <td style="text-align:center;">${item.qty}</td>
-        <td style="text-align:right;">₦${item.unitPrice.toLocaleString()}</td>
-        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
-      </tr>
-    `;
-  });
-
-  $('#viewItems').innerHTML = itemsHTML;
-  $('#viewModal .grand-total').textContent = '₦' + grandTotal.toLocaleString();
-  $('#viewModal').style.display = 'flex';
-}
-
-
-let fullSalesTargetId = null;
-let fullSalesTargetType = null;
-let fullSalesPage = 1;
-const FULL_SALES_PER_PAGE = 10;
-let fullSalesPicker = null;
-
-function openFullSalesPage(id, type) {
-  fullSalesTargetId = id;
-  fullSalesTargetType = type;
-  fullSalesPage = 1;
-  navigateTo('fullSales');
-  renderFullSales();
-}
-
-$('#backFromFullSalesBtn').addEventListener('click', () => {
-  const prev = fullSalesTargetType === 'outlet' ? 'outlets' : 'warehouses';
-  navigateTo(prev);
-});
-
-async function renderFullSales() {
-  const filterDates = fullSalesPicker?.selectedDates;
-  const hasRange = filterDates && filterDates.length === 2;
-  const from = hasRange ? filterDates[0].toISOString().slice(0,10) : null;
-  const to = hasRange ? filterDates[1].toISOString().slice(0,10) : null;
-
-  try {
-    const query = new URLSearchParams({
-      id: fullSalesTargetId,
-      type: fullSalesTargetType,
-      page: fullSalesPage,
-      limit: FULL_SALES_PER_PAGE
-    });
-    if (from && to) {
-      query.append('startDate', from);
-      query.append('endDate', to);
-    }
-
-    const res = await fetch(`/api/sales/full?${query}`);
-    const data = await res.json();
-    const sales = data.data || [];
-
-    const tbody = $('#fullSalesTable tbody');
-    tbody.innerHTML = '';
-
-    if (!sales.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#999">No sales found</td></tr>`;
-    } else {
-      sales.forEach(s => {
-        const line = s.qty * (s.unitPrice || 0);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${s.date}</td>
-          <td>${s.sku || '—'}</td>
-          <td>${s.productName}</td>
-          <td><strong>${s.qty}</strong></td>
-          <td>${s.repName}</td>
-          <td>${formatNGN(s.unitPrice || 0)}</td>
-          <td>${formatNGN(line)}</td>
-          <td><span class="pill">${s.status}</span></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // Pagination
-    const pagination = $('#fullSalesPagination');
-    pagination.innerHTML = '';
-    const totalPages = Number(data.totalPages) || 1;
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn secondary';
-    prevBtn.textContent = 'Prev';
-    prevBtn.disabled = fullSalesPage === 1;
-    prevBtn.onclick = () => { fullSalesPage--; renderFullSales(); };
-    pagination.appendChild(prevBtn);
-
-    for (let i = 1; i <= totalPages; i++) {
-      const b = document.createElement('button');
-      b.className = 'btn' + (i === fullSalesPage ? '' : ' secondary');
-      b.textContent = i;
-      b.onclick = () => { fullSalesPage = i; renderFullSales(); };
-      pagination.appendChild(b);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn secondary';
-    nextBtn.textContent = 'Next';
-    nextBtn.disabled = fullSalesPage === totalPages;
-    nextBtn.onclick = () => { fullSalesPage++; renderFullSales(); };
-    pagination.appendChild(nextBtn);
-
-  } catch (err) {
-    console.error('Failed to fetch full sales:', err);
-    $('#fullSalesTable tbody').innerHTML = `<tr><td colspan="8" style="text-align:center;color:#999">Failed to load sales</td></tr>`;
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-function initFullSalesPicker() {
-  if (fullSalesPicker) return;
-  fullSalesPicker = flatpickr('#fullSalesDatePicker', {
-    mode: 'range',
-    dateFormat: 'Y-m-d',
-    onChange: () => { fullSalesPage = 1; renderFullSales(); }
-  });
-}
-
-const originalNavigateTo = navigateTo;
-navigateTo = function(route) {
-  originalNavigateTo(route);
-  if (route === 'fullSales') initFullSalesPicker();
-};
-
-let salesPicker = null;
-function initSalesDatePicker(){
-  const container = $('#salesDateContainer');
-  container.innerHTML = ''; // clear any existing
-  const input = document.createElement('input');
-  input.type='text';
-  input.placeholder='Pick range';
-  input.style.cssText='padding:4px 8px;border-radius:6px;border:1px solid #e6eefb;font-size:12px;width:100%';
-  container.appendChild(input);
-
-  salesPicker = flatpickr(input, {
-    mode:'range',
-    dateFormat:'Y-m-d',
- onChange: dates => {
-  if (dates.length === 2) {
-    const start = dates[0] < dates[1] ? dates[0] : dates[1];
-    const end   = dates[0] < dates[1] ? dates[1] : dates[0];
-    salesFilter.start = start.toISOString().slice(0,10);
-    salesFilter.end   = end.toISOString().slice(0,10);
-    $('#salesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
-  } else {
-    salesFilter.start = salesFilter.end = null;
-    $('#salesDateDisplay').textContent = 'All time';
-  }
-  curSales = 1;
-  renderSales();
-}
- });
-}
-
-async function renderSalesSummary() {
-  const from = $('#salesDateDisplay').dataset.from;
-  const to   = $('#salesDateDisplay').dataset.to;
-
-  try {
-    const query = new URLSearchParams();
-
-    // Include date range if selected
-    if (from && to) {
-      query.append('startDate', from);
-      query.append('endDate', to);
-    }
-
-    // Include outlet or warehouse ID if set
-    if (fullSalesTargetId && fullSalesTargetType) {
-      query.append('id', fullSalesTargetId);
-      query.append('type', fullSalesTargetType); // "outlet" or "warehouse"
-    }
-
-    const res = await fetch(`/api/sales/summary?${query}`);
-    const data = await res.json();
-
-    $('#salesUnits').textContent = (data.units || 0).toLocaleString();
-    $('#salesRevenue').textContent = formatNGN(data.revenue || 0);
-  } catch (err) {
-    console.error('Failed to fetch sales summary:', err);
-    $('#salesUnits').textContent = '0';
-    $('#salesRevenue').textContent = formatNGN(0);
-      showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-}
-
-
-   
-  function showModal(html) {
-  const backdrop = $('#modalBackdrop');
-  const modal = $('#modal');
-  if (!backdrop || !modal) {
-    console.error('Modal elements not found!');
-    return;
-  }
-  modal.innerHTML = html;
-  backdrop.style.display = 'flex';
-}
-    function closeModal(){ $('#modalBackdrop').style.display='none'; $('#modal').innerHTML=''; }
-
-   
-
-    //CREATE A WAREHOUSE FUNCTION
-    //CREATE A WAREHOUSE FUNCTION
-    //CREATE A WAREHOUSE FUNCTION
-    $('#createWarehouseBtn').addEventListener('click', async () => {
-      $('#createWarehouseBtn').disabled = true;
-  try {
-    // Fetch accounts from backend to populate manager dropdown
-    const resAccounts = await fetch('/api/accounts');
-    if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
-    const accounts = await resAccounts.json();
-
-    const managerOptions = accounts.map(
-      acc => `<option value="${acc.id}">${acc.name} (${acc.role})</option>`
-    ).join('');
-
-    // Show modal
-    showModal(`
-      <h4>Create Warehouse</h4>
-      <div class="form-row"><input id="whName" placeholder="Warehouse name" required /></div>
-      <div class="form-row"><input id="whLocation" placeholder="Location (e.g. Ikeja, Lagos)" required /></div>
-      <div class="form-row">
-        <select id="whManager">
-          <option value="">No manager</option>
-          ${managerOptions}
-        </select>
-      </div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveWh">Create</button>
-      </div>
-    `);
-
-    // Save button handler
-    $('#saveWh').onclick = async () => {
-     $('#saveWh').disabled = true;
-
-      const name = $('#whName').value.trim();
-      const location = $('#whLocation').value.trim();
-      const managerId = $('#whManager').value || null;
-
-      if (!name || !location) return alert('Fill name and location');
-
-      const res = await fetch('/api/warehouses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, location, managerId })
-      });
-
-      $('#saveWh').disabled = false;
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create warehouse');
-      }
-
-      // Fetch the newly created warehouse from backend
-      const data = await res.json();
-      closeModal();
-      renderWarehouses(); // Re-fetch warehouses from backend inside renderWarehouses()
-    };
-
-  } catch (err) {
-    showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  } finally{
-    $('#createWarehouseBtn').disabled = false;
-  }
-});
-
-
-   $('#createOutletBtn').addEventListener('click', async () => {
-  try {
-    // 1️⃣ Fetch warehouses from backend
-    const resWarehouses = await fetch('/api/warehouses');
-    if (!resWarehouses.ok) throw new Error('Failed to fetch warehouses');
-    const warehouses = await resWarehouses.json();
-
-    // 2️⃣ Fetch accounts/reps from backend
-    const resAccounts = await fetch('/api/accounts');
-    if (!resAccounts.ok) throw new Error('Failed to fetch accounts');
-    const accounts = await resAccounts.json();
-    const reps = accounts.filter(a => a.role === 'rep');
-
-    // 3️⃣ Show modal
-    showModal(`
-      <h4>Create Outlet</h4>
-      <div class="form-row"><input id="outName" placeholder="Outlet name" /></div>
-      <div class="form-row">
-        <select id="outWh">
-          ${warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-row">
-  <label>Sales Rep(s)</label>
-  <select id="outRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${reps.map(r => `<option value="${r.id}">${r.name}</option>`).join('')}
-  </select>
-  <small class="muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple reps.<br>Leave empty for no rep.</small>
-</div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveOut">Create</button>
-      </div>
-    `);
-
-    // 4️⃣ Save button
-    $('#saveOut').onclick = async () => {
-      const name = $('#outName').value.trim();
-      const warehouseId = $('#outWh').value;
-      const selectedOptions = Array.from($('#outRep').selectedOptions);
-      const repIds = selectedOptions.map(opt => opt.value);
-      const repNames = selectedOptions.map(opt => opt.textContent.trim());
-
-      if (!name || !warehouseId) return alert('Name and warehouse required');
-
-      // Find selected warehouse to get name and location
-      const warehouse = warehouses.find(w => w.id === warehouseId);
-
-      // POST to backend
-      const res = await fetch('/api/outlets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          warehouseId,
-          warehouseName: warehouse.name,
-          location: warehouse.location, 
-          repIds,     
-          repNames
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Failed to create outlet');
-      }
-
-      const data = await res.json();
-
-      closeModal();
-      renderOutlets();
-    };
-
-  } catch (err) {
-       showToast('server error: ' + (err?.message || 'Failed'), 'error');
-
-  }
-});
-
-
-
-//ADD PRODUCT FUNCTION
-//ADD PRODUCT FUNCTION
-//ADD PRODUCT FUNCTION
- $('#addProductBtn').addEventListener('click', () => {
-  showModal(`
-    <h4>Add Product / Inventory</h4>
-    <div class="form-row"><input id="sku" placeholder="SKU (eg PRD-001)" /></div>
-    <div class="form-row"><input id="pname" placeholder="Product name" /></div>
-    <div class="form-row"><input id="pqty" type="number" placeholder="Quantity" /></div>
-    <div class="form-row"><input id="pprice" type="number" placeholder="Unit price (NGN)" /></div>
-    <div style="text-align:right">
-      <button class="btn secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn" id="saveProd">Save</button>
-    </div>
-  `);
-
-  const saveBtn = document.getElementById('saveProd'); // get after modal
-  if (!saveBtn) return;
-
-  saveBtn.onclick = async () => {
-    saveBtn.disabled = true;
-
-    const sku = document.getElementById('sku').value.trim();
-    const name = document.getElementById('pname').value.trim();
-    const qty = Number(document.getElementById('pqty').value);
-    const unitPrice = Number(document.getElementById('pprice').value);
-
-    if (!sku || !name || qty <= 0 || unitPrice <= 0) {
-      showToast('Fill all fields correctly', 'info');
-      saveBtn.disabled = false;
-      return;
-    }
-
-    try {
-      const companyRes = await fetch('/api/company');
-      const company = await companyRes.json();
-
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sku,
-          name,
-          qty,
-          unitPrice,
-          companyId: company.id,
-          companyName: company.name
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) return showToast(data.message || 'Failed to create product', 'error');
-
-      closeModal();
-      showToast('Product created successfully', 'success');
-      renderProducts();
-      refreshAll();
-      navigateTo('products');
-    } catch (err) {
-      console.error(err);
-      showToast('Server error: ' + err?.message, 'error');
-    } finally {
-      saveBtn.disabled = false;
-    }
-  };
-});
-
-
-
-//ADD USER FUNCTION
-//ADD USER FUNCTION
-//ADD USER FUNCTION
-$('#addUserBtn').addEventListener('click', async () => {
-  try {
-    // Fetch roles from backend
-    const resRoles = await fetch('/api/roles');
-    if (!resRoles.ok) throw new Error('Failed to fetch roles');
-    const roles = await resRoles.json(); 
-    const roleOptions = roles.map(r => `<option value="${r}">${r}</option>`).join('');
-
-    // Show modal
-    showModal(`
-      <h4>Add User</h4>
-      <div class="form-row"><input id="newName" placeholder="Full name" /></div>
-      <div class="form-row"><input id="newEmail" type="email" placeholder="Email" /></div>
-      <div class="form-row"><input id="newPhone" placeholder="Phone (e.g. +234 800 000 0000)" /></div>
-      <div class="form-row">
-        <select id="newRole">
-          ${roleOptions}
-        </select>
-      </div>
-      <div class="form-row"><input id="newPassword" type="password" placeholder="Password" /></div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveNew">Create</button>
-      </div>
-    `);
-
-    // Save button
-    const saveBtn = document.getElementById('saveNew');
-    if (!saveBtn) return console.error('Save button not found');
-
-
-    saveBtn.onclick = async () => {
-      saveBtn.disabled = true;
-
-       showLoader();
-      const name = $('#newName').value.trim();
-      const email = $('#newEmail').value.trim();
-      const phone = $('#newPhone').value.trim();
-      const role = $('#newRole').value;
-      const password = $('#newPassword').value.trim();
-
-      if (!name || !email || !password || password.length < 6) {
-          hideLoader();
-          saveBtn.disabled = false;
-      return showToast('Name, email, and password(at least 6 characters), are required', 'error');
-         }
-
-
-      try {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, phone, role, password })
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-            hideLoader();
-             saveBtn.disabled = false;
-            return showToast(data.message || 'Failed to create user', 'error');
-        }
-
-        closeModal();
-        hideLoader();
-        showToast('User created successfully', 'success');
-        renderAccounts(); 
-      } catch (err) {
-        console.error(err);
-        showToast('Server error', 'error');
-      } finally{
-             saveBtn.disabled = false;
-      }
-    };
-
-  } catch (err) {
-    console.error(err);
-    showModal('Failed to load roles', 'error');
-  }
-});
-
-
-$('#shipToWarehouseBtn').addEventListener('click', openMultiShipmentModal);
-
-let shipmentCart = [];
-
-async function openMultiShipmentModal() {
-  shipmentCart = [];
-  try {
-    const whRes = await fetch('/api/warehouses');
-    if (!whRes.ok) throw new Error('Failed to load warehouses');
-    const warehouses = await whRes.json();
-
-    const compRes = await fetch('/api/company');
-    if (!compRes.ok) throw new Error('Failed to load company');
-    const company = await compRes.json();
-
-    const prodRes = await fetch(`/api/products/company/${company.id}`);
-    if (!prodRes.ok) throw new Error('Failed to load products');
-    const prodData = await prodRes.json();
-    const products = Array.isArray(prodData) ? prodData : (prodData.products || []);
-
-    if (warehouses.length === 0) return showToast('No warehouses available', 'error');
-    if (products.length === 0) return showToast('No products in stock', 'error');
-
-    const warehouseOptions = warehouses
-      .map(w => `<option value="${w.id}">${w.name} (${w.location})</option>`)
-      .join('');
-
-    const productOptions = products
-      .filter(p => p.qty > 0)
-      .map(p => `
-        <option value="${p.id}"
-                data-qty="${p.qty}"
-                data-price="${p.unitPrice || 0}">
-          ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
-        </option>
-      `)
-      .join('');
-
-    // Insert HTML
-    showModal(`
-      <h3>Ship Multiple Products</h3>
-      <div id="successMsg" class="success" style="display:none;">Shipment created successfully!</div>
-      <div class="form-row">
-        <label>Destination Warehouse</label>
-        <select id="targetWarehouseSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
-          <option value="">Select warehouse...</option>
-          ${warehouseOptions}
-        </select>
-      </div>
-      <table style="width:100%;margin:16px 0;">
-        <thead style="background:#f8fafc;">
-          <tr>
-            <th style="text-align:left;padding:10px;">Product</th>
-            <th style="width:100px;">Qty</th>
-            <th style="width:120px;">Unit Price</th>
-            <th style="width:100px;">Total</th>
-            <th style="width:40px;"></th>
-          </tr>
-        </thead>
-        <tbody id="shipmentItems"></tbody>
-      </table>
-      <div class="form-row">
-        <select id="productSelect" style="width:100%;padding:10px;">
-          <option value="">Select product to add...</option>
-          ${productOptions}
-        </select>
-      </div>
-      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
-        <div style="flex:1;">
-          <label>Quantity</label>
-          <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
-        </div>
-        <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
-      </div>
-      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
-        Total Quantity: <span id="shipmentTotalQty">0</span> units
-      </div>
-      <div style="text-align:right;margin-top:20px;">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="confirmShipmentBtn" disabled>Create Shipment</button>
-      </div>
-    `);
-
-    // Safe render — use setTimeout to ensure DOM is ready
-    setTimeout(() => {
-      renderShipmentCart();
-
-      // Now attach listeners safely
-      const addBtn = $('#addShipmentItemBtn');
-      const confirmBtn = $('#confirmShipmentBtn');
-      const warehouseSelect = $('#targetWarehouseSelect');
-
-      if (addBtn) addBtn.onclick = addItemToShipmentCart;
-      if (confirmBtn) confirmBtn.onclick = confirmMultiShipment;
-      if (warehouseSelect) {
-        warehouseSelect.onchange = () => {
-          const enabled = !!warehouseSelect.value && shipmentCart.length > 0;
-          if (confirmBtn) confirmBtn.disabled = !enabled;
-        };
-      }
-    }, 0);
-
-  } catch (err) {
-    console.error('Modal error:', err);
-    showToast('Failed to open shipment modal: ' + err.message, 'error');
-  }
-}
-
-function renderShipmentCart() {
-  const tbody = $('#shipmentItems');
-  if (shipmentCart.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added yet</td></tr>';
-    $('#confirmShipmentBtn').disabled = true;
-    $('#shipmentTotalQty').textContent = '0';
-    return;
-  }
-
-  let totalQty = 0;
-  tbody.innerHTML = shipmentCart.map((item, i) => {
-    const lineTotal = item.qty * item.price;
-    totalQty += item.qty;
-    return `
-      <tr>
-        <td style="padding:8px;"><strong>${item.name}</strong></td>
-        <td>
-          <input type="number" min="1" max="${item.max}" value="${item.qty}"
-                 onchange="updateShipmentQty(${i}, this.value)" style="width:70px;padding:6px;">
-        </td>
-        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
-        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
-        <td><button onclick="removeShipmentItem(${i})" style="color:#b71c1c;background:none;border:none;font-size:18px;">×</button></td>
-      </tr>
-    `;
-  }).join('');
-
-  $('#shipmentTotalQty').textContent = totalQty.toLocaleString();
-  const warehouseSelected = !!$('#targetWarehouseSelect')?.value;
-  $('#confirmShipmentBtn').disabled = !(warehouseSelected && shipmentCart.length > 0);
-}
-
-function addItemToShipmentCart() {
-  const select = $('#productSelect');
-  const qtyInput = $('#qtyInput');
-  if (!select.value) return showToast('Select a product', 'error');
-
-  let qty = parseInt(qtyInput.value) || 1;
-  const option = select.selectedOptions[0];
-  const max = parseInt(option.dataset.qty);
-  const price = parseFloat(option.dataset.price) || 0;
-  const name = option.text.split(' (')[0];
-
-  if (qty > max) return showToast(`Only ${max} available`, 'error');
-
-  const existingIndex = shipmentCart.findIndex(it => it.productId === select.value);
-  if (existingIndex > -1) {
-    const newQty = shipmentCart[existingIndex].qty + qty;
-    if (newQty > max) {
-      shipmentCart[existingIndex].qty = max;
-      showToast(`Quantity capped at ${max}`, 'info');
-    } else {
-      shipmentCart[existingIndex].qty = newQty;
-    }
-  } else {
-    shipmentCart.push({
-      productId: select.value,
-      name,
-      price,
-      qty,
-      max
-    });
-  }
-
-  qtyInput.value = 1;
-  select.value = '';
-  renderShipmentCart();
-}
-
-function updateShipmentQty(index, newVal) {
-  let qty = parseInt(newVal) || 1;
-  if (qty > shipmentCart[index].max) {
-    qty = shipmentCart[index].max;
-    showToast(`Maximum available: ${qty}`, 'info');
-  }
-  shipmentCart[index].qty = qty;
-  renderShipmentCart();
-}
-
-function removeShipmentItem(index) {
-  shipmentCart.splice(index, 1);
-  renderShipmentCart();
-}
-
-async function confirmMultiShipment() {
-  const warehouseId = $('#targetWarehouseSelect').value;
-  if (!warehouseId) return showToast('Select a destination warehouse', 'error');
-  if (shipmentCart.length === 0) return showToast('Add at least one item', 'error');
-
-  $('#confirmShipmentBtn').disabled = true;
-  $('#confirmShipmentBtn').textContent = 'Creating...';
-
-  const items = shipmentCart.map(item => ({
-    productId: item.productId,
-    qty: item.qty
-  }));
-
-  const payload = {
-    fromId: (await fetch('/api/company').then(r => r.json())).id,
-    toId: warehouseId,
-    fromType: 'Company',
-    toType: 'Warehouse',
-    products: items,
-    senderId: currentUser.id,
-    senderPhone: currentUser.phone || ''
-  };
-
-  try {
-    const res = await fetch('/api/shipments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed');
-
-    $('#successMsg').style.display = 'block';
-    showToast('Shipment created successfully!', 'success');
-    refreshAll();
-    navigateTo('overview');
-    setTimeout(() => {
-      closeModal();
-      refreshAll(); // refreshes overview, recent shipments, etc.
-    }, 1000);
-
-  } catch (err) {
-    showToast(err.message || 'Failed to create shipment', 'error');
-  } finally {
-    $('#confirmShipmentBtn').disabled = false;
-    $('#confirmShipmentBtn').textContent = 'Create Shipment';
-  }
-}
-
-
-
-$('#shipmentTable').addEventListener('click', async (e) => {
- 
-
-    if (e.target.classList.contains('cancel-shipment')) {
-    const id = e.target.dataset.id;
-    if (!confirm('Are you sure you want to cancel this shipment?')) return;
-
-    try {
-      const res = await fetch(`/api/shipments/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      showToast('Shipment cancelled', 'success');
-      renderShipments(); // refresh table
-    } catch (err) {
-      showToast('Failed to cancel shipment: ' + err.message, 'error');
-    }
-  }
-
-if (e.target.classList.contains('view-details')) {
-  const id = e.target.dataset.id;
-
-  if (!id) {
-    showToast('No shipment ID found', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/shipments/${id}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const shipment = await res.json();
-
-    // Calculate totals
-    const totalQty = shipment.products.reduce((sum, p) => sum + p.qty, 0);
-    const grandTotal = shipment.products.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.style.display = 'flex';
-
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.maxWidth = '720px';
-
-    modal.innerHTML = `
-      <h3 style="margin:0 0 16px; color:var(--blue);">Shipment Details</h3>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; font-size:14px;">
-        <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
-        <div><strong>Status:</strong> <span class="pill">${shipment.status}</span></div>
-        <div><strong>From:</strong> ${shipment.from?.name || 'Company'}</div>
-        <div><strong>To:</strong> ${shipment.to?.name || '—'}</div>
-        ${shipment.senderPhone ? `<div colspan="2"><strong>Sender:</strong> ${shipment.sentFrom || ''} — ${shipment.senderPhone}</div>` : ''}
-      </div>
-
-      <h4 style="margin:20px 0 10px;">Products Shipped</h4>
-      <table class="inner-table">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th style="text-align:center;">Qty</th>
-            <th style="text-align:right;">Unit Price</th>
-            <th style="text-align:right;">Line Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${shipment.products.map(p => {
-            const lineTotal = p.qty * (p.unitPrice || 0);
-            return `
-              <tr>
-                <td><strong>${p.name || 'Unknown Product'}</strong></td>
-                <td style="text-align:center;">${p.qty}</td>
-                <td style="text-align:right;">${formatNGN(p.unitPrice || 0)}</td>
-                <td style="text-align:right;font-weight:600;">${formatNGN(lineTotal)}</td>
-              </tr>
-            `;
-          }).join('')}
-          <tr style="font-weight:700; background:#f8fafc;">
-            <td>Total</td>
-            <td style="text-align:center;">${totalQty}</td>
-            <td colspan="2" style="text-align:right;">${formatNGN(grandTotal)}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div style="text-align:right; margin-top:20px; display:flex; gap:8px; justify-content:flex-end;">
-        <button class="btn" onclick="printShipment(this)">Print Receipt</button>
-        <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
-      </div>
-    `;
-
-    // Print function (attached to the button)
-    window.printShipment = function(btn) {
-      const printWin = window.open('', '', 'width=800,height=700');
-      const itemsHTML = modal.querySelector('table.inner-table tbody').innerHTML.replace(/<tr style="[^"]*">.*?<\/tr>/, ''); // remove total row for print
-      printWin.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Shipment Receipt - ${shipment.id.slice(0,8)}</title>
-            <style>
-              body { font-family: system-ui, sans-serif; padding: 40px; color: #111; }
-              h2 { text-align: center; color: #0b5ed7; margin-bottom: 30px; }
-              .info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; font-size: 15px; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-              th { background: #f8fafc; }
-              .total-row { font-weight: bold; background: #f0f7ff !important; }
-              .grand { font-size: 20px; text-align: right; margin-top: 30px; }
-            </style>
-          </head>
-          <body>
-            <h2>SHIPMENT RECEIPT</h2>
-            <div class="info">
-              <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
-              <div><strong>Status:</strong> ${shipment.status}</div>
-              <div><strong>From:</strong> ${shipment.from?.name || 'Company'}</div>
-              <div><strong>To:</strong> ${shipment.to?.name || '—'}</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th style="text-align:center;">Qty</th>
-                  <th style="text-align:right;">Unit Price</th>
-                  <th style="text-align:right;">Line Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${modal.querySelectorAll('table.inner-table tbody tr:not(:last-child)').outerHTML || itemsHTML}
-                <tr class="total-row">
-                  <td><strong>Total</strong></td>
-                  <td style="text-align:center;"><strong>${totalQty}</strong></td>
-                  <td colspan="2" style="text-align:right;"><strong>${formatNGN(grandTotal)}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="grand">Grand Total: ${formatNGN(grandTotal)}</div>
-            <div style="margin-top:50px; text-align:center; color:#666; font-size:13px;">
-              Generated by WareAdmin • Printed on ${new Date().toLocaleDateString()}
-            </div>
-          </body>
-        </html>
-      `);
-      printWin.document.close();
-      printWin.focus();
-      printWin.print();
-      printWin.close();
-    };
-
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
-
-    // Close on backdrop click
-    backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) {
-        backdrop.remove();
-        delete window.printShipment; // clean up
-      }
-    });
-
-  } catch (err) {
-    console.error('Failed to load shipment:', err);
-    showToast('Failed to load shipment details: ' + err.message, 'error');
-  }
-}
-});
-
-
-
-
-
-
-
-  // Add this near the top of your <script>, after your other global variables
-let isRenderingProducts = false;
-
-// REPLACE your entire current nav click handler with this one:
-document.querySelectorAll('.nav a').forEach(a => {
-  a.addEventListener('click', async e => {
-    e.preventDefault();
-
-    const route = a.dataset.route;
-
-    // === Remove old active states ===
-    $all('.nav a').forEach(x => x.classList.remove('active'));
-    a.classList.add('active');
-    $all('.section').forEach(s => s.classList.remove('active'));
-
-    // === Route handling ===
-    if (route === 'overview') {
-      $('#overviewSection').classList.add('active');
-      refreshAll();
-    }
-    else if (route === 'warehouses') {
-      $('#warehousesSection').classList.add('active');
-      renderWarehouses();
-    }
-    else if (route === 'outlets') {
-      $('#outletsSection').classList.add('active');
-      renderOutlets();
-    }
-    else if (route === 'products') {
-      $('#productsSection').classList.add('active');
-
-      // ← PREVENT DUPLICATE RENDERS WHEN CLICKING FAST
-      if (isRenderingProducts) return;
-      isRenderingProducts = true;
-      currentPage = 1;
-
-      // Show loading right away
-      const tbody = $('#productTable tbody');
-      const pagination = $('#pagination');
-      tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-      pagination.innerHTML = '';
-
-      try {
-        await renderProducts();   // your existing function (already clears & fills)
-      } finally {
-        isRenderingProducts = false;
-      }
-    }
-    else if (route === 'accounts') {
-      $('#accountsSection').classList.add('active');
-      renderAccounts();
-    }
-    else if (route === 'reports') {
-      $('#reportsSection').classList.add('active');
-      renderReports?.();   // safe call in case renderReports is not defined yet
-    }
-    else if (route === 'sales') {
-      $('#salesSection').classList.add('active');
-      renderSales();
-    }
-    else if (route === 'settings') {
-      $('#settingsSection').classList.add('active');
-      renderSettings();
-    }
-  });
-});
-
-  /*  $('#exportBtn').addEventListener('click',()=>{
-      const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
-      const csv='SKU,Name,Qty,Warehouse,UnitPrice\n'+rows;
-      const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='products.csv'; a.click(); URL.revokeObjectURL(url);
-    });   */
-
-   
-
-
-async function editWarehouse(id) {
-  try {
-    // Fetch warehouse data from backend
-    const res = await fetch(`/api/warehouses/${id}`);
-    if (!res.ok) return showToast('Warehouse not found', 'info');
-    const wh = await res.json();
-
-    // Fetch managers for dropdown
-    const mgrRes = await fetch('/api/accounts/role/manager'); 
-    const accounts = mgrRes.ok ? await mgrRes.json() : [];
-
-    const managerOptions = accounts
-      .map(a => `<option value="${a.id}" ${a.id === wh.managerId ? 'selected' : ''}>${a.name}</option>`)
-      .join('');
-
-    showModal(`
-      <h4>Edit Warehouse – ${wh.name}</h4>
-      <div class="form-row"><input id="editWhName" value="${wh.name}" placeholder="Warehouse name" /></div>
-      <div class="form-row"><input id="editWhLocation" value="${wh.location}" placeholder="Location" /></div>
-      <div class="form-row">
-        <select id="editWhManager"><option value="">No manager</option>${managerOptions}</select>
-      </div>
-      <div style="text-align:right; margin-top:16px">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveEditWhBtn">Save</button>
-      </div>
-    `);
-
-    $('#saveEditWhBtn').onclick = async () => {
-       $('#saveEditWhBtn').disabled = true;
-
-      const newName = $('#editWhName').value.trim();
-      const newLocation = $('#editWhLocation').value.trim();
-      const newMgrId = $('#editWhManager').value || null;
-
-      if (!newName || !newLocation) return showToast('Name & location required', 'error');
-
-      try {
-        const res = await fetch(`/api/warehouses/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, location: newLocation, managerId: newMgrId })
-        });
-        if (!res.ok) throw new Error('Update failed');
-      
-        const updated = await res.json();
-        showToast('Warehouse updated successfully', 'success');
-        closeModal();
-        renderWarehouses(); 
-      } catch (err) {
-        showToast(err.message || "server error", 'error');
-      } finally{
-         $('#saveEditWhBtn').disabled = false;
-      }
-    };
-
-  } catch (err) {
-    showToast('Failed to load warehouse: ' + err.message, 'error');
-  }
-}
-
-
-
-
-
-async function editOutlet(id) {
-  try {
-    // 1️⃣ Fetch the outlet from backend
-    const res = await fetch(`/api/outlets/${id}`);
-    if (!res.ok) throw new Error('Outlet not found');
-    const o = await res.json();
-
-    // 2️⃣ Fetch reps and warehouses from backend
-    const [repsRes, whRes] = await Promise.all([
-      fetch('/api/accounts/role/rep'),
-      fetch('/api/warehouses')
-    ]);
-    if (!repsRes.ok || !whRes.ok) throw new Error('Failed to load reps or warehouses');
-
-    const reps = await repsRes.json();
-    const warehouses = await whRes.json();
-
-    const repOptions = reps
-            .map(r => `<option value="${r.id}" ${(o.repIds || []).includes(r.id) ? 'selected' : ''}>${r.name}</option>`)
-      .join('');
-
-    const whOptions = warehouses
-      .map(w => `<option value="${w.id}" ${w.id === o.warehouseId ? 'selected' : ''}>${w.name}</option>`)
-      .join('');
-
-      const currentRepIds = o.repId ? [o.repId] : [];
-
-    // 3️⃣ Show modal with backend data
-    showModal(`
-      <h4>Edit Outlet – ${o.name}</h4>
-      <div class="form-row"><input id="editOutName" value="${o.name}" placeholder="Outlet name" /></div>
-      <div class="form-row">
-        <select id="editOutWh">${whOptions}</select>
-      </div>
-      <div class="form-row"><input id="editOutLocation" value="${o.location}" placeholder="Full address" /></div>
-      <div class="form-row">
-        <label style="font-size:12px; color:var(--muted)">
-  Current Sales Rep${(o.repNames || []).length > 1 ? 's' : ''}: 
-  <strong>
-    ${(o.repNames || []).length > 0 
-      ? o.repNames.slice(0, 2).join(', ') + (o.repNames.length > 2 ? ` +${o.repNames.length - 2} others` : '')
-      : 'None assigned'}
-  </strong>
-</label>
-        <select id="editOutRep" multiple size="6" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e6eefb;">
-    ${repOptions}
-  </select>
-  
-</div>
-      <div class="form-row"><input id="editOutPhone" value="${o.phone}" placeholder="Phone" /></div>
-      <div style="text-align:right; margin-top:12px">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveEditOut">Save</button>
-      </div>
-    `);
-
-    // 4️⃣ Save button sends PUT request to backend
-    $('#saveEditOut').onclick = async () => {
-        $('#saveEditOut').disabled = true;
-      const payload = {
-        name: $('#editOutName').value.trim(),
-        warehouseId: $('#editOutWh').value,
-        location: $('#editOutLocation').value.trim(),
-        repIds: Array.from($('#editOutRep').selectedOptions).map(opt => opt.value),
-        repNames: Array.from($('#editOutRep').selectedOptions).map(opt => opt.textContent.trim()),
-        phone: $('#editOutPhone').value.trim(),
-      };
-
-      if (!payload.name || !payload.location) return showToast('Name & location required', 'error');
-     
-
-      try {
-        const updateRes = await fetch(`/api/outlets/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!updateRes.ok) {
-          const err = await updateRes.json();
-          throw new Error(err.message || 'Failed to update outlet');
-        }
-
-        const updated = await updateRes.json();
-        closeModal();
-        renderOutlets(); // refresh list after backend update
-        showToast('Outlet updated successfully', 'success');
-      } catch (err) {
-        showToast(err.message || 'server error', 'error' );
-      } finally{
-          $('#saveEditOut').disabled = false;
-      }
-    };
-  } catch (err) {
-     showToast(err.message || 'server error', 'error' );
-  }
-}
-
-
-async function editProduct(id) {
-  try {
-    const res = await fetch(`/api/products/${id}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Failed to fetch product: ${res.status}`);
-    }
-    const p = await res.json();
-
-    showModal(`
-      <h4>Edit Product – ${p.sku}</h4>
-      <div class="form-row"><input id="editPName" value="${p.name}" placeholder="Product name" /></div>
-      <div class="form-row"><input id="editPQty" type="number" value="${p.qty}" placeholder="Quantity" /></div>
-      <div class="form-row"><input id="editPPrice" type="number" value="${p.unitPrice}" placeholder="Unit price (NGN)" /></div>
-      <div style="text-align:right">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveEditProd">Save</button>
-      </div>
-    `);
-
-    $('#saveEditProd').onclick = async () => {
-        $('#saveEditProd').disabled = true;
-      const newName = $('#editPName').value.trim();
-      const newQty = Number($('#editPQty').value);
-      const newPrice = Number($('#editPPrice').value);
-
-      // Validate inputs
-      if (!newName) return showToast('Product name is required', 'error');
-      if (!Number.isFinite(newQty) || newQty < 0) return showToast('Quantity must be 0 or higher', 'error');
-      if (!Number.isFinite(newPrice) || newPrice < 0) return showToast('Unit price must be 0 or higher', 'error');
-
-      try {
-        const updateRes = await fetch(`/api/products/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, qty: newQty, unitPrice: newPrice })
-        });
-
-        if (!updateRes.ok) {
-          const err = await updateRes.json().catch(() => ({}));
-          throw new Error(err.message || 'Failed to update product');
-        }
-
-        const updated = await updateRes.json();
-        closeModal();
-        renderProducts();
-        refreshAll();
-        showToast(`Product "${updated.product.name}" updated successfully`, 'success');
-      } catch (err) {
-        console.error('Update failed:', err);
-        showToast(err.message || 'Unexpected error while updating product', 'error');
-      } finally {
-             $('#saveEditProd').disabled = false;
-      }
-    };
-  } catch (err) {
-    console.error('Fetch product failed:', err);
-    showToast(err.message || 'Unexpected error fetching product');
-  }
-}
-
-
-
-function confirmDeleteWarehouse(id) {
-  const confirmHTML = `
-    <div class="modal" style="max-width:420px;text-align:center;">
-      <h3 style="color:#dc3545;margin:0 0 16px;">Delete Warehouse?</h3>
-      <p>Are you sure you want to <strong>permanently delete</strong> this warehouse and <strong>all its data</strong>?</p>
-      <p style="color:#dc3545;font-size:13px;"><strong>This cannot be undone.</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
-                onclick="deleteWarehouse('${id}'); closeConfirmModal()">
-          Yes, Delete
-        </button>
-      </div>
-    </div>
-  `;
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = confirmHTML;
-  backdrop.style.display = 'flex';
-  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
-  document.body.appendChild(backdrop);
-
-  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
-}
-
-async function deleteWarehouse(id) {
-  try {
-    const res = await fetch(`/api/warehouses/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.message || 'Delete failed');
-    }
-    showToast('Warehouse deleted successfully', 'success');
-    renderWarehouses();
-    renderOutlets();
-    renderProducts();
-    refreshAll();
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
-}
-
-function confirmDeleteOutlet(id) {
-  const confirmHTML = `
-    <div class="modal" style="max-width:400px;text-align:center;">
-      <h3 style="color:#dc3545;margin:0 0 16px;">Delete Outlet?</h3>
-      <p>Are you sure you want to <strong>permanently delete</strong> this outlet?</p>
-      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
-                onclick="deleteOutlet('${id}'); closeConfirmModal()">
-          Yes, Delete
-        </button>
-      </div>
-    </div>
-  `;
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = confirmHTML;
-  backdrop.style.display = 'flex';
-  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
-  document.body.appendChild(backdrop);
-
-  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
-}
-
-async function deleteOutlet(id) {
-  try {
-    const res = await fetch(`/api/outlets/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.message || 'Delete failed');
-    }
-    showToast('Outlet deleted successfully', 'success');
-    renderOutlets();
-    renderWarehouses();
-    renderProducts();
-    refreshAll();
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
-}
-
-function confirmDeleteProduct(id) {
-  const confirmHTML = `
-    <div class="modal" style="max-width:400px;text-align:center;">
-      <h3 style="color:#dc3545;margin:0 0 16px;">Delete Product?</h3>
-      <p>Are you sure you want to <strong>permanently delete</strong> this product?</p>
-      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
-                onclick="deleteProduct('${id}'); closeConfirmModal()">
-          Yes, Delete
-        </button>
-      </div>
-    </div>
-  `;
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = confirmHTML;
-  backdrop.style.display = 'flex';
-  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
-  document.body.appendChild(backdrop);
-
-  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
-}
-
-async function deleteProduct(id) {
-  try {
-    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Delete failed');
-    }
-    showToast('Product deleted successfully', 'success');
-    refreshAll();
-    renderProducts();
-    navigateTo('products');
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
-}
-
-async function editUser(id) {
-  try {
-    // Fetch user from backend
-    const res = await fetch(`/api/accounts/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch user');
-    const user = await res.json();
-
-    showModal(`
-      <h4>Edit User</h4>
-      <div class="form-row"><input id="editName" value="${user.name}" placeholder="Full name" /></div>
-      <div class="form-row"><input id="editEmail" type="email" value="${user.email}" placeholder="Email" /></div>
-      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" placeholder="Phone" /></div>
-
-      <div class="form-row">
-        <select id="editRole">
-          <option value="admin" ${user.role==='admin'?'selected':''}>admin</option>
-          <option value="manager" ${user.role==='manager'?'selected':''}>manager</option>
-          <option value="rep" ${user.role==='rep'?'selected':''}>Sales rep</option>
-        </select>
-      </div>
-
-      <!-- Password field with toggle -->
-      <div class="form-row" style="position:relative;">
-        <input id="editPassword" type="password" placeholder="New Password (leave blank to keep current)" style="padding-right:40px;" />
-        <button type="button" id="togglePassword" style="
-          position:absolute;
-          right:8px;
-          top:50%;
-          transform:translateY(-50%);
-          background:none;
-          border:none;
-          font-size:18px;
-          cursor:pointer;
-          color:var(--muted);
-        ">👁</button>
-      </div>
-
-      <div style="text-align:right; margin-top:16px;">
-        <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="saveEdit">Save</button>
-      </div>
-    `);
-
-    // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
-    document.getElementById('togglePassword').addEventListener('click', function() {
-      const pwdField = document.getElementById('editPassword');
-      if (pwdField.type === 'password') {
-        pwdField.type = 'text';
-        this.textContent = '🙈'; // eye closed
-      } else {
-        pwdField.type = 'password';
-        this.textContent = '👁';  // eye open
-      }
-    });
-
-    // === Save button ===
-    $('#saveEdit').onclick = async () => {
-      $('#saveEdit').disabled = true;
-
-      const updates = {
-        name: $('#editName').value.trim(),
-        email: $('#editEmail').value.trim(),
-        role: $('#editRole').value,
-        phone: $('#editPhone').value.trim()
-      };
-
-      const newPassword = $('#editPassword').value.trim();
-      if (newPassword) {
-        if (newPassword.length < 6) {
-          showToast('Password must be at least 6 characters', 'error');
-          $('#saveEdit').disabled = false;
-          return;
-        }
-        updates.password = newPassword;
-      }
-
-      const updateRes = await fetch(`/api/accounts/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-
-      if (!updateRes.ok) {
-        const err = await updateRes.json();
-        showToast('Error: ' + (err.message || 'Failed to update user'), 'error');
-        $('#saveEdit').disabled = false;
-        return;
-      }
-
-      showToast('User updated successfully', 'success');
-      closeModal();
-      renderAccounts();
-    };
-
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-}
-
-function confirmDeleteUser(id) {
-  const confirmHTML = `
-    <div class="modal" style="max-width:400px;text-align:center;">
-      <h3 style="color:#dc3545;margin:0 0 16px;">Delete User?</h3>
-      <p>Are you sure you want to <strong>permanently delete</strong> this user account?</p>
-      <p style="color:#dc3545;font-size:13px;"><strong>Cannot be undone.</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;" 
-                onclick="deleteUser('${id}'); closeConfirmModal()">
-          Yes, Delete
-        </button>
-      </div>
-    </div>
-  `;
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  backdrop.innerHTML = confirmHTML;
-  backdrop.style.display = 'flex';
-  backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
-  document.body.appendChild(backdrop);
-
-  window.closeConfirmModal = () => { backdrop.remove(); delete window.closeConfirmModal; };
-}
-
-async function deleteUser(id) {
-  try {
-    const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || `Failed to delete user: ${res.status}`);
-    }
-    showToast('User deleted successfully', 'success');
-    renderAccounts();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-}
-
-   async function saveLowStockThreshold() {
-  const thresh = Number($('#lowStockThreshold').value);
-
-  if (thresh < 0) return showToast('Threshold must be positive');
-
-  try {
-    const res = await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lowStockThreshold: thresh })
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      return showToast('Error: ' + err.message, 'error');
-    }
-
-    showToast('Low stock threshold saved!', 'success');
-    renderSettings();
- //   renderReports();
-  } catch (e) {
-    alert('Failed: ' + e.message);
-  }
-}
-
-
-   async function renderSettings() {
-  const threshInput = $('#lowStockThreshold');
-  const tbody = $('#settingsUsersTable tbody');
-  tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
-
-  try {
-    // Load settings
-    const settingsRes = await fetch('/api/settings');
-    const settingsData = await settingsRes.json();
-    const settings = settingsData.settings;
-
-    // Put threshold value
-    threshInput.value = settings.lowStockThreshold ?? 50;
-
-    // Load accounts
-    const accRes = await fetch('/api/accounts');
-    const accounts = await accRes.json();
-
-    // Load warehouses & outlets for manager listing
-    const [whRes, outRes] = await Promise.all([
-      fetch('/api/warehouses'),
-      fetch('/api/outlets')
-    ]);
-
-    const warehouses = await whRes.json();
-    const outlets = await outRes.json();
-
-    tbody.innerHTML = '';
-
-    accounts.forEach(acc => {
-      const manages = [];
-
-      if (acc.role === 'manager' || acc.role === 'admin') {
-  warehouses.forEach(w => { if (w.managerId === acc.id) manages.push(w.name); });
-  outlets.forEach(o => { if (o.managerId === acc.id) manages.push(o.name); });
-} else if (acc.role === 'rep') {
-  outlets.forEach(o => { if (o.repId === acc.id) manages.push(o.name); });
-}
-
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${acc.name}</strong></td>
-        <td><span class="pill">${acc.role}</span></td>
-        <td>${acc.email || '—'}</td>
-        <td>${acc.phone || '—'}</td>
-        <td><small class="muted">${manages.length ? manages.join(', ') : '—'}</small></td>
-      `;
-
-      tbody.appendChild(tr);
-    });
-
-    const admin = accounts.find(a => a.role === 'admin') || accounts[0];
-    $('#adminEmail').value = admin.email || '';
-    $('#adminPhone').value = admin.phone || '';
-
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5">Failed: ${err.message}</td></tr>`;
-  }
-}
-
-  async function saveAdminProfile() {
-  const email = $('#adminEmail').value.trim();
-  const phone = $('#adminPhone').value.trim();
-  const pass = $('#adminPassword').value;
-
-  if (!email) return showToast('Email is required', 'error');
-
-  try {
-    // First, get current admin from session
-    const meRes = await fetch('/api/auth/me');
-    if (!meRes.ok) throw new Error('Failed to get current user');
-    const admin = await meRes.json();
-
-    // Prepare update payload
-    const updates = { email, phone };
-    if (pass) updates.password = pass;
-
-    // Send PUT request to update admin
-    const updateRes = await fetch(`/api/accounts/${admin.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates)
-    });
-
-    if (!updateRes.ok) {
-      const err = await updateRes.json();
-      return alert('Error: ' + (err.message || 'Failed to update profile'));
-    }
-
-    showToast('Profile updated!', 'success');
-    $('#adminPassword').value = ''; 
-    renderSettings();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-}
-
-
-
-function printSale() {
-  const printWin = window.open('', '', 'width=800,height=600');
-  const itemsHTML = $('#viewItems').innerHTML;
-  const grandTotal = $('#viewModal .grand-total').textContent;
-  const saleDate = $('#saleDate').textContent;
-
-  printWin.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Sale Receipt</title>
-        <style>
-          body { font-family: system-ui, sans-serif; padding: 30px; }
-          h2 { text-align: center; color: #0b5ed7; }
-          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background: #f4f4f4; }
-          .total { font-size: 22px; font-weight: bold; text-align: right; margin-top: 20px; }
-        </style>
-      </head>
-      <body>
-        <h2>SALE RECEIPT</h2>
-        <p style="text-align:center; color:#666;">${saleDate}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Line Total</th>
-            </tr>
-          </thead>
-          <tbody>${itemsHTML}</tbody>
-        </table>
-        <div class="total">Grand Total: ${grandTotal}</div>
-      </body>
-    </html>
-  `);
-
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
-}
-
-
-// Print current sales page (exactly what user sees + nice formatting)
-// PRINT SALES PAGE WITH PREVIEW MODAL (NO RED ERROR, WORKS PERFECTLY)
-function printSalesPage() {
-  const dateRange = $('#salesDateDisplay')?.innerText || 'All time';
-  const tableHTML = $('#salesTable').outerHTML;
-
-  const printableContent = `
-    <div style="padding:30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111;">
-      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 20px;">SALES REPORT</h2>
-      <div style="text-align:center; color:#555; margin-bottom:25px; font-size:14px;">
-        <strong>Date Range:</strong> ${dateRange}<br>
-        Page ${curSales} • Printed on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
-      </div>
-      
-      <style>
-        table { width:100%; border-collapse:collapse; margin:20px 0; font-size:13px; }
-        th, td { border:1px solid #ddd; padding:10px; text-align:left; }
-        th { background:#f0f7ff; color:#111; font-weight:600; }
-        tr:nth-child(even) { background:#fafafa; }
-        .pill { padding:4px 10px; border-radius:12px; background:#e0e7ff; color:#4338ca; font-size:11px; }
-      </style>
-      
-      ${tableHTML}
-      
-      <div style="margin-top:50px; text-align:center; color:#777; font-size:12px;">
-        Generated by WareAdmin • ${document.title}
-      </div>
-    </div>
-  `;
-
-  // Show preview in your normal modal
-  showModal(`
-    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview</h4>
-    <div style="max-height:70vh; overflow-y:auto; background:white; border:1px solid #eee; border-radius:12px; padding:20px;">
-      ${printableContent}
-    </div>
-    <div style="text-align:right; margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
-      <button class="btn secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doRealPrint()">
-        Print Now
-      </button>
-    </div>
-  `);
-
-  // This function runs when user clicks "Print Now"
-  window.doRealPrint = function() {
-    const printWin = window.open('', '_blank');
-    printWin.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Sales Report - WareAdmin</title>
-      <style>
-        body { font-family: system-ui, Arial; padding: 20px; }
-        @media print { body { padding: 10px; } }
-      </style></head>
-      <body onload="window.print(); setTimeout(() => window.close(), 500)">
-        ${printableContent}
-      </body></html>
-    `);
-    printWin.document.close();
-    closeModal();
-  };
-}
-
-// Connect the button (add this once)
-document.getElementById('printSalesBtn')?.addEventListener('click', printSalesPage); 
-// Attach the button
-
-    function refreshAll(){ 
-      renderOverviewCards(); 
-      renderShipments();  
-      renderQuickStats(); 
-      renderTopOutlets(); 
-      renderPending();
-      initSalesDatePicker();
-      if (document.querySelector('#reportsSection').classList.contains('active')) { reportPage = 1; renderReports(); }
-      if (document.querySelector('#salesSection').classList.contains('active')) { renderSales(); }
-      if (document.querySelector('#warehousesSection').classList.contains('active')) renderWarehouses();
-      if (document.querySelector('#outletsSection').classList.contains('active')) renderOutlets();
-    }
-
-    function resetProductPage() { currentPage = 1; renderProducts(); }
- 
-
-
-//navigateTo('overview');
-
-// Mobile menu – open/close + click outside to close
-$('#hambBtn').addEventListener('click', (e) => {
-  e.stopPropagation(); // This is the crucial fix
-  document.getElementById('sidebar').classList.toggle('open');
-});
-
-
-// Auto-load Overview on page load ONLY if company exists
-// Auto-load Overview on page load ONLY if company exists (improved)
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const res = await fetch('/api/company');
-    if (!res.ok) {
-      console.log('No company or API error');
-      return;
-    }
-    const company = await res.json();
-    
-    if (company && company.id) {
-      // Force Overview to load
-      const overviewLink = document.querySelector('.nav a[data-route="overview"]');
-      if (overviewLink) overviewLink.click();
-    }
-  } catch (err) {
-    console.error('Failed to check company on load:', err);
-  }
-});
-
-
-  </script>
 </body>
 </html>
