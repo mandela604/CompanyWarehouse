@@ -2206,33 +2206,38 @@ async function renderDetailedSalesReport(page = 1) {
     console.log("Page total value:", pageTotalValue);
 
     if (flattened.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8" style="padding:60px; text-align:center; color:#666; font-size:16px;">
-            No detailed items found.<br>
-            <small>(Got ${sales.length} sales groups, but 0 line items — check console logs)</small>
-          </td>
-        </tr>`;
-    } else {
-      tbody.innerHTML = flattened.map(row => `
-        <tr>
-          <td>${row.date}</td>
-          <td>${row.product}</td>
-          <td>${row.qty}</td>
-          <td>${row.rep}</td>
-          <td style="text-align:right; font-weight:600;">${formatNGN(row.total)}</td>
-          <td>${row.outlet}</td>
-          <td><span class="pill">${row.status}</span></td>
-          <td>${row.sentFrom}</td>
-        </tr>
-      `).join('') + `
-        <tr style="background:#f0f9ff; font-weight:bold;">
-          <td colspan="7" style="text-align:right; padding:16px;">Page Total:</td>
-          <td style="padding:16px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
-        </tr>
-      `;
-    }
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8" style="padding:60px; text-align:center; color:#666; font-size:16px;">
+        No detailed items found.<br>
+        <small>(Got ${sales.length} sales groups, but 0 line items — check console logs)</small>
+      </td>
+    </tr>`;
+} else {
+  const tableHTML = flattened.map(row => `
+    <tr>
+      <td>${row.date}</td>
+      <td>${row.product}</td>
+      <td>${row.qty}</td>
+      <td>${row.rep}</td>
+      <td style="text-align:right; font-weight:600;">${formatNGN(row.total)}</td>
+      <td>${row.outlet}</td>
+      <td><span class="pill">${row.status}</span></td>
+      <td>${row.sentFrom}</td>
+    </tr>
+  `).join('') + `
+    <tr style="background:#f0f9ff; font-weight:bold;">
+      <td colspan="7" style="text-align:right; padding:16px;">Page Total:</td>
+      <td style="padding:16px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
+    </tr>
+  `;
 
+  tbody.innerHTML = tableHTML;
+  
+  // DEBUG: Confirm content was actually inserted
+  console.log("Table HTML was set. First few characters:", tbody.innerHTML.substring(0, 100));
+  console.log("Number of <tr> tags now in tbody:", tbody.querySelectorAll('tr').length);
+}
     renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
   } catch (err) {
     console.error("Detailed report crashed:", err);
