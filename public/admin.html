@@ -2124,9 +2124,7 @@ function initDetailedSalesDatePicker() {
 async function renderDetailedSalesReport(page = 1) {
   detailedCurPage = page;
   const tbody = $('#detailedSalesTable tbody');
-  tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
-
-  console.log('Starting detailed sales report fetch...'); 
+  tbody.innerHTML = '<tr><td colspan="8">Loading detailed sales...</td></tr>';
 
   try {
     const q = new URLSearchParams({ page, limit: DETAILED_SALES_PER_PAGE });
@@ -2135,41 +2133,37 @@ async function renderDetailedSalesReport(page = 1) {
     if (detailedSalesFilter.outletId) q.set('outletId', detailedSalesFilter.outletId);
     if (detailedSalesFilter.repId) q.set('repId', detailedSalesFilter.repId);
 
-
-    console.log('Fetching:', `/api/sales?${q.toString()}`); // ← debug
-
     const res = await fetch(`/api/sales?${q.toString()}`);
-    console.log('Response status:', res.status); // ← debug
+    if (!res.ok) throw new Error('API error');
 
     const json = await res.json();
-    console.log('API response:', json); // ← VERY IMPORTANT – look at this in console!
-
-    if (!res.ok) throw new Error(json.message || 'Failed');
-
     const sales = json.data || [];
     let flattened = [];
     let pageTotalValue = 0;
 
     sales.forEach(s => {
-      s.items.forEach(item => {
-        const lineTotal = (item.qtySold || 0) * (item.unitPrice || 0);
-      
-        pageTotalValue += lineTotal;
-        flattened.push({
-          date: s.date || '—',
-          product: item.productName || 'Unknown',
-          qty: item.qtySold || 0,       
-          rep: s.repName || '—',
-          total: lineTotal,
-          outlet: s.outletName || '—',
-          status: s.status || '—',
-          sentFrom: s.sentFrom || '—'
+      if (s.items && Array.isArray(s.items)) {
+        s.items.forEach(item => {
+          const qty = item.qtySold || item.qty || 0;                    // ← fixed
+          const lineTotal = qty * (item.unitPrice || 0);
+          pageTotalValue += lineTotal;
+
+          flattened.push({
+            date: s.date || '—',
+            product: item.productName || 'Unknown Product',
+            qty: qty,
+            rep: s.repName || '—',
+            total: lineTotal,
+            outlet: s.outletName || '—',
+            status: s.status || '—',
+            sentFrom: s.sentFrom || '—'
+          });
         });
-      });
+      }
     });
 
     if (flattened.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="muted">No matching sales found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="padding:60px; text-align:center; color:#999; font-size:16px;">No sales items found with current filters</td></tr>';
     } else {
       tbody.innerHTML = flattened.map(row => `
         <tr>
@@ -2184,20 +2178,18 @@ async function renderDetailedSalesReport(page = 1) {
         </tr>
       `).join('') + `
         <tr style="background:#f0f9ff; font-weight:bold;">
-          <td colspan="7" style="text-align:right; padding:14px;">Page Total:</td>
-          <td style="padding:14px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
+          <td colspan="7" style="text-align:right; padding:16px;">Page Total:</td>
+          <td style="padding:16px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
         </tr>
       `;
     }
 
     renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load report</td></tr>';
-console.error('Detailed sales report error:', err);
-    showToast('Error: ' + (err.message || 'Failed to load detailed report'), 'error');
+    tbody.innerHTML = `<tr><td colspan="8" class="error">Error: ${err.message}</td></tr>`;
+    showToast('Failed to load detailed sales report', 'error');
   }
 }
-
 // Update navigateTo to initialize picker when opening the section
 const originalNavigate = navigateTo;
 navigateTo = function(route) {
