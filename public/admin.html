@@ -1167,37 +1167,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 
-    function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
-      const target = $(`#${route}Section`);
-      if (target) target.classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (route === 'salesViewer') renderSalesViewerPage();
-    }
+   function navigateTo(route) {
+  // Hide everything first
+  $all('.section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';           // explicit hide
+  });
+
+  const target = $(`#${route}Section`);
+  if (target) {
+    target.classList.add('active');
+    
+    // Force show — this now wins because no inline style fights back
+    target.style.display = 'block';
+    
+    // Extra safety in case some other code resets it
+    setTimeout(() => {
+      target.style.display = 'block';
+    }, 0);
+
+    console.log(`Activated ${route}Section → display now = ${target.style.display}`);
+  }
+
+  // Update nav highlight
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+  if (navLink) navLink.classList.add('active');
+
+  // Special cases
+  if (route === 'detailedSalesReport') {
+    if (!detailedSalesPicker) initDetailedSalesDatePicker();
+  }
+  if (route === 'salesViewer') renderSalesViewerPage?.();
+}
 
 
  // Button to open the new detailed report
 document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  // Force show the section
-  document.querySelectorAll('.section').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none';
-  });
-  
-  const targetSection = document.getElementById('detailedSalesReportSection');
-  if (targetSection) {
-    targetSection.classList.add('active');
-    targetSection.style.display = 'block !important'; // brute force
-    console.log("Forced detailedSalesReportSection visible");
-  }
-
-  // Update nav active state
-  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-  const navLink = document.querySelector('.nav a[data-route="detailedSalesReport"]');
-  if (navLink) navLink.classList.add('active');
-
+  navigateTo('detailedSalesReport');
   loadDetailedSalesFilters();
   renderDetailedSalesReport();
 });
