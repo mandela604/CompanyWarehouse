@@ -1178,8 +1178,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    document.getElementById('viewSalesReportBtn').addEventListener('click', () => {
-  navigateTo('sales');  // Navigates to #salesSection, which we'll modify below
+ // Button to open the new detailed report
+document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
+  navigateTo('detailedSalesReport');
+  loadDetailedSalesFilters();
+  renderDetailedSalesReport();
 });
 
 document.getElementById('viewProductReportBtn').addEventListener('click', () => {
