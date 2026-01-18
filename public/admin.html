@@ -779,7 +779,7 @@
 
 
       <!-- ==================== SALES REPORT (new professional page) ==================== -->
-<section id="salesReportSection" class="section" >
+<section id="salesReportSection" class="section">
   <h2 style="margin-top:0">Sales Report</h2>
 
   <!-- Filters -->
@@ -2997,6 +2997,12 @@ document.querySelectorAll('.nav a').forEach(a => {
       $('#salesSection').classList.add('active');
       loadSalesFilters();
       renderSales();
+    }
+    else if (route === 'salesReport') {
+      $('#salesReportSection').classList.add('active');
+      if (!reportPicker) initReportDatePicker();
+      loadReportFilters();
+      renderSalesReport();
     }
     else if (route === 'settings') {
       $('#settingsSection').classList.add('active');
