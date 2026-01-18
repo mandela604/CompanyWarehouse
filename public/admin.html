@@ -615,11 +615,13 @@
 
       <!-- ==================== PRODUCTS ==================== -->
       <section id="productsSection" class="section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
   <h2 style="margin:0">Products / Inventory</h2>
-  <button class="btn" id="addProductBtn">+ Add Product</button>
-  <button class="btn secondary" id="viewSalesReportBtn">View Sales Report</button>
-      <button class="btn secondary" id="viewProductReportBtn">View Product Report</button>
+  <div style="display:flex; gap:12px;">
+    <button class="btn secondary" id="viewSalesReportBtn">View Sales Report</button>
+    <button class="btn secondary" id="viewProductReportBtn">View Product Report</button>
+    <button class="btn" id="addProductBtn">+ Add Product</button>
+  </div>
 </div>
         <div class="table">
           <table id="productTable">
@@ -776,50 +778,52 @@
       </section>
 
 
-      <!-- ==================== DETAILED SALES REPORT ==================== -->
-<section id="detailedSalesReportSection" class="section" >
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-    <h2 style="margin:0">Detailed Sales Report (per product sold)</h2>
-    <button class="btn secondary" onclick="navigateTo('products')">← Back to Products</button>
-  </div>
+      <!-- ==================== SALES REPORT (new professional page) ==================== -->
+<section id="salesReportSection" class="section" style="display:none;">
+  <h2 style="margin-top:0">Sales Report</h2>
 
-  <!-- Filters - almost identical to sales section -->
-  <div style="margin:16px 0 24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
-    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-      <div id="detailedSalesDateContainer" style="min-width:220px;"></div>
-      <select id="detailedOutletFilter" class="sales-filter-input">
+  <!-- Filters -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="reportDateContainer" style="min-width:240px;"></div>
+      <select id="reportOutletFilter" class="sales-filter-input">
         <option value="">All Outlets</option>
       </select>
-      <select id="detailedRepFilter" class="sales-filter-input">
+      <select id="reportRepFilter" class="sales-filter-input">
         <option value="">All Sales Reps</option>
       </select>
-      <button class="btn secondary" onclick="clearDetailedSalesFilter()">Clear Filters</button>
-      <div class="small muted" id="detailedSalesDateDisplay">All time</div>
+      <button class="btn secondary" onclick="clearReportFilters()">Clear</button>
+      <div class="small muted" id="reportDateDisplay">All time</div>
     </div>
-    <button id="printDetailedSalesBtn" class="btn" style="background:var(--blue); color:white; white-space:nowrap;">
-      Print This Report
+    <button id="printReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print Report
     </button>
   </div>
 
+  <!-- Summary Cards -->
+  <div class="grid" id="reportSummaryCards" style="margin-bottom:32px;"></div>
+
+  <!-- Main Table -->
   <div class="table">
-    <table id="detailedSalesTable">
+    <table id="reportSalesTable">
       <thead>
         <tr>
           <th>Date</th>
-          <th>Product</th>
-          <th>Qty Sold</th>
-          <th>Sales Rep</th>
+          <th>Products Sold</th>
+          <th>Total Qty</th>
           <th style="text-align:right;">Total Value</th>
           <th>Outlet</th>
+          <th>Rep</th>
           <th>Status</th>
-          <th>Sent From</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <div class="pagination" id="detailedSalesPagination"></div>
+    <div class="pagination" id="reportPagination"></div>
   </div>
 </section>
+
 
       <!-- ==================== FULL-PAGE SALES VIEWER ==================== -->
       <section id="fullSalesSection" class="section">
@@ -1167,69 +1171,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 
-function navigateTo(route) {
-  // Hide ALL sections first
-  $all('.section').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none';
-  });
-
-  // Show the requested one
-  const target = $(`#${route}Section`);
-  if (target) {
-    target.classList.add('active');
-    target.style.display = 'block';
-  }
-
-  // Update active menu link
-  $all('.nav a').forEach(a => a.classList.remove('active'));
-  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-  if (navLink) navLink.classList.add('active');
-
-  // Route-specific actions
-  switch (route) {
-    case 'overview':
-      refreshAll();
-      break;
-    case 'warehouses':
-      renderWarehouses();
-      break;
-    case 'outlets':
-      renderOutlets();
-      break;
-    case 'products':
-      currentPage = 1;
-      renderProducts();
-      break;
-    case 'accounts':
-      renderAccounts();
-      break;
-    case 'sales':
-      loadSalesFilters();
-      renderSales();
-      break;
-    case 'settings':
-      renderSettings();
-      break;
-    case 'detailedSalesReport':
-      if (!detailedSalesPicker) initDetailedSalesDatePicker();
-      loadDetailedSalesFilters();
-      renderDetailedSalesReport();
-      break;
-    case 'fullSales':
-      if (!fullSalesPicker) initFullSalesPicker();
-      renderFullSales();
-      break;
-  }
-}
- // Button to open the new detailed report
-document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
-  navigateTo('detailedSalesReport');
-});
-
-document.getElementById('viewProductReportBtn').addEventListener('click', () => {
-  navigateTo('reports');  // Navigates to #reportsSection (existing in your code; we'll enhance it later)
-});
+    function navigateTo(route) {
+      $all('.section').forEach(s => s.classList.remove('active'));
+      const target = $(`#${route}Section`);
+      if (target) target.classList.add('active');
+      $all('.nav a').forEach(a => a.classList.remove('active'));
+      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+      if (navLink) navLink.classList.add('active');
+      if (route === 'salesViewer') renderSalesViewerPage();
+    }
 
    async function renderOverviewCards() {
   const cards = $('#overviewCards');
@@ -1982,12 +1932,11 @@ function initFullSalesPicker() {
   });
 }
 
-/*
 const originalNavigateTo = navigateTo;
 navigateTo = function(route) {
   originalNavigateTo(route);
   if (route === 'fullSales') initFullSalesPicker();
-}; */
+};
 
 let salesPicker = null;
 function initSalesDatePicker(){
@@ -2054,247 +2003,6 @@ async function renderSalesSummary() {
 
 
    
-// New report variables
-let detailedCurPage = 1;
-const DETAILED_SALES_PER_PAGE = 20; // you can adjust this
-
-let detailedSalesFilter = {
-  start: null,
-  end: null,
-  outletId: null,
-  repId: null
-};
-
-// Button to open the new report
-document.getElementById('salesReportBtn')?.addEventListener('click', () => {
-  navigateTo('detailedSalesReport');
-  loadDetailedSalesFilters();     // populate dropdowns
-  renderDetailedSalesReport();    // load data
-});
-
-// Back button already uses navigateTo('products')
-
-// Filter loading (copy of loadSalesFilters but for new ids)
-async function loadDetailedSalesFilters() {
-  try {
-    const outRes = await fetch('/api/outlets');
-    const outlets = await outRes.json();
-    const outletSelect = $('#detailedOutletFilter');
-    outletSelect.innerHTML = '<option value="">All Outlets</option>';
-    outlets.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.id;
-      opt.textContent = o.name;
-      outletSelect.appendChild(opt);
-    });
-
-    const accRes = await fetch('/api/accounts');
-    const accounts = await accRes.json();
-    const reps = accounts.filter(a => a.role === 'rep');
-    const repSelect = $('#detailedRepFilter');
-    repSelect.innerHTML = '<option value="">All Sales Reps</option>';
-    reps.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = r.name;
-      repSelect.appendChild(opt);
-    });
-
-    // Change listeners
-    outletSelect.onchange = () => {
-      detailedSalesFilter.outletId = outletSelect.value || null;
-      detailedCurPage = 1;
-      renderDetailedSalesReport();
-    };
-
-    repSelect.onchange = () => {
-      detailedSalesFilter.repId = repSelect.value || null;
-      detailedCurPage = 1;
-      renderDetailedSalesReport();
-    };
-  } catch (err) {
-    console.error('Failed to load detailed filters', err);
-  }
-}
-
-// Clear filters
-function clearDetailedSalesFilter() {
-  detailedSalesFilter = { start: null, end: null, outletId: null, repId: null };
-  $('#detailedSalesDateDisplay').textContent = 'All time';
-  if (detailedSalesPicker) {
-    detailedSalesPicker.clear();
-    detailedSalesPicker.setDate([]);
-  }
-  $('#detailedOutletFilter').value = '';
-  $('#detailedRepFilter').value = '';
-  detailedCurPage = 1;
-  renderDetailedSalesReport();
-}
-
-// Date picker for detailed report
-let detailedSalesPicker = null;
-
-function initDetailedSalesDatePicker() {
-  const container = $('#detailedSalesDateContainer');
-  container.innerHTML = '';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'Pick date range';
-  input.style.cssText = 'padding:10px 12px;border-radius:10px;border:1px solid #e6eefb;font-size:14px;min-width:220px;';
-  container.appendChild(input);
-
-  detailedSalesPicker = flatpickr(input, {
-    mode: 'range',
-    dateFormat: 'Y-m-d',
-    onChange: dates => {
-      if (dates.length === 2) {
-        const start = dates[0] < dates[1] ? dates[0] : dates[1];
-        const end = dates[0] < dates[1] ? dates[1] : dates[0];
-        detailedSalesFilter.start = start.toISOString().slice(0,10);
-        detailedSalesFilter.end = end.toISOString().slice(0,10);
-        $('#detailedSalesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
-      } else {
-        detailedSalesFilter.start = detailedSalesFilter.end = null;
-        $('#detailedSalesDateDisplay').textContent = 'All time';
-      }
-      detailedCurPage = 1;
-      renderDetailedSalesReport();
-    }
-  });
-}
-
-// Main render function - flattened per-product view
-async function renderDetailedSalesReport(page = 1) {
-  detailedCurPage = page;
-  const tbody = $('#detailedSalesTable tbody');
-  tbody.innerHTML = '<tr><td colspan="8">Loading detailed sales...</td></tr>';
-
-  console.log("=== Detailed Sales Report Started ===");
-  console.log("Page:", page);
-  console.log("Current filters:", detailedSalesFilter);
-
-  try {
-    const q = new URLSearchParams({ page, limit: DETAILED_SALES_PER_PAGE });
-    if (detailedSalesFilter.start) q.set('startDate', detailedSalesFilter.start);
-    if (detailedSalesFilter.end) q.set('endDate', detailedSalesFilter.end);
-    if (detailedSalesFilter.outletId) q.set('outletId', detailedSalesFilter.outletId);
-    if (detailedSalesFilter.repId) q.set('repId', detailedSalesFilter.repId);
-
-    const url = `/api/sales?${q.toString()}`;
-    console.log("Fetching URL:", url);
-
-    const res = await fetch(url);
-    console.log("Response status:", res.status);
-    console.log("Response ok?", res.ok);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("API failed with status:", res.status, "→", errorText);
-      throw new Error(`API error: ${res.status} - ${errorText}`);
-    }
-
-    const json = await res.json();
-    console.log("Full JSON response from backend:", json);
-
-    const sales = json.data || [];
-    console.log(`Received ${sales.length} sales groups`);
-
-    let flattened = [];
-    let pageTotalValue = 0;
-
-    sales.forEach((s, index) => {
-      console.log(`Processing sale group ${index + 1}:`, {
-        id: s.id,
-        date: s.date,
-        outlet: s.outletName,
-        rep: s.repName,
-        itemCount: s.itemCount,
-        totalQty: s.totalQty,
-        hasItems: !!s.items,
-        itemsLength: s.items?.length || 0
-      });
-
-      if (s.items && Array.isArray(s.items) && s.items.length > 0) {
-        s.items.forEach((item, itemIndex) => {
-          const qty = item.qtySold || item.qty || 0;
-          const lineTotal = qty * (item.unitPrice || 0);
-          pageTotalValue += lineTotal;
-
-          console.log(`  → Item ${itemIndex + 1}:`, {
-            product: item.productName,
-            qtySold: item.qtySold,
-            qty: item.qty,
-            finalQtyUsed: qty,
-            unitPrice: item.unitPrice,
-            lineTotal
-          });
-
-          flattened.push({
-            date: s.date || '—',
-            product: item.productName || 'Unknown Product',
-            qty: qty,
-            rep: s.repName || '—',
-            total: lineTotal,
-            outlet: s.outletName || '—',
-            status: s.status || '—',
-            sentFrom: s.sentFrom || '—'
-          });
-        });
-      } else {
-        console.warn(`  → Sale ${index + 1} has NO items or empty items array`);
-      }
-    });
-
-    console.log("Total flattened rows created:", flattened.length);
-    console.log("Page total value:", pageTotalValue);
-
-    if (flattened.length === 0) {
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="8" style="padding:60px; text-align:center; color:#666; font-size:16px;">
-        No detailed items found.<br>
-        <small>(Got ${sales.length} sales groups, but 0 line items — check console logs)</small>
-      </td>
-    </tr>`;
-} else {
-  const tableHTML = flattened.map(row => `
-    <tr>
-      <td>${row.date}</td>
-      <td>${row.product}</td>
-      <td>${row.qty}</td>
-      <td>${row.rep}</td>
-      <td style="text-align:right; font-weight:600;">${formatNGN(row.total)}</td>
-      <td>${row.outlet}</td>
-      <td><span class="pill">${row.status}</span></td>
-      <td>${row.sentFrom}</td>
-    </tr>
-  `).join('') + `
-    <tr style="background:#f0f9ff; font-weight:bold;">
-      <td colspan="7" style="text-align:right; padding:16px;">Page Total:</td>
-      <td style="padding:16px; color:var(--blue);">${formatNGN(pageTotalValue)}</td>
-    </tr>
-  `;
-
-  tbody.innerHTML = tableHTML;
-  
-  // DEBUG: Confirm content was actually inserted
-  console.log("Table HTML was set. First few characters:", tbody.innerHTML.substring(0, 100));
-  console.log("Number of <tr> tags now in tbody:", tbody.querySelectorAll('tr').length);
-}
-    renderPag($('#detailedSalesPagination'), json.totalCount || 0, detailedCurPage, n => renderDetailedSalesReport(n));
-    console.log("Section visibility check after render:",
-  document.getElementById('detailedSalesReportSection').style.display,
-  document.getElementById('detailedSalesReportSection').classList.contains('active')
-);
-  } catch (err) {
-    console.error("Detailed report crashed:", err);
-    tbody.innerHTML = `<tr><td colspan="8" class="error">Error loading report: ${err.message}</td></tr>`;
-    showToast('Failed to load detailed sales report', 'error');
-  }
-}
-
-
-
   function showModal(html) {
   const backdrop = $('#modalBackdrop');
   const modal = $('#modal');
@@ -3233,7 +2941,6 @@ if (e.target.classList.contains('view-details')) {
 let isRenderingProducts = false;
 
 // REPLACE your entire current nav click handler with this one:
-/*
 document.querySelectorAll('.nav a').forEach(a => {
   a.addEventListener('click', async e => {
     e.preventDefault();
@@ -3297,8 +3004,6 @@ document.querySelectorAll('.nav a').forEach(a => {
     }
   });
 });
-*/
-
 
   /*  $('#exportBtn').addEventListener('click',()=>{
       const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
@@ -4294,6 +3999,199 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+
+
+// ─── SALES REPORT VARIABLES ────────────────────────────────────────
+let reportCurPage = 1;
+const REPORT_PER_PAGE = 15;
+let reportFilter = { start: null, end: null, outletId: null, repId: null };
+let reportPicker = null;
+
+// ─── Button to open Sales Report ───────────────────────────────────
+document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
+  $all('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  const sec = document.getElementById('salesReportSection');
+  sec.classList.add('active');
+  sec.style.display = 'block';
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+
+  if (!reportPicker) initReportDatePicker();
+  loadReportFilters();
+  renderSalesReport();
+});
+
+// ─── Product Report just opens existing reports section ────────────
+document.getElementById('viewProductReportBtn')?.addEventListener('click', () => {
+  $all('.section').forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+  document.getElementById('reportsSection').classList.add('active');
+  document.getElementById('reportsSection').style.display = 'block';
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+});
+
+// ─── Date Picker for Report ────────────────────────────────────────
+function initReportDatePicker() {
+  const container = $('#reportDateContainer');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+
+  reportPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        reportFilter.start = start.toISOString().slice(0,10);
+        reportFilter.end   = end.toISOString().slice(0,10);
+        $('#reportDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        reportFilter.start = reportFilter.end = null;
+        $('#reportDateDisplay').textContent = 'All time';
+      }
+      reportCurPage = 1;
+      renderSalesReport();
+    }
+  });
+}
+
+// ─── Load filters (outlets & reps) ─────────────────────────────────
+async function loadReportFilters() {
+  try {
+    const [outRes, accRes] = await Promise.all([
+      fetch('/api/outlets'),
+      fetch('/api/accounts')
+    ]);
+    const outlets = await outRes.json();
+    const reps = (await accRes.json()).filter(a => a.role === 'rep');
+
+    const outletSel = $('#reportOutletFilter');
+    outletSel.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text = o.name;
+      outletSel.appendChild(opt);
+    });
+
+    const repSel = $('#reportRepFilter');
+    repSel.innerHTML = '<option value="">All Reps</option>';
+    reps.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.text = r.name;
+      repSel.appendChild(opt);
+    });
+
+    outletSel.onchange = () => { reportFilter.outletId = outletSel.value || null; reportCurPage=1; renderSalesReport(); };
+    repSel.onchange   = () => { reportFilter.repId   = repSel.value   || null; reportCurPage=1; renderSalesReport(); };
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function clearReportFilters() {
+  reportFilter = { start:null, end:null, outletId:null, repId:null };
+  $('#reportDateDisplay').textContent = 'All time';
+  reportPicker?.clear();
+  $('#reportOutletFilter').value = '';
+  $('#reportRepFilter').value = '';
+  reportCurPage = 1;
+  renderSalesReport();
+}
+
+// ─── Render the report table ───────────────────────────────────────
+async function renderSalesReport(page = 1) {
+  reportCurPage = page;
+  const tbody = $('#reportSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ page, limit: REPORT_PER_PAGE });
+    if (reportFilter.start) q.set('startDate', reportFilter.start);
+    if (reportFilter.end)   q.set('endDate',   reportFilter.end);
+    if (reportFilter.outletId) q.set('outletId', reportFilter.outletId);
+    if (reportFilter.repId)    q.set('repId',    reportFilter.repId);
+
+    const res = await fetch(`/api/sales?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const sales = json.data || [];
+    const total = json.totalCount || 0;
+
+    let pageTotalValue = 0;
+
+    if (!sales.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No sales found</td></tr>';
+    } else {
+      tbody.innerHTML = sales.map(s => {
+        pageTotalValue += s.totalAmount || 0;
+        const products = s.items?.map(i => `${i.productName} × ${i.qty}`).join('<br>') || '—';
+
+        return `
+          <tr>
+            <td>${s.date}</td>
+            <td style="line-height:1.5;">${products}</td>
+            <td>${s.totalQty || 0}</td>
+            <td style="text-align:right;font-weight:600;color:var(--blue);">${formatNGN(s.totalAmount||0)}</td>
+            <td>${s.outletName||'—'}</td>
+            <td>${s.repName||'—'}</td>
+            <td><span class="pill">${s.status||'—'}</span></td>
+            <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+          </tr>
+        `;
+      }).join('') + `
+        <tr style="background:#eff6ff;font-weight:700;">
+          <td colspan="3" style="text-align:right;padding:16px;">Page Total:</td>
+          <td style="text-align:right;color:var(--blue);padding:16px;">${formatNGN(pageTotalValue)}</td>
+          <td colspan="4"></td>
+        </tr>
+      `;
+    }
+
+    renderPag($('#reportPagination'), total, reportCurPage, n => renderSalesReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load</td></tr>';
+    console.error(err);
+  }
+}
+
+// ─── Print Report ──────────────────────────────────────────────────
+document.getElementById('printReportBtn')?.addEventListener('click', () => {
+  const range = $('#reportDateDisplay').textContent;
+  const content = `
+    <div style="padding:40px; font-family:Inter,sans-serif;">
+      <h1 style="text-align:center;color:#0b5ed7;margin-bottom:8px;">Sales Report</h1>
+      <p style="text-align:center;color:#555;margin-bottom:30px;">
+        ${range} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+      <style>
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th,td{border:1px solid #ddd;padding:12px;text-align:left;}
+        th{background:#f0f7ff;font-weight:600;}
+        .pill{padding:4px 10px;border-radius:999px;background:#e0e7ff;color:#2563eb;}
+      </style>
+      ${document.getElementById('reportSalesTable').outerHTML}
+      <div style="margin-top:40px;text-align:center;color:#777;font-size:12px;">
+        WareAdmin • Abuja, Nigeria
+      </div>
+    </div>
+  `;
+
+  const win = window.open('','_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>Sales Report</title></head>
+    <body onload="window.print();setTimeout(()=>window.close(),800)">
+      ${content}
+    </body>
+    </html>
+  `);
+  win.document.close();
+});
 
   </script>
 </body>
