@@ -621,7 +621,14 @@
         <div class="panel">
           <div class="panel-left">
             <div class="table">
-              <h3 style="margin:0 0 16px;padding:0 16px">Recent Shipments</h3>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 16px; padding:0 16px;">
+  <h3 style="margin:0;">Recent Shipments</h3>
+  <button class="btn" 
+          onclick="navigateTo('shipmentReport')"
+          style="font-size:13px; padding:8px 16px;">
+    Shipment Breakdown Report
+  </button>
+</div>
               <table id="shipmentTable">
                 <thead>
                   <tr>
@@ -739,7 +746,7 @@
       <div class="small muted" id="productDateDisplay"></div>
     </div>
     <button id="printProductReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
-  Print This Page
+  Print report
 </button>
   </div>
 
@@ -770,6 +777,58 @@
   </div>
 </section>
 
+
+<!-- ==================== SHIPMENT BREAKDOWN REPORT ==================== -->
+<section id="shipmentReportSection" class="section">
+  <h2 style="margin-top:0">Shipment Breakdown Report</h2>
+
+  <!-- Filters (same style as sales/product report) -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="shipmentDateContainer" style="min-width:240px;"></div>
+      <select id="shipmentWarehouseFilter" class="sales-filter-input">
+        <option value="">All Warehouses</option>
+      </select>
+      <select id="shipmentOutletFilter" class="sales-filter-input">
+        <option value="">All Outlets / Destinations</option>
+      </select>
+      <select id="shipmentStatusFilter" class="sales-filter-input">
+        <option value="">All Statuses</option>
+        <option value="In Transit">In Transit</option>
+        <option value="Delivered">Delivered</option>
+        <option value="Received">Received</option>
+        <option value="Cancelled">Cancelled</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button class="btn secondary" onclick="clearShipmentFilters()">Clear Filters</button>
+      <div class="small muted" id="shipmentDateDisplay">All time</div>
+    </div>
+    <button id="printShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print This Page
+    </button>
+  </div>
+
+  <!-- Main Table – NO summary cards -->
+  <div class="table">
+    <table id="shipmentReportTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Shipment ID</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Products Shipped</th>
+          <th>Total Qty</th>
+          <th>Total Value</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="shipmentPagination"></div>
+  </div>
+</section>
 
       <!-- ==================== ACCOUNTS ==================== -->
       <section id="accountsSection" class="section">
@@ -3109,6 +3168,12 @@ document.querySelectorAll('.nav a').forEach(a => {
       loadReportFilters();
       renderSalesReport();
     }
+    else if (route === 'shipmentReport') {
+  $('#shipmentReportSection').classList.add('active');
+  if (!shipmentPicker) initShipmentDatePicker();
+  loadShipmentFilters();
+  renderShipmentReport();
+}
     else if (route === 'settings') {
       $('#settingsSection').classList.add('active');
       renderSettings();
@@ -4599,6 +4664,216 @@ function printProductReportPage() {
 
 
 document.getElementById('printProductReportBtn')?.addEventListener('click', printProductReportPage);
+
+
+// ─── SHIPMENT REPORT VARIABLES ────────────────────────────────────────
+let shipmentCurPage = 1;
+const SHIPMENT_PER_PAGE = 15;
+let shipmentFilter = { start: null, end: null, warehouseId: null, outletId: null, status: null };
+let shipmentPicker = null;
+
+// ─── Date Picker for Shipment Report ─────────────────────────────────
+function initShipmentDatePicker() {
+  const container = $('#shipmentDateContainer');
+  if (container.innerHTML) return; // prevent double init
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+
+  shipmentPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        shipmentFilter.start = start.toISOString().slice(0,10);
+        shipmentFilter.end   = end.toISOString().slice(0,10);
+        $('#shipmentDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        shipmentFilter.start = shipmentFilter.end = null;
+        $('#shipmentDateDisplay').textContent = 'All time';
+      }
+      shipmentCurPage = 1;
+      renderShipmentReport();
+    }
+  });
+}
+
+// ─── Load Warehouse + Outlet + Status filters ────────────────────────
+async function loadShipmentFilters() {
+  try {
+    const [whRes, outRes] = await Promise.all([
+      fetch('/api/warehouses'),
+      fetch('/api/outlets')
+    ]);
+    const warehouses = await whRes.json();
+    const outlets    = await outRes.json();
+
+    const whSel = $('#shipmentWarehouseFilter');
+    whSel.innerHTML = '<option value="">All Warehouses</option>';
+    warehouses.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.text  = w.name;
+      whSel.appendChild(opt);
+    });
+
+    const outSel = $('#shipmentOutletFilter');
+    outSel.innerHTML = '<option value="">All Destinations</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text  = o.name;
+      outSel.appendChild(opt);
+    });
+
+    // Change listeners
+    whSel.onchange = () => { shipmentFilter.warehouseId = whSel.value || null; shipmentCurPage=1; renderShipmentReport(); };
+    outSel.onchange = () => { shipmentFilter.outletId   = outSel.value   || null; shipmentCurPage=1; renderShipmentReport(); };
+    $('#shipmentStatusFilter').onchange = () => {
+      shipmentFilter.status = $('#shipmentStatusFilter').value || null;
+      shipmentCurPage = 1;
+      renderShipmentReport();
+    };
+  } catch(e) {
+    console.error('Failed to load shipment filters', e);
+  }
+}
+
+function clearShipmentFilters() {
+  shipmentFilter = { start:null, end:null, warehouseId:null, outletId:null, status:null };
+  $('#shipmentDateDisplay').textContent = 'All time';
+  shipmentPicker?.clear();
+  $('#shipmentWarehouseFilter').value = '';
+  $('#shipmentOutletFilter').value = '';
+  $('#shipmentStatusFilter').value = '';
+  shipmentCurPage = 1;
+  renderShipmentReport();
+}
+
+// ─── Render Shipment Breakdown Table ─────────────────────────────────
+async function renderShipmentReport(page = 1) {
+  shipmentCurPage = page;
+  const tbody = $('#shipmentReportTable tbody');
+  tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ page, limit: SHIPMENT_PER_PAGE });
+    if (shipmentFilter.start) q.set('startDate', shipmentFilter.start);
+    if (shipmentFilter.end)   q.set('endDate',   shipmentFilter.end);
+    if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
+    if (shipmentFilter.outletId)    q.set('outletId',    shipmentFilter.outletId);
+    if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
+
+    const res = await fetch(`/api/shipments/breakdown?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const shipments = json.data || [];
+    const totalCount = json.totalCount || 0;
+
+    if (!shipments.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">No shipments found</td></tr>';
+    } else {
+      tbody.innerHTML = shipments.map(s => {
+        // List all product names (one per line)
+        const productList = s.products?.length > 0
+          ? s.products.map(p => `<strong>${p.name}</strong>`).join('<br>')
+          : '—';
+
+        return `
+          <tr>
+            <td>${niceDate(new Date(s.date))}</td>
+            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
+            <td>${s.from?.name || 'Company'}</td>
+            <td>${s.to?.name || s.warehouseName || '—'}</td>
+            <td style="line-height:1.6; white-space:pre-wrap;">${productList}</td>
+            <td style="text-align:center;">${s.totalQty || 0}</td>
+            <td style="text-align:right; font-weight:600; color:var(--blue);">
+              ${formatNGN(s.totalValue || 0)}
+            </td>
+            <td><span class="pill">${s.status || '—'}</span></td>
+            <td>
+              <button class="btn secondary" onclick="viewShipment('${s.id}')">View</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Pagination
+    renderPag($('#shipmentPagination'), totalCount, shipmentCurPage, n => renderShipmentReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" class="error">Failed to load shipments</td></tr>';
+    console.error(err);
+    showToast('Error loading shipment report', 'error');
+  }
+}
+
+// ─── Print Shipment Report (same pattern as others) ──────────────────
+document.getElementById('printShipmentReportBtn')?.addEventListener('click', () => {
+  const dateRange = $('#shipmentDateDisplay')?.textContent || 'All time';
+  const tableHTML = $('#shipmentReportTable').outerHTML;
+
+  const printableContent = `
+    <div style="padding:40px 30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111827;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 12px; font-size:28px;">
+        SHIPMENT BREAKDOWN REPORT
+      </h2>
+      <p style="text-align:center; color:#555; margin:0 0 30px; font-size:14px;">
+        ${dateRange} • Page ${shipmentCurPage} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+
+      <style>
+        table { width:100%; border-collapse:collapse; margin:25px 0; font-size:13px; }
+        th, td { border:1px solid #d1d5db; padding:10px 8px; text-align:left; }
+        th { background:#f0f7ff; color:#111827; font-weight:600; text-transform:uppercase; font-size:11px; }
+        tr:nth-child(even) { background:#f9fafb; }
+        .pill { padding:4px 10px; border-radius:999px; background:#e0f2fe; color:#0b5ed7; font-weight:600; font-size:11px; }
+      </style>
+
+      ${tableHTML}
+
+      <div style="margin-top:60px; text-align:center; color:#6b7280; font-size:12px;">
+        Generated by WareAdmin • ${new Date().toLocaleDateString('en-GB')}
+      </div>
+    </div>
+  `;
+
+  showModal(`
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview – Shipment Breakdown</h4>
+    <div style="max-height:75vh; overflow-y:auto; background:white; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+      ${printableContent}
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doRealShipmentPrint()">
+        Print Now
+      </button>
+    </div>
+  `);
+
+  window.doRealShipmentPrint = function() {
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Shipment Breakdown Report</title>
+      <style>@page { margin: 1.2cm; } body { font-family: system-ui, Arial, sans-serif; }</style>
+      </head>
+      <body onload="window.print(); setTimeout(()=>window.close(), 800)">
+        ${printableContent}
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+    closeModal();
+  };
+});
+
+
   </script>
 </body>
 </html>
