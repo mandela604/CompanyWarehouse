@@ -463,9 +463,8 @@ router.get('/outlet/:outletId/inventory', ensureAuth, async (req, res) => {
 });
 
 // GET /api/products/report
-router.get('/products/report', ensureAdmin, async (req, res) => {
-  console.log('===== /api/products/report WAS HIT =====', req.query);
-  
+router.get('/products/performance', ensureAdmin, async (req, res) => {
+
   try {
     const {
       page = 1,
