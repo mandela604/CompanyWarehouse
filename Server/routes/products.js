@@ -16,6 +16,96 @@ const Outlet = require('../models/Outlet');
 
 const router = express.Router();
 
+
+// GET /api/products/report
+router.get('/products/report-v2', ensureAdmin, async (req, res) => {
+ console.log("REPORT V2 WAS HIT!", req.query);
+  try {
+    const {
+      page = 1,
+      limit = 15,
+      startDate,
+      endDate,
+      warehouseId,
+      outletId
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // 1. Build filter for sales (date + outlet)
+    const salesFilter = {};
+    if (startDate || endDate) {
+      salesFilter.createdAt = {};
+      if (startDate) salesFilter.createdAt.$gte = new Date(startDate);
+      if (endDate)   salesFilter.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
+    }
+    if (outletId) salesFilter.outletId = outletId;
+
+    // 2. Aggregate total sold + revenue **per product**
+    const salesAgg = await Sale.aggregate([
+      { $match: salesFilter },
+      {
+        $group: {
+          _id: '$productId',               // group by productId (uuid string)
+          totalSold: { $sum: '$qtySold' },
+          revenue:   { $sum: '$totalAmount' }
+        }
+      }
+    ]);
+
+    // Map for fast lookup: productId → {totalSold, revenue}
+    const salesMap = new Map(salesAgg.map(s => [s._id, s]));
+
+    // 3. Get paginated products
+    const productQuery = {};
+    // If you later add warehouse filtering (e.g. via WarehouseInventory), add here
+    // if (warehouseId) productQuery.warehouseId = warehouseId; // not present yet
+
+    const products = await Product.find(productQuery)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('id sku name qty unitPrice') // minimal fields
+      .lean();
+
+    const totalCount = await Product.countDocuments(productQuery);
+
+    // 4. Enrich with sales data
+    const enriched = products.map(p => {
+      const sales = salesMap.get(p.id) || { totalSold: 0, revenue: 0 };
+      return {
+        id:            p.id,
+        sku:           p.sku,
+        name:          p.name,
+        totalSold:     sales.totalSold,
+        revenue:       sales.revenue,
+        currentStock:  p.qty || 0,
+        unitsReceived: p.qty || 0   // fallback — you don't track received separately yet
+      };
+    });
+
+    // 5. Summary stats
+    const summary = {
+      totalSold:     salesAgg.reduce((sum, s) => sum + s.totalSold, 0),
+      totalRevenue:  salesAgg.reduce((sum, s) => sum + s.revenue,   0),
+      totalProducts: await Product.countDocuments({}),
+      zeroSaleProducts: await Product.countDocuments({
+        id: { $nin: salesAgg.map(s => s._id) }
+      })
+    };
+
+    res.json({
+      products: enriched,
+      totalCount,
+      summary
+    });
+
+  } catch (err) {
+    console.error('Product report error:', err);
+    res.status(500).json({ message: 'Failed to generate report', error: err.message });
+  }
+});
+
+
 /// 🟢 CREATE PRODUCT (Admin only)
 /// 🟢 CREATE PRODUCT (Admin only)
 router.post('/products', ensureAdmin, async (req, res) => {
@@ -462,93 +552,7 @@ router.get('/outlet/:outletId/inventory', ensureAuth, async (req, res) => {
   }
 });
 
-// GET /api/products/report
-router.get('/products/report-v2', ensureAdmin, async (req, res) => {
- console.log("REPORT V2 WAS HIT!", req.query);
-  try {
-    const {
-      page = 1,
-      limit = 15,
-      startDate,
-      endDate,
-      warehouseId,
-      outletId
-    } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // 1. Build filter for sales (date + outlet)
-    const salesFilter = {};
-    if (startDate || endDate) {
-      salesFilter.createdAt = {};
-      if (startDate) salesFilter.createdAt.$gte = new Date(startDate);
-      if (endDate)   salesFilter.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
-    }
-    if (outletId) salesFilter.outletId = outletId;
-
-    // 2. Aggregate total sold + revenue **per product**
-    const salesAgg = await Sale.aggregate([
-      { $match: salesFilter },
-      {
-        $group: {
-          _id: '$productId',               // group by productId (uuid string)
-          totalSold: { $sum: '$qtySold' },
-          revenue:   { $sum: '$totalAmount' }
-        }
-      }
-    ]);
-
-    // Map for fast lookup: productId → {totalSold, revenue}
-    const salesMap = new Map(salesAgg.map(s => [s._id, s]));
-
-    // 3. Get paginated products
-    const productQuery = {};
-    // If you later add warehouse filtering (e.g. via WarehouseInventory), add here
-    // if (warehouseId) productQuery.warehouseId = warehouseId; // not present yet
-
-    const products = await Product.find(productQuery)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('id sku name qty unitPrice') // minimal fields
-      .lean();
-
-    const totalCount = await Product.countDocuments(productQuery);
-
-    // 4. Enrich with sales data
-    const enriched = products.map(p => {
-      const sales = salesMap.get(p.id) || { totalSold: 0, revenue: 0 };
-      return {
-        id:            p.id,
-        sku:           p.sku,
-        name:          p.name,
-        totalSold:     sales.totalSold,
-        revenue:       sales.revenue,
-        currentStock:  p.qty || 0,
-        unitsReceived: p.qty || 0   // fallback — you don't track received separately yet
-      };
-    });
-
-    // 5. Summary stats
-    const summary = {
-      totalSold:     salesAgg.reduce((sum, s) => sum + s.totalSold, 0),
-      totalRevenue:  salesAgg.reduce((sum, s) => sum + s.revenue,   0),
-      totalProducts: await Product.countDocuments({}),
-      zeroSaleProducts: await Product.countDocuments({
-        id: { $nin: salesAgg.map(s => s._id) }
-      })
-    };
-
-    res.json({
-      products: enriched,
-      totalCount,
-      summary
-    });
-
-  } catch (err) {
-    console.error('Product report error:', err);
-    res.status(500).json({ message: 'Failed to generate report', error: err.message });
-  }
-});
 
 // GET /api/products/:id/details
 // GET /api/products/:id/details
