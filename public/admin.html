@@ -4767,9 +4767,14 @@ async function renderShipmentReport(page = 1) {
     if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
     if (shipmentFilter.outletId)    q.set('outletId',    shipmentFilter.outletId);
     if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
+    console.log('Fetching shipments with query:', q.toString());
+
 
     const res = await fetch(`/api/shipments/breakdown?${q}`);
+   console.log('Response status:', res.status);
     const json = await res.json();
+
+    console.log('Raw JSON from server:', json);
     if (!res.ok) throw new Error(json.message || 'Failed');
 
     const shipments = json.data || [];
