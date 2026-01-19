@@ -558,6 +558,31 @@
   font-weight: 700;
 }
 
+@media print {
+  .grid {
+    display: block !important;           /* collapse grid into block flow */
+    page-break-inside: avoid;            /* try to keep cards together */
+  }
+  
+  .card {
+    display: block !important;
+    width: 100% !important;              /* full width on print */
+    margin-bottom: 16px !important;      /* space between cards */
+    box-shadow: none !important;         /* shadows usually disappear anyway */
+    border: 1px solid #ddd !important;   /* visible border instead of shadow */
+    page-break-inside: avoid;            /* prevent splitting cards */
+    break-inside: avoid;                 /* modern browsers */
+  }
+  
+  .card::before {
+    display: none !important;            /* hide gradient top bar */
+  }
+  
+  .card:hover {
+    transform: none !important;          /* no hover effects in print */
+  }
+}
+
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
