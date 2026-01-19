@@ -4394,7 +4394,7 @@ async function renderProductReport(page = 1) {
     if (productFilter.warehouseId) q.set('warehouseId', productFilter.warehouseId);
     if (productFilter.outletId) q.set('outletId', productFilter.outletId);
 
-    const res = await fetch(`/api/products/performance?${q}`);
+    const res = await fetch(`/api/products/report-v2?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 

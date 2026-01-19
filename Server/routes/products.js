@@ -463,8 +463,8 @@ router.get('/outlet/:outletId/inventory', ensureAuth, async (req, res) => {
 });
 
 // GET /api/products/report
-router.get('/products/performance', ensureAdmin, async (req, res) => {
-
+router.get('/products/report-v2', ensureAdmin, async (req, res) => {
+ console.log("REPORT V2 WAS HIT!", req.query);
   try {
     const {
       page = 1,
