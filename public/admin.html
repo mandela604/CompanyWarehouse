@@ -720,6 +720,56 @@
 </section>
 
 
+<!-- ==================== PRODUCT REPORT (new full page) ==================== -->
+<section id="productReportSection" class="section">
+  <h2 style="margin-top:0">Product Performance Report</h2>
+
+  <!-- Filters -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="productDateContainer" style="min-width:240px;"></div>
+      <select id="productWarehouseFilter" class="sales-filter-input">
+        <option value="">All Warehouses</option>
+      </select>
+      <select id="productOutletFilter" class="sales-filter-input">
+        <option value="">All Outlets</option>
+      </select>
+      <button class="btn secondary" onclick="clearProductFilters()">Clear Filters</button>
+      <div class="small muted" id="productDateDisplay">All time</div>
+    </div>
+    <button id="exportProductReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Export PDF
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid" id="productSummaryCards" style="margin-bottom:32px;">
+    <div class="card"><h3>Total Units Sold</h3><div class="value">—</div><div class="small-note">in selected period</div></div>
+    <div class="card"><h3>Total Revenue</h3><div class="value">—</div><div class="small-note">from all products</div></div>
+    <div class="card"><h3>Total Products Tracked</h3><div class="value">—</div><div class="small-note">unique SKUs</div></div>
+    <div class="card"><h3>Zero-Sale Products</h3><div class="value" style="color:var(--dark-red);">—</div><div class="small-note">sold 0 units this period</div></div>
+  </div>
+
+  <!-- Main Table -->
+  <div class="table">
+    <table id="productReportTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Total Sold</th>
+          <th>Revenue</th>
+          <th>Current Stock</th>
+          <th>Units Received</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="productPagination"></div>
+  </div>
+</section>
+
+
       <!-- ==================== ACCOUNTS ==================== -->
       <section id="accountsSection" class="section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -4078,7 +4128,10 @@ document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
 
 // ─── Product Report just opens existing reports section ────────────
 document.getElementById('viewProductReportBtn')?.addEventListener('click', () => {
-  navigateTo('reports');               // ← reuse again
+  navigateTo('productReport');
+  initProductDatePicker();
+  loadProductFilters();
+  renderProductReport();
 });
 
 // ─── Date Picker for Report ────────────────────────────────────────
@@ -4245,6 +4298,169 @@ document.getElementById('printReportBtn')?.addEventListener('click', () => {
   `);
   win.document.close();
 });
+
+
+// ─── PRODUCT REPORT VARIABLES ───────────────────────────────────────
+let productCurPage = 1;
+const PRODUCT_PER_PAGE = 15;
+let productFilter = { start: null, end: null, warehouseId: null, outletId: null };
+let productPicker = null;
+
+// ─── Date Picker for Product Report ─────────────────────────────────
+function initProductDatePicker() {
+  const container = $('#productDateContainer');
+  if (container.innerHTML) return; // already initialized
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+  productPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        productFilter.start = start.toISOString().slice(0,10);
+        productFilter.end = end.toISOString().slice(0,10);
+        $('#productDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        productFilter.start = productFilter.end = null;
+        $('#productDateDisplay').textContent = 'All time';
+      }
+      productCurPage = 1;
+      renderProductReport();
+    }
+  });
+}
+
+// ─── Load Warehouse & Outlet Filters ────────────────────────────────
+async function loadProductFilters() {
+  try {
+    const [whRes, outRes] = await Promise.all([
+      fetch('/api/warehouses'),
+      fetch('/api/outlets')
+    ]);
+    const warehouses = await whRes.json();
+    const outlets = await outRes.json();
+
+    const whSel = $('#productWarehouseFilter');
+    whSel.innerHTML = '<option value="">All Warehouses</option>';
+    warehouses.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.text = w.name;
+      whSel.appendChild(opt);
+    });
+
+    const outSel = $('#productOutletFilter');
+    outSel.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text = o.name;
+      outSel.appendChild(opt);
+    });
+
+    whSel.onchange = () => { productFilter.warehouseId = whSel.value || null; productCurPage=1; renderProductReport(); };
+    outSel.onchange = () => { productFilter.outletId = outSel.value || null; productCurPage=1; renderProductReport(); };
+  } catch(e) {
+    console.error('Failed to load product filters', e);
+  }
+}
+
+// ─── Clear Filters ──────────────────────────────────────────────────
+function clearProductFilters() {
+  productFilter = { start:null, end:null, warehouseId:null, outletId:null };
+  $('#productDateDisplay').textContent = 'All time';
+  productPicker?.clear();
+  $('#productWarehouseFilter').value = '';
+  $('#productOutletFilter').value = '';
+  productCurPage = 1;
+  renderProductReport();
+}
+
+// ─── Render Product Report ──────────────────────────────────────────
+async function renderProductReport(page = 1) {
+  productCurPage = page;
+  const tbody = $('#productReportTable tbody');
+  const summaryCards = $('#productSummaryCards');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ page, limit: PRODUCT_PER_PAGE });
+    if (productFilter.start) q.set('startDate', productFilter.start);
+    if (productFilter.end) q.set('endDate', productFilter.end);
+    if (productFilter.warehouseId) q.set('warehouseId', productFilter.warehouseId);
+    if (productFilter.outletId) q.set('outletId', productFilter.outletId);
+
+    const res = await fetch(`/api/products/report?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const { products, totalCount, summary } = json;
+
+    // Update summary cards
+    summaryCards.querySelectorAll('.value')[0].textContent = (summary.totalSold || 0).toLocaleString();
+    summaryCards.querySelectorAll('.value')[1].textContent = formatNGN(summary.totalRevenue || 0);
+    summaryCards.querySelectorAll('.value')[2].textContent = (summary.totalProducts || 0).toLocaleString();
+    summaryCards.querySelectorAll('.value')[3].textContent = (summary.zeroSaleProducts || 0);
+    summaryCards.querySelectorAll('.value')[3].style.color = (summary.zeroSaleProducts || 0) > 0 ? 'var(--dark-red)' : '#10b981';
+
+    // Render table
+    if (!products.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products found</td></tr>';
+    } else {
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td style="font-weight:700;">${p.name} <small class="muted">(${p.sku})</small></td>
+          <td>${p.totalSold || 0}</td>
+          <td style="color:var(--blue);font-weight:700;">${formatNGN(p.revenue || 0)}</td>
+          <td>${p.currentStock || 0}</td>
+          <td>${p.unitsReceived || 0}</td>
+          <td>
+            <button class="btn secondary" onclick="showProductDetails('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Details</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Pagination
+    renderPag($('#productPagination'), totalCount, productCurPage, n => renderProductReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load</td></tr>';
+    console.error(err);
+    showToast('Error loading product report', 'error');
+  }
+}
+
+// ─── Product Details Modal ──────────────────────────────────────────
+function showProductDetails(productId, productName) {
+  showModal(`
+    <h3 style="margin:0 0 20px; color:var(--blue);">${productName}</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:30px;">
+      <div class="card"><h4>Total Sold</h4><div class="value" id="detailSold">—</div></div>
+      <div class="card"><h4>Revenue</h4><div class="value" id="detailRevenue" style="color:var(--blue);">—</div></div>
+      <div class="card"><h4>Current Stock</h4><div class="value" id="detailStock">—</div></div>
+      <div class="card"><h4>Units Received</h4><div class="value" id="detailReceived">—</div></div>
+    </div>
+    <div style="text-align:right;">
+      <button class="btn secondary" onclick="closeModal()">Close</button>
+    </div>
+  `);
+
+  // Fetch real details (you'll implement this endpoint)
+  fetch(`/api/products/${productId}/details`)
+    .then(res => res.json())
+    .then(data => {
+      $('#detailSold').textContent = data.totalSold?.toLocaleString() || '0';
+      $('#detailRevenue').textContent = formatNGN(data.revenue || 0);
+      $('#detailStock').textContent = data.currentStock || '0';
+      $('#detailReceived').textContent = data.unitsReceived || '0';
+    })
+    .catch(() => showToast('Failed to load details', 'error'));
+}
+
 
   </script>
 </body>

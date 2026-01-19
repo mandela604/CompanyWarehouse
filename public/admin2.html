@@ -504,6 +504,60 @@
   color: #111827;
   font-weight: 600;
 }
+
+
+/* ─── SALES REPORT TABLE IMPROVEMENTS ──────────────────────────────────────── */
+
+/* Target only the sales report table */
+#reportSalesTable {
+  table-layout: fixed;          /* prevents crazy column jumping */
+  width: 100%;
+}
+
+/* Center ALL headers and ALL cells */
+#reportSalesTable th,
+#reportSalesTable td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+}
+
+/* Make "Products Sold" column wider + left-align for readability */
+#reportSalesTable th:nth-child(2),
+#reportSalesTable td:nth-child(2) {
+  text-align: left !important;           /* better for long product lists */
+  width: 28%;                            /* give it more space */
+  white-space: normal;                   /* allow wrapping */
+  line-height: 1.5;
+}
+
+/* Bold + darker product names inside "Products Sold" */
+#reportSalesTable td:nth-child(2) {
+  font-weight: 700;
+  color: #111827;                        /* very dark gray/black */
+}
+
+/* Make sure pills (Status) look centered nicely */
+#reportSalesTable .pill {
+  display: inline-block;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Optional: make Total Value stand out more */
+#reportSalesTable td:nth-child(4) {
+  font-weight: 700;
+  color: var(--blue);
+  font-size: 14px;
+}
+
+/* Page total row - make it more prominent */
+#reportSalesTable tr:last-child {
+  background: #e0f2fe !important;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -615,9 +669,13 @@
 
       <!-- ==================== PRODUCTS ==================== -->
       <section id="productsSection" class="section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
   <h2 style="margin:0">Products / Inventory</h2>
-  <button class="btn" id="addProductBtn">+ Add Product</button>
+  <div style="display:flex; gap:12px;">
+    <button class="btn secondary" id="viewSalesReportBtn">View Sales Report</button>
+    <button class="btn secondary" id="viewProductReportBtn">View Product Report</button>
+    <button class="btn" id="addProductBtn">+ Add Product</button>
+  </div>
 </div>
         <div class="table">
           <table id="productTable">
@@ -772,6 +830,54 @@
 </div>
         </div>
       </section>
+
+
+      <!-- ==================== SALES REPORT (new professional page) ==================== -->
+<section id="salesReportSection" class="section">
+  <h2 style="margin-top:0">Sales Report</h2>
+
+  <!-- Filters -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="reportDateContainer" style="min-width:240px;"></div>
+      <select id="reportOutletFilter" class="sales-filter-input">
+        <option value="">All Outlets</option>
+      </select>
+      <select id="reportRepFilter" class="sales-filter-input">
+        <option value="">All Sales Reps</option>
+      </select>
+      <button class="btn secondary" onclick="clearReportFilters()">Clear</button>
+      <div class="small muted" id="reportDateDisplay"></div>
+    </div>
+    <button id="printReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print Report
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid" id="reportSummaryCards" style="margin-bottom:32px;"></div>
+
+  <!-- Main Table -->
+  <div class="table">
+    <table id="reportSalesTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Products Sold</th>
+          <th>Total Qty</th>
+          <th style="text-align:right;">Total Value</th>
+          <th>Outlet</th>
+          <th>Rep</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="reportPagination"></div>
+  </div>
+</section>
+
 
       <!-- ==================== FULL-PAGE SALES VIEWER ==================== -->
       <section id="fullSalesSection" class="section">
@@ -2946,6 +3052,12 @@ document.querySelectorAll('.nav a').forEach(a => {
       loadSalesFilters();
       renderSales();
     }
+    else if (route === 'salesReport') {
+      $('#salesReportSection').classList.add('active');
+      if (!reportPicker) initReportDatePicker();
+      loadReportFilters();
+      renderSalesReport();
+    }
     else if (route === 'settings') {
       $('#settingsSection').classList.add('active');
       renderSettings();
@@ -3947,6 +4059,192 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+
+
+// ─── SALES REPORT VARIABLES ────────────────────────────────────────
+let reportCurPage = 1;
+const REPORT_PER_PAGE = 15;
+let reportFilter = { start: null, end: null, outletId: null, repId: null };
+let reportPicker = null;
+
+// ─── Button to open Sales Report ───────────────────────────────────
+document.getElementById('viewSalesReportBtn')?.addEventListener('click', () => {
+  navigateTo('salesReport');           // ← use the existing function!
+  if (!reportPicker) initReportDatePicker();
+  loadReportFilters();
+  renderSalesReport();
+});
+
+
+// ─── Product Report just opens existing reports section ────────────
+document.getElementById('viewProductReportBtn')?.addEventListener('click', () => {
+  navigateTo('reports');               // ← reuse again
+});
+
+// ─── Date Picker for Report ────────────────────────────────────────
+function initReportDatePicker() {
+  const container = $('#reportDateContainer');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+
+  reportPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        reportFilter.start = start.toISOString().slice(0,10);
+        reportFilter.end   = end.toISOString().slice(0,10);
+        $('#reportDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        reportFilter.start = reportFilter.end = null;
+        $('#reportDateDisplay').textContent = 'All time';
+      }
+      reportCurPage = 1;
+      renderSalesReport();
+    }
+  });
+}
+
+// ─── Load filters (outlets & reps) ─────────────────────────────────
+async function loadReportFilters() {
+  try {
+    const [outRes, accRes] = await Promise.all([
+      fetch('/api/outlets'),
+      fetch('/api/accounts')
+    ]);
+    const outlets = await outRes.json();
+    const reps = (await accRes.json()).filter(a => a.role === 'rep');
+
+    const outletSel = $('#reportOutletFilter');
+    outletSel.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text = o.name;
+      outletSel.appendChild(opt);
+    });
+
+    const repSel = $('#reportRepFilter');
+    repSel.innerHTML = '<option value="">All Reps</option>';
+    reps.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.text = r.name;
+      repSel.appendChild(opt);
+    });
+
+    outletSel.onchange = () => { reportFilter.outletId = outletSel.value || null; reportCurPage=1; renderSalesReport(); };
+    repSel.onchange   = () => { reportFilter.repId   = repSel.value   || null; reportCurPage=1; renderSalesReport(); };
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function clearReportFilters() {
+  reportFilter = { start:null, end:null, outletId:null, repId:null };
+  $('#reportDateDisplay').textContent = 'All time';
+  reportPicker?.clear();
+  $('#reportOutletFilter').value = '';
+  $('#reportRepFilter').value = '';
+  reportCurPage = 1;
+  renderSalesReport();
+}
+
+// ─── Render the report table ───────────────────────────────────────
+async function renderSalesReport(page = 1) {
+  reportCurPage = page;
+  const tbody = $('#reportSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({ page, limit: REPORT_PER_PAGE });
+    if (reportFilter.start) q.set('startDate', reportFilter.start);
+    if (reportFilter.end)   q.set('endDate',   reportFilter.end);
+    if (reportFilter.outletId) q.set('outletId', reportFilter.outletId);
+    if (reportFilter.repId)    q.set('repId',    reportFilter.repId);
+
+    const res = await fetch(`/api/sales?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const sales = json.data || [];
+    const total = json.totalCount || 0;
+
+    let pageTotalValue = 0;
+
+    if (!sales.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No sales found</td></tr>';
+    } else {
+      tbody.innerHTML = sales.map(s => {
+        pageTotalValue += s.totalAmount || 0;
+        const products = s.items?.map(i => `${i.productName} × ${i.qty}`).join('<br>') || '—';
+
+        return `
+          <tr>
+            <td>${s.date}</td>
+            <td style="line-height:1.5;">${products}</td>
+            <td>${s.totalQty || 0}</td>
+            <td style="text-align:right;font-weight:600;color:var(--blue);">${formatNGN(s.totalAmount||0)}</td>
+            <td>${s.outletName||'—'}</td>
+            <td>${s.repName||'—'}</td>
+            <td><span class="pill">${s.status||'—'}</span></td>
+            <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+          </tr>
+        `;
+      }).join('') + `
+        <tr style="background:#eff6ff;font-weight:700;">
+          <td colspan="3" style="text-align:right;padding:16px;">Page Total:</td>
+          <td style="text-align:right;color:var(--blue);padding:16px;">${formatNGN(pageTotalValue)}</td>
+          <td colspan="4"></td>
+        </tr>
+      `;
+    }
+
+    renderPag($('#reportPagination'), total, reportCurPage, n => renderSalesReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load</td></tr>';
+    console.error(err);
+  }
+}
+
+// ─── Print Report ──────────────────────────────────────────────────
+document.getElementById('printReportBtn')?.addEventListener('click', () => {
+  const range = $('#reportDateDisplay').textContent;
+  const content = `
+    <div style="padding:40px; font-family:Inter,sans-serif;">
+      <h1 style="text-align:center;color:#0b5ed7;margin-bottom:8px;">Sales Report</h1>
+      <p style="text-align:center;color:#555;margin-bottom:30px;">
+        ${range} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+      <style>
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th,td{border:1px solid #ddd;padding:12px;text-align:left;}
+        th{background:#f0f7ff;font-weight:600;}
+        .pill{padding:4px 10px;border-radius:999px;background:#e0e7ff;color:#2563eb;}
+      </style>
+      ${document.getElementById('reportSalesTable').outerHTML}
+      <div style="margin-top:40px;text-align:center;color:#777;font-size:12px;">
+        WareAdmin • Abuja, Nigeria
+      </div>
+    </div>
+  `;
+
+  const win = window.open('','_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>Sales Report</title></head>
+    <body onload="window.print();setTimeout(()=>window.close(),800)">
+      ${content}
+    </body>
+    </html>
+  `);
+  win.document.close();
+});
 
   </script>
 </body>

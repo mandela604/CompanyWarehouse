@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Product Details Popup — WareAdmin</title>
+  <style>
+    :root {
+      --blue: #0b5ed7;
+      --dark: #111827;
+      --muted: #6b7280;
+      --light: #f8fafc;
+      --shadow: 0 10px 25px rgba(0,0,0,0.15);
+      --red: #dc2626;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .modal-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--dark);
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-body {
+      padding: 24px 32px;
+    }
+    .product-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .info-card {
+      background: var(--light);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+    }
+    .info-card h4 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-card .big-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    .info-card .sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .sales-history, .stock-movement {
+      margin-bottom: 32px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eef3fb;
+    }
+    th {
+      background: #f1f5f9;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    .status-pill {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-good { background: #d1fae5; color: #065f46; }
+    .status-warning { background: #fef3c7; color: #92400e; }
+    .status-danger { background: #fee2e2; color: #991b1b; }
+    .modal-footer {
+      padding: 20px 32px;
+      border-top: 1px solid #e5e7eb;
+      text-align: right;
+    }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #d1d5db;
+      color: var(--dark);
+      margin-left: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- This is what opens when you click "Details" -->
+  <div class="modal-backdrop" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>iPhone 14 Pro Max (64GB) <small style="color:var(--muted); font-size:16px;">SKU: IPH-014PM-64</small></h2>
+        <button class="close-btn" onclick="document.getElementById('productModal').style.display='none'">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Quick Stats -->
+        <div class="product-info">
+          <div class="info-card">
+            <h4>Total Sold (Period)</h4>
+            <div class="big-value">2,340</div>
+            <div class="sub">Last 30 days</div>
+          </div>
+          <div class="info-card">
+            <h4>Revenue (Period)</h4>
+            <div class="big-value" style="color:var(--blue);">₦1,248,000,000</div>
+            <div class="sub">Last 30 days</div>
+          </div>
+          <div class="info-card">
+            <h4>Current Stock</h4>
+            <div class="big-value" style="color:#059669;">187 units</div>
+            <div class="sub">Across all warehouses</div>
+          </div>
+          <div class="info-card">
+            <h4>Units Received (Lifetime)</h4>
+            <div class="big-value">4,500</div>
+            <div class="sub">Total onboarded/restocked</div>
+          </div>
+        </div>
+
+        <!-- Recent Sales History -->
+        <div class="sales-history">
+          <h3 style="margin:0 0 16px; font-size:18px;">Recent Sales (Last 10)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Outlet</th>
+                <th>Qty Sold</th>
+                <th>Rep</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jan 18, 2026</td>
+                <td>Shoprite GRA</td>
+                <td>12</td>
+                <td>Chidi Okeke</td>
+                <td>₦6,480,000</td>
+              </tr>
+              <tr>
+                <td>Jan 15, 2026</td>
+                <td>SPAR Trans-Amadi</td>
+                <td>8</td>
+                <td>Aisha Musa</td>
+                <td>₦4,320,000</td>
+              </tr>
+              <!-- more rows... -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Stock Movement -->
+        <div class="stock-movement">
+          <h3 style="margin:0 0 16px; font-size:18px;">Stock Movement (Recent)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>By</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jan 10, 2026</td>
+                <td>Restock</td>
+                <td>+200</td>
+                <td>Admin</td>
+                <td>187</td>
+              </tr>
+              <tr>
+                <td>Dec 28, 2025</td>
+                <td>Sale</td>
+                <td>-45</td>
+                <td>System</td>
+                <td>-13 (wait, negative? alert!)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('productModal').style.display='none'">Close</button>
+        <button class="btn btn-primary">Export Product Report</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // For preview: show modal on load
+    document.getElementById('productModal').style.display = 'flex';
+  </script>
+</body>
+</html>

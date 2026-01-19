@@ -3,379 +3,287 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sales Report — Demo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <title>Product Report — WareAdmin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-600: #4b5563;
-      --gray-800: #1f2937;
-      --green-600: #16a34a;
-      --red-600: #dc2626;
-      --radius: 10px;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+      --blue: #0b5ed7;
+      --dark: #111827;
+      --muted: #6b7280;
+      --light: #f8fafc;
+      --shadow: 0 6px 18px rgba(11,94,215,0.08);
+      --red: #dc2626;
     }
-
-    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--gray-50);
-      color: var(--gray-800);
-      line-height: 1.5;
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: linear-gradient(180deg, #f6f8fb, #eef3fb);
+      color: var(--dark);
+      padding: 30px;
+      min-height: 100vh;
     }
-
     .container {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 24px;
     }
-
-    header {
-      background: white;
-      border-bottom: 1px solid var(--gray-200);
-      padding: 16px 0;
-      margin-bottom: 24px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
     h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--gray-800);
+      text-align: center;
+      color: var(--blue);
+      margin-bottom: 8px;
     }
-
+    .filters {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      margin: 24px 0 32px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .filters-left {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .flatpickr-input,
+    select {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid #e6eefb;
+      border-radius: 10px;
+      font-size: 14px;
+      min-width: 220px;
+    }
     .btn {
       padding: 10px 16px;
-      border-radius: var(--radius);
-      font-weight: 500;
-      cursor: pointer;
+      border-radius: 10px;
       border: none;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--primary);
+      background: var(--blue);
       color: white;
+      font-weight: 600;
+      cursor: pointer;
     }
-
-    .btn-primary:hover { background: var(--primary-dark); }
-
-    .btn-outline {
-      background: white;
-      border: 1px solid var(--gray-300);
-      color: var(--gray-700);
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid #e6eefb;
+      color: var(--muted);
     }
-
-    .btn-outline:hover { background: var(--gray-100); }
-
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 16px;
       margin-bottom: 32px;
     }
-
     .card {
       background: white;
-      border-radius: var(--radius);
+      border-radius: 14px;
       padding: 20px;
       box-shadow: var(--shadow);
-      border: 1px solid var(--gray-200);
+      text-align: center;
+      border: 1px solid #e5e7eb;
     }
-
-    .card-label {
-      font-size: 0.875rem;
-      color: var(--gray-600);
-      margin-bottom: 8px;
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
-
-    .card-value {
-      font-size: 1.75rem;
+    .card .value {
+      font-size: 32px;
       font-weight: 700;
-      color: var(--gray-800);
+      color: var(--dark);
+      margin: 4px 0;
     }
-
-    .card-change {
-      font-size: 0.875rem;
-      margin-top: 8px;
+    .card .zero-sales {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--red);
     }
-
-    .positive { color: var(--green-600); }
-    .negative { color: var(--red-600); }
-
-    .filters {
-      background: white;
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
+    .card small {
+      font-size: 13px;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
     }
-
-    .filter-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    select, input[type="date"], input[type="text"] {
-      padding: 10px 14px;
-      border: 1px solid var(--gray-300);
-      border-radius: var(--radius);
-      font-size: 0.95rem;
-      min-width: 160px;
-    }
-
     .table-container {
       background: white;
-      border-radius: var(--radius);
+      border-radius: 14px;
       overflow: hidden;
       box-shadow: var(--shadow);
-      border: 1px solid var(--gray-200);
+      border: 1px solid #e5e7eb;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 14px;
     }
-
     th, td {
-      padding: 14px 16px;
-      text-align: left;
-      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 10px;
+      text-align: center;
+      border-bottom: 1px solid #eef3fb;
     }
-
     th {
-      background: var(--gray-100);
+      background: var(--light);
+      color: var(--muted);
       font-weight: 600;
-      color: var(--gray-700);
-      font-size: 0.85rem;
       text-transform: uppercase;
+      font-size: 12px;
       letter-spacing: 0.5px;
     }
-
-    tr:hover {
-      background: rgba(37,99,235,0.04);
-    }
-
-    .status {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-
-    .status-completed { background: #dcfce7; color: #166534; }
-    .status-pending   { background: #fef3c7; color: #92400e; }
-    .status-cancelled { background: #fee2e2; color: #991b1b; }
-
-    .amount {
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .total-row {
-      background: #eff6ff;
+    td:nth-child(1) {  /* Product column */
+      text-align: left;
       font-weight: 700;
-      font-size: 1.05rem;
+      color: var(--dark);
+      line-height: 1.5;
     }
-
-    @media print {
-      .filters, .btn, header { display: none !important; }
-      body { background: white; }
-      .container { padding: 0; max-width: none; }
-      .card { box-shadow: none; border: 1px solid #ddd; }
+    td:nth-child(3) {  /* Revenue */
+      font-weight: 700;
+      color: var(--blue);
     }
-
-    @media (max-width: 768px) {
-      .summary-grid { grid-template-columns: 1fr 1fr; }
-      .filters { flex-direction: column; align-items: stretch; }
+    .pagination {
+      margin: 20px 0;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .pagination button {
+      padding: 8px 14px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination button.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Product Performance Report</h1>
 
-<div class="container">
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filters-left">
+        <input type="text" id="dateRange" placeholder="Select date range" class="flatpickr-input">
+        <select>
+          <option>All Warehouses</option>
+          <option>Main Warehouse - Lagos</option>
+          <option>Ikeja Depot</option>
+        </select>
+        <select>
+          <option>All Outlets</option>
+          <option>Shoprite GRA</option>
+          <option>SPAR Trans-Amadi</option>
+        </select>
+        <button class="btn secondary">Clear Filters</button>
+      </div>
+      <button class="btn">Export PDF</button>
+    </div>
 
-  <header>
-    <div class="header-content">
-      <h1>Sales Report</h1>
-      <div>
-        <button class="btn btn-primary" onclick="window.print()">Print / Export</button>
+    <!-- Summary Cards – Final version, no average, no low stock -->
+    <div class="summary-grid">
+      <div class="card">
+        <h3>Total Units Sold</h3>
+        <div class="value">12,450</div>
+        <small>in selected period</small>
+      </div>
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <div class="value">₦184,720,000</div>
+        <small>from all products</small>
+      </div>
+      <div class="card">
+        <h3>Total Products Tracked</h3>
+        <div class="value">142</div>
+        <small>unique SKUs</small>
+      </div>
+      <div class="card">
+        <h3>Zero-Sale Products</h3>
+        <div class="value zero-sales">47</div>
+        <small>sold 0 units this period</small>
       </div>
     </div>
-  </header>
 
-  <!-- Summary Cards -->
-  <div class="summary-grid">
-    <div class="card">
-      <div class="card-label">Total Revenue</div>
-      <div class="card-value">₦12,845,670</div>
-      <div class="card-change positive">+18.4% from last month</div>
+    <!-- Main Table -->
+    <div class="table-container">
+      <table id="productReportTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Total Sold</th>
+            <th>Revenue</th>
+            <th>Current Stock</th>
+            <th>Units Received</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>iPhone 14 Pro Max (64GB)</td>
+            <td>2,340</td>
+            <td>₦1,248,000,000</td>
+            <td>187</td>
+            <td>4,500</td>
+            <td><button class="btn secondary">Details</button></td>
+          </tr>
+          <tr>
+            <td>Samsung Galaxy S23 Ultra</td>
+            <td>1,890</td>
+            <td>₦987,300,000</td>
+            <td>420</td>
+            <td>3,200</td>
+            <td><button class="btn secondary">Details</button></td>
+          </tr>
+          <tr>
+            <td>AirPods Pro (2nd Gen)</td>
+            <td>4,120</td>
+            <td>₦412,000,000</td>
+            <td>65</td>
+            <td>6,800</td>
+            <td><button class="btn secondary">Details</button></td>
+          </tr>
+          <tr>
+            <td>Wireless Charger (Generic)</td>
+            <td>0</td>
+            <td>₦0</td>
+            <td>320</td>
+            <td>1,200</td>
+            <td><button class="btn secondary">Details</button></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <div class="card">
-      <div class="card-label">Orders Completed</div>
-      <div class="card-value">1,847</div>
-      <div class="card-change positive">+12.1% from last month</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Average Order Value</div>
-      <div class="card-value">₦6,952</div>
-      <div class="card-change negative">-2.3% from last month</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Top Outlet</div>
-      <div class="card-value">Lekki Phase 1</div>
-      <div class="card-change">₦4,218,900 (32.8% of total)</div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button disabled>Prev</button>
+      <button class="active">1</button>
+      <button>2</button>
+      <button>3</button>
+      <button>Next</button>
     </div>
   </div>
 
-  <!-- Filters -->
-  <div class="filters">
-    <div class="filter-group">
-      <label>Period:</label>
-      <select>
-        <option>This Month</option>
-        <option>Last 30 Days</option>
-        <option>This Week</option>
-        <option>Custom Range</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label>From:</label>
-      <input type="date" value="2026-01-01"/>
-    </div>
-
-    <div class="filter-group">
-      <label>To:</label>
-      <input type="date" value="2026-01-19"/>
-    </div>
-
-    <div class="filter-group">
-      <label>Outlet:</label>
-      <select>
-        <option value="">All Outlets</option>
-        <option>Lekki Phase 1</option>
-        <option>Ikeja GRA</option>
-        <option>Abuja Central</option>
-        <option>Port Harcourt</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label>Sales Rep:</label>
-      <select>
-        <option value="">All Reps</option>
-        <option>Chinedu Okeke</option>
-        <option>Aisha Ibrahim</option>
-        <option>Emeka Nwosu</option>
-      </select>
-    </div>
-
-    <button class="btn btn-outline">Clear Filters</button>
-  </div>
-
-  <!-- Main Table -->
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Date & Time</th>
-          <th>Order ID</th>
-          <th>Customer / Outlet</th>
-          <th>Sales Rep</th>
-          <th>Items</th>
-          <th>Qty</th>
-          <th style="text-align:right">Amount</th>
-          <th>Payment</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>19 Jan 2026, 09:42 AM</td>
-          <td>#INV-2026019-7842</td>
-          <td>Lekki Phase 1 Outlet</td>
-          <td>Chinedu Okeke</td>
-          <td>5 items</td>
-          <td>38</td>
-          <td class="amount" style="text-align:right">₦1,284,500</td>
-          <td>Card • POS</td>
-          <td><span class="status status-completed">Completed</span></td>
-        </tr>
-        <tr>
-          <td>19 Jan 2026, 08:15 AM</td>
-          <td>#INV-2026019-7841</td>
-          <td>Ikeja GRA</td>
-          <td>Aisha Ibrahim</td>
-          <td>3 items</td>
-          <td>14</td>
-          <td class="amount" style="text-align:right">₦428,900</td>
-          <td>Transfer</td>
-          <td><span class="status status-completed">Completed</span></td>
-        </tr>
-        <tr>
-          <td>18 Jan 2026, 16:30 PM</td>
-          <td>#INV-2026018-7839</td>
-          <td>Abuja Central</td>
-          <td>Emeka Nwosu</td>
-          <td>7 items</td>
-          <td>62</td>
-          <td class="amount" style="text-align:right">₦2,145,000</td>
-          <td>Cash</td>
-          <td><span class="status status-pending">Pending</span></td>
-        </tr>
-        <tr>
-          <td>18 Jan 2026, 11:20 AM</td>
-          <td>#INV-2026018-7835</td>
-          <td>Lekki Phase 1 Outlet</td>
-          <td>Chinedu Okeke</td>
-          <td>2 items</td>
-          <td>8</td>
-          <td class="amount" style="text-align:right">₦189,750</td>
-          <td>Card</td>
-          <td><span class="status status-cancelled">Cancelled</span></td>
-        </tr>
-        <!-- ... more rows can be added ... -->
-        <tr class="total-row">
-          <td colspan="5" style="text-align:right">Page Total (showing 4 of 1,847 orders)</td>
-          <td>122</td>
-          <td style="text-align:right" class="amount">₦4,048,150</td>
-          <td colspan="2"></td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr style="font-weight:700; background:#f0f7ff;">
-          <td colspan="5" style="text-align:right">Overall Report Total</td>
-          <td>8,942 units</td>
-          <td style="text-align:right" class="amount">₦12,845,670</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-</div>
-
+  <script>
+    // Flatpickr for date range
+    flatpickr("#dateRange", {
+      mode: "range",
+      dateFormat: "Y-m-d",
+      onChange: (dates) => {
+        if (dates.length === 2) {
+          console.log("Date range:", dates[0].toISOString().split('T')[0], "to", dates[1].toISOString().split('T')[0]);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
