@@ -558,30 +558,6 @@
   font-weight: 700;
 }
 
-@media print {
-  .grid {
-    display: block !important;           /* collapse grid into block flow */
-    page-break-inside: avoid;            /* try to keep cards together */
-  }
-  
-  .card {
-    display: block !important;
-    width: 100% !important;              /* full width on print */
-    margin-bottom: 16px !important;      /* space between cards */
-    box-shadow: none !important;         /* shadows usually disappear anyway */
-    border: 1px solid #ddd !important;   /* visible border instead of shadow */
-    page-break-inside: avoid;            /* prevent splitting cards */
-    break-inside: avoid;                 /* modern browsers */
-  }
-  
-  .card::before {
-    display: none !important;            /* hide gradient top bar */
-  }
-  
-  .card:hover {
-    transform: none !important;          /* no hover effects in print */
-  }
-}
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -4490,45 +4466,107 @@ function showProductDetails(productId, productName) {
 function printProductReportPage() {
   const dateRange = $('#productDateDisplay')?.innerText || 'All time';
   const tableHTML = $('#productReportTable').outerHTML;
-  const summaryHTML = $('#productSummaryCards').outerHTML;
+
+  // ─── Manually rebuild summary cards (this is the key fix) ───────────────
+  const cardsContainer = $('#productSummaryCards');
+  const cardElements = cardsContainer.querySelectorAll('.card');
+
+  let summaryCardsHTML = '';
+
+  cardElements.forEach(card => {
+    const title = card.querySelector('h3')?.textContent.trim() || '';
+    const valueEl = card.querySelector('.value');
+    const note = card.querySelector('.small-note')?.textContent.trim() || '';
+
+    const value = valueEl?.textContent.trim() || '—';
+    const valueColor = valueEl?.style.color || (title.includes('Zero-Sale') ? 'var(--dark-red)' : 'inherit');
+
+    summaryCardsHTML += `
+      <div style="
+        display: inline-block;
+        width: 23%;               /* ≈4 columns on A4 landscape */
+        min-width: 180px;
+        margin: 0 1% 20px 0;
+        padding: 16px 20px;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        vertical-align: top;
+        box-sizing: border-box;
+        page-break-inside: avoid;
+      ">
+        <h4 style="margin:0 0 8px; font-size:13px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px;">
+          ${title}
+        </h4>
+        <div style="font-size:26px; font-weight:700; color:${valueColor}; margin:6px 0;">
+          ${value}
+        </div>
+        <div style="font-size:12px; color:#6b7280;">
+          ${note}
+        </div>
+      </div>
+    `;
+  });
 
   const printableContent = `
-    <div style="padding:30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111;">
-      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 20px;">PRODUCT PERFORMANCE REPORT</h2>
-      <div style="text-align:center; color:#555; margin-bottom:25px; font-size:14px;">
-        <strong>Date Range:</strong> ${dateRange}<br>
-        Page ${productCurPage} • Printed on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
-      </div>
+    <div style="padding:40px 30px; font-family:system-ui, Arial, sans-serif; background:white; color:#111827;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 12px; font-size:28px;">
+        PRODUCT PERFORMANCE REPORT
+      </h2>
+      <p style="text-align:center; color:#555; margin:0 0 30px; font-size:14px;">
+        ${dateRange} • Page ${productCurPage} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
 
-      <!-- Summary Cards -->
-      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;">
-        ${summaryHTML}
+      <!-- Summary cards – flex-like layout for print -->
+      <div style="margin-bottom:40px; text-align:center;">
+        ${summaryCardsHTML}
       </div>
 
       <style>
-        table { width:100%; border-collapse:collapse; margin:20px 0; font-size:13px; }
-        th, td { border:1px solid #ddd; padding:10px; text-align:center; }
-        th { background:#f0f7ff; color:#111; font-weight:600; }
-        tr:nth-child(even) { background:#fafafa; }
-        .value { font-size:18px; font-weight:700; }
-        .small-note { font-size:11px; color:#666; }
+        table {
+          width:100%;
+          border-collapse:collapse;
+          margin:25px 0;
+          font-size:13px;
+        }
+        th, td {
+          border:1px solid #d1d5db;
+          padding:10px 8px;
+          text-align:center;
+        }
+        th {
+          background:#f0f7ff;
+          color:#111827;
+          font-weight:600;
+          text-transform:uppercase;
+          font-size:11px;
+        }
+        tr:nth-child(even) { background:#f9fafb; }
+        .pill {
+          padding:4px 10px;
+          border-radius:999px;
+          background:#e0f2fe;
+          color:#0b5ed7;
+          font-weight:600;
+          font-size:11px;
+        }
       </style>
 
       ${tableHTML}
 
-      <div style="margin-top:50px; text-align:center; color:#777; font-size:12px;">
-        Generated by WareAdmin • ${document.title}
+      <div style="margin-top:60px; text-align:center; color:#6b7280; font-size:12px;">
+        Generated by WareAdmin • ${new Date().toLocaleDateString('en-GB')}
       </div>
     </div>
   `;
 
-  // Show preview modal (same UX as sales)
+  // Show preview modal
   showModal(`
-    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview - Product Report</h4>
-    <div style="max-height:70vh; overflow-y:auto; background:white; border:1px solid #eee; border-radius:12px; padding:20px;">
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview – Product Report</h4>
+    <div style="max-height:75vh; overflow-y:auto; background:white; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
       ${printableContent}
     </div>
-    <div style="text-align:right; margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
+    <div style="text-align:right; margin-top:20px;">
       <button class="btn secondary" onclick="closeModal()">Cancel</button>
       <button class="btn" style="background:#0b5ed7; color:white;" onclick="doRealProductPrint()">
         Print Now
@@ -4536,21 +4574,20 @@ function printProductReportPage() {
     </div>
   `);
 
-  // The actual print function
+  // Real print function
   window.doRealProductPrint = function() {
     const printWin = window.open('', '_blank');
     printWin.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Product Performance Report - WareAdmin</title>
+        <title>Product Performance Report</title>
         <style>
-          body { font-family: system-ui, Arial; padding: 20px; }
-          @media print { body { padding: 10px; } }
-          h2 { color: #0b5ed7; text-align: center; }
+          @page { margin: 1.2cm; }
+          body { font-family: system-ui, Arial, sans-serif; }
         </style>
       </head>
-      <body onload="window.print(); setTimeout(() => window.close(), 500)">
+      <body onload="window.print(); setTimeout(()=>window.close(), 800)">
         ${printableContent}
       </body>
       </html>
@@ -4559,6 +4596,7 @@ function printProductReportPage() {
     closeModal();
   };
 }
+
 
 document.getElementById('printProductReportBtn')?.addEventListener('click', printProductReportPage);
   </script>
