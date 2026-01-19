@@ -504,6 +504,60 @@
   color: #111827;
   font-weight: 600;
 }
+
+
+/* ─── SALES REPORT TABLE IMPROVEMENTS ──────────────────────────────────────── */
+
+/* Target only the sales report table */
+#reportSalesTable {
+  table-layout: fixed;          /* prevents crazy column jumping */
+  width: 100%;
+}
+
+/* Center ALL headers and ALL cells */
+#reportSalesTable th,
+#reportSalesTable td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+}
+
+/* Make "Products Sold" column wider + left-align for readability */
+#reportSalesTable th:nth-child(2),
+#reportSalesTable td:nth-child(2) {
+  text-align: left !important;           /* better for long product lists */
+  width: 28%;                            /* give it more space */
+  white-space: normal;                   /* allow wrapping */
+  line-height: 1.5;
+}
+
+/* Bold + darker product names inside "Products Sold" */
+#reportSalesTable td:nth-child(2) {
+  font-weight: 700;
+  color: #111827;                        /* very dark gray/black */
+}
+
+/* Make sure pills (Status) look centered nicely */
+#reportSalesTable .pill {
+  display: inline-block;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Optional: make Total Value stand out more */
+#reportSalesTable td:nth-child(4) {
+  font-weight: 700;
+  color: var(--blue);
+  font-size: 14px;
+}
+
+/* Page total row - make it more prominent */
+#reportSalesTable tr:last-child {
+  background: #e0f2fe !important;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -793,7 +847,7 @@
         <option value="">All Sales Reps</option>
       </select>
       <button class="btn secondary" onclick="clearReportFilters()">Clear</button>
-      <div class="small muted" id="reportDateDisplay">All time</div>
+      <div class="small muted" id="reportDateDisplay"></div>
     </div>
     <button id="printReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
       Print Report
