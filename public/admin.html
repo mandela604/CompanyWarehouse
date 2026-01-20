@@ -3169,12 +3169,6 @@ document.querySelectorAll('.nav a').forEach(a => {
       loadReportFilters();
       renderSalesReport();
     }
-    else if (route === 'shipmentReport') {
-  $('#shipmentReportSection').classList.add('active');
-  if (!shipmentPicker) initShipmentDatePicker();
-  loadShipmentFilters();
-  renderShipmentReport();
-}
     else if (route === 'settings') {
       $('#settingsSection').classList.add('active');
       renderSettings();
