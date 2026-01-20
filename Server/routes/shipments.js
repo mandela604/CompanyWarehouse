@@ -12,6 +12,63 @@ const OutletInventory = require('../models/OutletInventory');
 
 const router = express.Router();
 
+
+// GET SHIPMENT BREAKDOWN REPORT (paginated + filtered)
+router.get('/shipments/breakdown', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
+
+    // Build filter query
+    const filter = {};
+    if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
+    if (req.query.endDate) {
+      if (!filter.date) filter.date = {};
+      filter.date.$lte = new Date(req.query.endDate);
+    }
+    if (req.query.warehouseId) filter['to.id'] = req.query.warehouseId;
+    if (req.query.outletId) filter['to.id'] = req.query.outletId;
+    if (req.query.status) filter.status = req.query.status;
+
+    // Fetch paginated shipments
+    const shipments = await Shipment.find(filter)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalCount = await Shipment.countDocuments(filter);
+
+    // Enrich with calculated totals (optional but nice)
+    const enriched = shipments.map(s => {
+      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+
+      return {
+        id: s.id,
+        date: s.date.toISOString().split('T')[0],
+        from: s.from,
+        to: s.to,
+        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
+        totalQty,
+        totalValue,
+        status: s.status
+      };
+    });
+
+    res.json({
+      data: enriched,
+      totalCount,
+      page,
+      limit
+    });
+  } catch (err) {
+    console.error('Breakdown error:', err);
+    res.status(500).json({ message: 'Failed to load breakdown', error: err.message });
+  }
+});
+
 // CREATE SHIPMENT
 router.post('/shipments', async (req, res) => {
   const session = await mongoose.startSession();
@@ -950,61 +1007,6 @@ router.put('/shipments/:id', async (req, res) => {
 });
 
 
-// GET SHIPMENT BREAKDOWN REPORT (paginated + filtered)
-router.get('/shipments/breakdown', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15;
-    const skip = (page - 1) * limit;
-
-    // Build filter query
-    const filter = {};
-    if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
-    if (req.query.endDate) {
-      if (!filter.date) filter.date = {};
-      filter.date.$lte = new Date(req.query.endDate);
-    }
-    if (req.query.warehouseId) filter['to.id'] = req.query.warehouseId;
-    if (req.query.outletId) filter['to.id'] = req.query.outletId;
-    if (req.query.status) filter.status = req.query.status;
-
-    // Fetch paginated shipments
-    const shipments = await Shipment.find(filter)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const totalCount = await Shipment.countDocuments(filter);
-
-    // Enrich with calculated totals (optional but nice)
-    const enriched = shipments.map(s => {
-      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
-      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
-
-      return {
-        id: s.id,
-        date: s.date.toISOString().split('T')[0],
-        from: s.from,
-        to: s.to,
-        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
-        totalQty,
-        totalValue,
-        status: s.status
-      };
-    });
-
-    res.json({
-      data: enriched,
-      totalCount,
-      page,
-      limit
-    });
-  } catch (err) {
-    console.error('Breakdown error:', err);
-    res.status(500).json({ message: 'Failed to load breakdown', error: err.message });
-  }
-});
 
 
 module.exports = router;
