@@ -4784,9 +4784,11 @@ async function renderShipmentReport(page = 1) {
     const res = await fetch(`/api/shipments/breakdown?${q}`);
    console.log('Response status:', res.status);
     const json = await res.json();
-
     console.log('Raw JSON from server:', json);
-    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    if (!res.ok) {
+         throw new Error(json.message || `HTTP ${res.status}`);      
+      }
 
     const shipments = json.data || [];
     const totalCount = json.totalCount || 0;
