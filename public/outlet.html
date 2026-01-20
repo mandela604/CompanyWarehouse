@@ -1892,7 +1892,11 @@ async function renderOutletSalesReport(page = 1) {
           <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue || 0)}
           </td>
-          <td>${outletSalesFilter.repId ? '—' : 'Multiple'}</td>
+          <td>
+            ${outletSalesFilter.repId 
+              ? $('#repFilter option:selected').text().trim() 
+              : 'Multiple Reps'}
+          </td>
           <td><span class="pill">Sold</span></td>
         </tr>
       `).join('') + `
