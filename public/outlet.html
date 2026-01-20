@@ -2013,6 +2013,24 @@ async function loadRepFilter() {
     $('#repFilter').innerHTML = '<option value="">All Reps (error loading)</option>';
   }
 }
+
+// Close sidebar when clicking outside it (only on mobile)
+document.addEventListener('click', function(e) {
+  const sidebar = document.getElementById('sidebar');
+  const hambBtn = document.getElementById('hambBtn');
+
+  // Only apply on mobile (where sidebar is off-screen)
+  if (window.innerWidth <= 900) {
+    // If sidebar is open AND click is NOT on hamburger AND NOT inside sidebar → close it
+    if (sidebar.classList.contains('open') &&
+        !hambBtn.contains(e.target) &&
+        !sidebar.contains(e.target)) {
+      sidebar.classList.remove('open');
+    }
+  }
+});
+
+
   </script>
 </body>
 </html>
