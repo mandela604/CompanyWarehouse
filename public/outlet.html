@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Outlet Rep — WareAdmin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <style>
     :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
     *{box-sizing:border-box}
@@ -26,6 +29,7 @@
     .btn.secondary{background:transparent;border:1px solid #ddd;color:#333}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
     @media (max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
+   @media (max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
     .card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border:1px solid #e5e7eb;position:relative;overflow:hidden}
     .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
     .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
@@ -137,6 +141,38 @@
   }
 }
 
+
+/* Make rep filter look identical to date picker */
+#repFilter,
+.sales-filter-input {
+  height: 42px !important;
+  padding: 10px 12px !important;
+  border: 1px solid #e6eefb !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  background: white !important;
+  min-width: 180px !important;
+  box-sizing: border-box !important;
+  appearance: none; /* remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+/* Remove default arrow in Firefox */
+#repFilter::-moz-focus-inner,
+.sales-filter-input::-moz-focus-inner {
+  border: 0;
+}
+
+/* Hover & focus states (same as date picker) */
+#repFilter:focus,
+.sales-filter-input:focus {
+  outline: none;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(11,94,215,0.1);
+}
 
   </style>
 
@@ -1798,7 +1834,7 @@ async function renderOutletSalesReport(page = 1) {
     if (outletSalesFilter.start) q.set('startDate', outletSalesFilter.start);
     if (outletSalesFilter.end)   q.set('endDate',   outletSalesFilter.end);
     if (outletSalesFilter.repId) q.set('repId', outletSalesFilter.repId);
-    
+
     const res = await fetch(`/api/outlet/sales?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
