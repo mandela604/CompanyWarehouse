@@ -112,6 +112,47 @@
   min-width: 70px;
   display: inline-block;
 }
+
+
+/* Make all shipment report filters look consistent with date picker */
+.sales-filter-input,
+#warehouseShipmentTypeFilter,
+#warehouseShipmentOutletFilter,
+#warehouseShipmentStatusFilter {
+  height: 42px !important;                /* same height as date picker */
+  padding: 10px 12px !important;          /* same padding */
+  border: 1px solid #e6eefb !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  background: white !important;
+  min-width: 180px !important;            /* minimum width like date */
+  box-sizing: border-box !important;
+  appearance: none;                       /* remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+/* Remove default arrow in Firefox */
+.sales-filter-input::-moz-focus-inner,
+#warehouseShipmentTypeFilter::-moz-focus-inner,
+#warehouseShipmentOutletFilter::-moz-focus-inner,
+#warehouseShipmentStatusFilter::-moz-focus-inner {
+  border: 0;
+}
+
+/* Hover & focus states */
+.sales-filter-input:focus,
+#warehouseShipmentTypeFilter:focus,
+#warehouseShipmentOutletFilter:focus,
+#warehouseShipmentStatusFilter:focus {
+  outline: none;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(11,94,215,0.1);
+}
+
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -531,7 +572,8 @@ async function loadManagerData() {
       if (route === 'shipments') renderShipments();
       if (route === 'outlets') renderMyOutlets();
       if (route === 'inventory') renderInventory();
-      if (route === 'warehouseShipmentReport') {
+if (route === 'warehouseShipmentReport') {
+  $('#warehouseShipmentReportSection').classList.add('active');  // ← This is required!
   if (!warehouseShipmentPicker) initWarehouseShipmentDatePicker();
   loadWarehouseShipmentFilters();
   renderWarehouseShipmentReport();
@@ -1204,6 +1246,55 @@ document.getElementById('printWarehouseShipmentReportBtn')?.addEventListener('cl
     closeModal();
   };
 });
+
+
+// Reusable pagination – same as in company dashboard
+function renderPag(container, totalItems, currentPage, onPageChange) {
+  if (!container) return;
+  const itemsPerPage = WAREHOUSE_SHIPMENT_PER_PAGE; // or 15
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  container.innerHTML = '';
+
+  // Prev
+  const prev = document.createElement('button');
+  prev.textContent = 'Prev';
+  prev.className = 'btn secondary';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => onPageChange(currentPage - 1);
+  container.appendChild(prev);
+
+  // Pages (smart: show first, last, and around current)
+  for (let i = 1; i <= totalPages; i++) {
+    if (
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - 2 && i <= currentPage + 2)
+    ) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = i === currentPage ? 'btn' : 'btn secondary';
+      btn.onclick = () => onPageChange(i);
+      container.appendChild(btn);
+    } else if (
+      container.lastChild &&
+      container.lastChild.textContent !== '...'
+    ) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      container.appendChild(dots);
+    }
+  }
+
+  // Next
+  const next = document.createElement('button');
+  next.textContent = 'Next';
+  next.className = 'btn secondary';
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => onPageChange(currentPage + 1);
+  container.appendChild(next);
+}
 
 
 async function loadWarehouseSales(page = 1) {
