@@ -790,23 +790,22 @@
       <select id="shipmentWarehouseFilter" class="sales-filter-input">
         <option value="">All Warehouses</option>
       </select>
-      <select id="shipmentOutletFilter" class="sales-filter-input">
-        <option value="">All Outlets / Destinations</option>
-      </select>
+    
       <select id="shipmentStatusFilter" class="sales-filter-input">
         <option value="">All Statuses</option>
         <option value="In Transit">In Transit</option>
-        <option value="Delivered">Delivered</option>
+        <option value="celivered">Delivered</option>
         <option value="Received">Received</option>
-        <option value="Cancelled">Cancelled</option>
+        <option value="cancelled">Cancelled</option>
         <option value="Rejected">Rejected</option>
       </select>
       <button class="btn secondary" onclick="clearShipmentFilters()">Clear Filters</button>
       <div class="small muted" id="shipmentDateDisplay">All time</div>
-    </div>
-    <button id="printShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+   <button id="printShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
       Print This Page
     </button>
+    </div>
+    
   </div>
 
   <!-- Main Table – NO summary cards -->
@@ -822,7 +821,7 @@
           <th>Total Qty</th>
           <th>Total Value</th>
           <th>Status</th>
-          <th>Action</th>
+         
         </tr>
       </thead>
       <tbody></tbody>
@@ -4732,14 +4731,6 @@ async function loadShipmentFilters() {
       whSel.appendChild(opt);
     });
 
-    const outSel = $('#shipmentOutletFilter');
-    outSel.innerHTML = '<option value="">All Destinations</option>';
-    outlets.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.id;
-      opt.text  = o.name;
-      outSel.appendChild(opt);
-    });
 
     // Change listeners
     whSel.onchange = () => { shipmentFilter.warehouseId = whSel.value || null; shipmentCurPage=1; renderShipmentReport(); };
@@ -4759,7 +4750,6 @@ function clearShipmentFilters() {
   $('#shipmentDateDisplay').textContent = 'All time';
   shipmentPicker?.clear();
   $('#shipmentWarehouseFilter').value = '';
-  $('#shipmentOutletFilter').value = '';
   $('#shipmentStatusFilter').value = '';
   shipmentCurPage = 1;
   renderShipmentReport();
@@ -4776,7 +4766,6 @@ async function renderShipmentReport(page = 1) {
     if (shipmentFilter.start) q.set('startDate', shipmentFilter.start);
     if (shipmentFilter.end)   q.set('endDate',   shipmentFilter.end);
     if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
-    if (shipmentFilter.outletId)    q.set('outletId',    shipmentFilter.outletId);
     if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
     console.log('Fetching shipments with query:', q.toString());
 
@@ -4814,9 +4803,6 @@ async function renderShipmentReport(page = 1) {
               ${formatNGN(s.totalValue || 0)}
             </td>
             <td><span class="pill">${s.status || '—'}</span></td>
-            <td>
-              <button class="btn secondary" onclick="viewShipment('${s.id}')">View</button>
-            </td>
           </tr>
         `;
       }).join('');
