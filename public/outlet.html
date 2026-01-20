@@ -642,7 +642,7 @@ function showToast(message, type = 'info', duration = 3000) {
       if (r === 'salesReport') {
   $('#salesReportSection').classList.add('active');
   if (!outletSalesPicker) initOutletSalesDatePicker();
-  loadOutletSalesFilters(); 
+
   loadRepFilter();
   renderOutletSalesReport();
 }
