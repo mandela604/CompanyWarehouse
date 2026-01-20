@@ -1372,7 +1372,7 @@ document.querySelectorAll('[onclick*="navigateTo(\'shipmentReport\')"]').forEach
    const res = await fetch(`/api/company`);
    if (!res.ok) throw new Error(`HTTP ${res.status}`);
    const company = await res.json();
-
+  
    if (!company || !company.id) {
   cards.innerHTML = `<div style="text-align:center;padding:50px;color:#666">
     <h3>No company yet</h3>
