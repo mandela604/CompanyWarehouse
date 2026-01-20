@@ -558,6 +558,21 @@
   font-weight: 700;
 }
 
+/* Stronger horizontal row separators – only in Shipment Breakdown table */
+#shipmentReportTable tbody tr td {
+  border-bottom: 2px solid #cbd5e1 !important;   /* thicker + medium-dark gray */
+}
+
+/* Optional: even stronger contrast if 2px still feels faint */
+#shipmentReportTable tbody tr td {
+  border-bottom: 2px solid #9ca3af !important;   /* darker gray */
+}
+
+/* Optional: make the last row clean (no bottom line) */
+#shipmentReportTable tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -794,7 +809,7 @@
       <select id="shipmentStatusFilter" class="sales-filter-input">
         <option value="">All Statuses</option>
         <option value="In Transit">In Transit</option>
-        <option value="celivered">Delivered</option>
+  
         <option value="Received">Received</option>
         <option value="cancelled">Cancelled</option>
         <option value="Rejected">Rejected</option>

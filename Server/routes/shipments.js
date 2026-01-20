@@ -71,6 +71,87 @@ if (req.query.status) filter.status = req.query.status;
   }
 });
 
+
+// GET WAREHOUSE SHIPMENT BREAKDOWN REPORT (paginated + filtered)
+router.get('/warehouse/shipments/breakdown', async (req, res) => {
+  try {
+    const warehouseId = req.query.warehouseId;
+    if (!warehouseId) return res.status(400).json({ message: 'warehouseId required' });
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
+
+    // Build filter query
+    const filter = {};
+    if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
+    if (req.query.endDate) {
+      if (!filter.date) filter.date = {};
+      filter.date.$lte = new Date(req.query.endDate);
+    }
+    if (req.query.status) filter.status = req.query.status;
+
+    // Type filter: incoming/outgoing/all
+    const type = req.query.type || '';
+    if (type === 'incoming') {
+      filter.toType = 'Warehouse';
+      filter['to.id'] = warehouseId;
+      filter.fromType = 'Company';  // Only from company
+    } else if (type === 'outgoing') {
+      filter.fromType = 'Warehouse';
+      filter['from.id'] = warehouseId;
+      filter.toType = 'Outlet';
+      if (req.query.outletId) filter['to.id'] = req.query.outletId;
+    } else {
+      // All: either incoming or outgoing
+      filter.$or = [
+        { toType: 'Warehouse', 'to.id': warehouseId, fromType: 'Company' },
+        { fromType: 'Warehouse', 'from.id': warehouseId, toType: 'Outlet' }
+      ];
+      if (req.query.outletId) {
+        filter.$or[1]['to.id'] = req.query.outletId;  // Only filter outlet on outgoing
+      }
+    }
+
+    // Fetch paginated shipments
+    const shipments = await Shipment.find(filter)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalCount = await Shipment.countDocuments(filter);
+
+    // Enrich with calculated totals
+    const enriched = shipments.map(s => {
+      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+
+      return {
+        id: s.id,
+        date: s.date.toISOString().split('T')[0],
+        from: s.from,
+        to: s.to,
+        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
+        totalQty,
+        totalValue,
+        status: s.status
+      };
+    });
+
+    res.json({
+      data: enriched,
+      totalCount,
+      page,
+      limit
+    });
+  } catch (err) {
+    console.error('Warehouse breakdown error:', err);
+    res.status(500).json({ message: 'Failed to load breakdown', error: err.message });
+  }
+});
+
+
 // CREATE SHIPMENT
 router.post('/shipments', async (req, res) => {
   const session = await mongoose.startSession();

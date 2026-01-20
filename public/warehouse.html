@@ -134,6 +134,7 @@
         <a href="#" data-route="shipments">Incoming Shipments</a>
         <!--    <a href="#" data-route="outlets">My Outlets</a>--> 
         <a href="#" data-route="inventory">Inventory</a>
+        <a href="#" data-route="warehouseShipmentReport">Shipment Breakdown</a>
       <!-- <a href="#" data-route="sales">Sales Records</a>
         <a href="#" data-route="reports">Reports</a> --> 
       </div>
@@ -274,6 +275,59 @@
         <h2>Reports</h2>
         <div class="grid" id="managerReportCards"></div>
       </section> -->
+
+
+      <!-- ==================== WAREHOUSE SHIPMENT BREAKDOWN REPORT ==================== -->
+<section id="warehouseShipmentReportSection" class="section">
+  <h2 style="margin-top:0">Shipment Breakdown Report</h2>
+  <!-- Filters -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="warehouseShipmentDateContainer" style="min-width:240px;"></div>
+      <select id="warehouseShipmentTypeFilter" class="sales-filter-input">
+        <option value="">All Types</option>
+        <option value="incoming">Incoming from Company</option>
+        <option value="outgoing">Outgoing to Outlets</option>
+      </select>
+      <select id="warehouseShipmentOutletFilter" class="sales-filter-input" style="display:none;">
+        <option value="">All Outlets</option>
+      </select>
+      <select id="warehouseShipmentStatusFilter" class="sales-filter-input">
+        <option value="">All Statuses</option>
+        <option value="In Transit">In Transit</option>
+        <option value="delivered">Delivered</option>
+        <option value="Received">Received</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button class="btn secondary" onclick="clearWarehouseShipmentFilters()">Clear Filters</button>
+      <div class="small muted" id="warehouseShipmentDateDisplay">All time</div>
+    </div>
+    <button id="printWarehouseShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print This Page
+    </button>
+  </div>
+  <!-- Main Table -->
+  <div class="table">
+    <table id="warehouseShipmentReportTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Shipment ID</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Products Shipped</th>
+          <th>Total Qty</th>
+          <th>Total Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="warehouseShipmentPagination"></div>
+  </div>
+</section>
+
     </main>
   </div>
 
@@ -477,6 +531,11 @@ async function loadManagerData() {
       if (route === 'shipments') renderShipments();
       if (route === 'outlets') renderMyOutlets();
       if (route === 'inventory') renderInventory();
+      if (route === 'warehouseShipmentReport') {
+  if (!warehouseShipmentPicker) initWarehouseShipmentDatePicker();
+  loadWarehouseShipmentFilters();
+  renderWarehouseShipmentReport();
+}
      // if (route === 'sales') renderManagerSales();
     //  if (route === 'reports') renderManagerReports();
     }));
@@ -950,6 +1009,201 @@ function renderInventoryPagination() {
   pagination.appendChild(nextBtn);
 }
 
+
+// ─── WAREHOUSE SHIPMENT REPORT VARIABLES ────────────────────────────────────────
+let warehouseShipmentCurPage = 1;
+const WAREHOUSE_SHIPMENT_PER_PAGE = 15;
+let warehouseShipmentFilter = { start: null, end: null, type: null, outletId: null, status: null };
+let warehouseShipmentPicker = null;
+
+// ─── Date Picker for Warehouse Shipment Report ─────────────────────────────────
+function initWarehouseShipmentDatePicker() {
+  const container = $('#warehouseShipmentDateContainer');
+  if (container.innerHTML) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+  warehouseShipmentPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        warehouseShipmentFilter.start = start.toISOString().slice(0,10);
+        warehouseShipmentFilter.end = end.toISOString().slice(0,10);
+        $('#warehouseShipmentDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        warehouseShipmentFilter.start = warehouseShipmentFilter.end = null;
+        $('#warehouseShipmentDateDisplay').textContent = 'All time';
+      }
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    }
+  });
+}
+
+// ─── Load Warehouse Filters (Type, Outlet, Status) ────────────────────────────────
+async function loadWarehouseShipmentFilters() {
+  try {
+    const [outRes] = await Promise.all([
+      fetch('/api/outlets')  // All outlets (warehouse can ship to any)
+    ]);
+    const outlets = await outRes.json();
+
+    const typeSel = $('#warehouseShipmentTypeFilter');
+    typeSel.onchange = () => {
+      warehouseShipmentFilter.type = typeSel.value || null;
+      const outletFilter = $('#warehouseShipmentOutletFilter');
+      outletFilter.style.display = (typeSel.value === 'outgoing') ? 'block' : 'none';
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+
+    const outSel = $('#warehouseShipmentOutletFilter');
+    outSel.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text = o.name;
+      outSel.appendChild(opt);
+    });
+    outSel.onchange = () => {
+      warehouseShipmentFilter.outletId = outSel.value || null;
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+
+    $('#warehouseShipmentStatusFilter').onchange = () => {
+      warehouseShipmentFilter.status = $('#warehouseShipmentStatusFilter').value || null;
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+  } catch(e) {
+    console.error('Failed to load warehouse shipment filters', e);
+  }
+}
+
+function clearWarehouseShipmentFilters() {
+  warehouseShipmentFilter = { start:null, end:null, type:null, outletId:null, status:null };
+  $('#warehouseShipmentDateDisplay').textContent = 'All time';
+  warehouseShipmentPicker?.clear();
+  $('#warehouseShipmentTypeFilter').value = '';
+  $('#warehouseShipmentOutletFilter').value = '';
+  $('#warehouseShipmentOutletFilter').style.display = 'none';
+  $('#warehouseShipmentStatusFilter').value = '';
+  warehouseShipmentCurPage = 1;
+  renderWarehouseShipmentReport();
+}
+
+// ─── Render Warehouse Shipment Report Table ─────────────────────────────────
+async function renderWarehouseShipmentReport(page = 1) {
+  warehouseShipmentCurPage = page;
+  const tbody = $('#warehouseShipmentReportTable tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+  try {
+    const q = new URLSearchParams({ warehouseId: myWarehouse.id, page, limit: WAREHOUSE_SHIPMENT_PER_PAGE });
+    if (warehouseShipmentFilter.start) q.set('startDate', warehouseShipmentFilter.start);
+    if (warehouseShipmentFilter.end) q.set('endDate', warehouseShipmentFilter.end);
+    if (warehouseShipmentFilter.type) q.set('type', warehouseShipmentFilter.type);
+    if (warehouseShipmentFilter.outletId) q.set('outletId', warehouseShipmentFilter.outletId);
+    if (warehouseShipmentFilter.status) q.set('status', warehouseShipmentFilter.status);
+
+    const res = await fetch(`/api/warehouse/shipments/breakdown?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const shipments = json.data || [];
+    const totalCount = json.totalCount || 0;
+
+    if (!shipments.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">No shipments found</td></tr>';
+    } else {
+      tbody.innerHTML = shipments.map(s => {
+        const productList = s.products?.length > 0 
+          ? s.products.map(p => `<strong>${p.name}</strong>`).join('<br>') 
+          : '—';
+        return `
+          <tr>
+            <td>${niceDate(new Date(s.date))}</td>
+            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
+            <td>${s.from?.name || 'Company'}</td>
+            <td>${s.to?.name || s.warehouseName || '—'}</td>
+            <td style="line-height:1.6; white-space:pre-wrap;">${productList}</td>
+            <td style="text-align:center;">${s.totalQty || 0}</td>
+            <td style="text-align:right; font-weight:600; color:var(--blue);">
+              ${formatNGN(s.totalValue || 0)}
+            </td>
+            <td><span class="pill">${s.status || '—'}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Pagination (reuse your existing renderPag function)
+    renderPag($('#warehouseShipmentPagination'), totalCount, warehouseShipmentCurPage, n => renderWarehouseShipmentReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load</td></tr>';
+    console.error(err);
+    showToast('Error loading warehouse shipment report', 'error');
+  }
+}
+
+// ─── Print Warehouse Shipment Report ─────────────────────────────────
+document.getElementById('printWarehouseShipmentReportBtn')?.addEventListener('click', () => {
+  const dateRange = $('#warehouseShipmentDateDisplay')?.textContent || 'All time';
+  const tableHTML = $('#warehouseShipmentReportTable').outerHTML;
+  const printableContent = `
+    <div style="padding:40px 30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111827;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 12px; font-size:28px;">
+        WAREHOUSE SHIPMENT BREAKDOWN REPORT
+      </h2>
+      <p style="text-align:center; color:#555; margin:0 0 30px; font-size:14px;">
+        ${dateRange} • Page ${warehouseShipmentCurPage} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+      <style>
+        table { width:100%; border-collapse:collapse; margin:25px 0; font-size:13px; }
+        th, td { border:1px solid #d1d5db; padding:10px 8px; text-align:left; }
+        th { background:#f0f7ff; color:#111827; font-weight:600; text-transform:uppercase; font-size:11px; }
+        tr:nth-child(even) { background:#f9fafb; }
+        .pill { padding:4px 10px; border-radius:999px; background:#e0f2fe; color:#0b5ed7; font-weight:600; font-size:11px; }
+      </style>
+      ${tableHTML}
+      <div style="margin-top:60px; text-align:center; color:#6b7280; font-size:12px;">
+        Generated by WareAdmin • ${new Date().toLocaleDateString('en-GB')}
+      </div>
+    </div>
+  `;
+  showModal(`
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview – Warehouse Shipment Breakdown</h4>
+    <div style="max-height:75vh; overflow-y:auto; background:white; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+      ${printableContent}
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doRealWarehouseShipmentPrint()">
+        Print Now
+      </button>
+    </div>
+  `);
+  window.doRealWarehouseShipmentPrint = function() {
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Warehouse Shipment Breakdown Report</title>
+      <style>@page { margin: 1.2cm; } body { font-family: system-ui, Arial, sans-serif; }</style>
+      </head>
+      <body onload="window.print(); setTimeout(()=>window.close(), 800)">
+        ${printableContent}
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+    closeModal();
+  };
+});
 
 
 async function loadWarehouseSales(page = 1) {
