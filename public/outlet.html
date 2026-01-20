@@ -165,6 +165,7 @@
         <a href="#" data-route="inventory">My Inventory</a>
         <a href="#" data-route="sales">Sales History</a>
         <a href="#" data-route="shipments">Incoming Shipments</a>
+        <a href="#" data-route="salesReport">Sales Breakdown Report</a>
         <div class="user-info"></div>
          <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
@@ -250,6 +251,50 @@
           <div class="pagination" id="shipmentsPagination"></div>
         </div>
       </section>
+
+
+      <!-- SALES BREAKDOWN REPORT (Outlet Rep) -->
+<section id="salesReportSection" class="section">
+  <h2 style="margin-top:0">Sales Breakdown Report</h2>
+
+  <!-- Filters (same style as warehouse/manager) -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="outletSalesDateContainer" style="min-width:240px;"></div>
+      <select id="repFilter" class="sales-filter-input">
+  <option value="">All Reps</option>
+</select>
+      <!-- No need for outlet filter — it's always this outlet -->
+      <button class="btn secondary" onclick="clearOutletSalesFilters()">Clear Filters</button>
+      <div class="small muted" id="outletSalesDateDisplay">All time</div>
+    </div>
+    <button id="printOutletSalesReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print This Page
+    </button>
+  </div>
+
+  <!-- Main Table -->
+  <div class="table">
+    <table id="outletSalesReportTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Transaction ID</th>
+          <th>Products Sold</th>
+          <th>Total Qty</th>
+          <th>Total Value</th>
+          <th>Rep (Recorder)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="outletSalesPagination"></div>
+  </div>
+</section>
+
+
+
     </main>
   </div>
 
@@ -558,6 +603,13 @@ function showToast(message, type = 'info', duration = 3000) {
       if(r==='inventory') renderOutletInventory();
       if(r==='sales') loadSales();
       if(r==='shipments') renderShipments();
+      if (r === 'salesReport') {
+  $('#salesReportSection').classList.add('active');
+  if (!outletSalesPicker) initOutletSalesDatePicker();
+  loadOutletSalesFilters(); 
+  loadRepFilter();
+  renderOutletSalesReport();
+}
     }
     document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
     $('#hambBtn').onclick=()=>$('#sidebar').classList.toggle('open');
@@ -1682,6 +1734,200 @@ async function deleteSale(realTransactionId) {
 
   } catch (err) {
     showToast(err.message || 'Failed to delete sale', 'error');
+  }
+}
+
+
+// ─── OUTLET SALES REPORT VARIABLES ────────────────────────────────────────
+let outletSalesCurPage = 1;
+const OUTLET_SALES_PER_PAGE = 15;
+let outletSalesFilter = { start: null, end: null };
+let outletSalesPicker = null;
+
+// ─── Date Picker ───────────────────────────────────────────────────────────
+function initOutletSalesDatePicker() {
+  const container = $('#outletSalesDateContainer');
+  if (container.innerHTML) return;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+
+  outletSalesPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        outletSalesFilter.start = start.toISOString().slice(0,10);
+        outletSalesFilter.end   = end.toISOString().slice(0,10);
+        $('#outletSalesDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        outletSalesFilter.start = outletSalesFilter.end = null;
+        $('#outletSalesDateDisplay').textContent = 'All time';
+      }
+      outletSalesCurPage = 1;
+      renderOutletSalesReport();
+    }
+  });
+}
+
+// ─── Clear Filters ─────────────────────────────────────────────────────────
+function clearOutletSalesFilters() {
+  outletSalesFilter = { start: null, end: null };
+  $('#outletSalesDateDisplay').textContent = 'All time';
+  outletSalesPicker?.clear();
+  outletSalesCurPage = 1;
+  renderOutletSalesReport();
+}
+
+// ─── Render Outlet Sales Report ────────────────────────────────────────────
+async function renderOutletSalesReport(page = 1) {
+  outletSalesCurPage = page;
+  const tbody = $('#outletSalesReportTable tbody');
+  tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({
+      page,
+      limit: OUTLET_SALES_PER_PAGE,
+      outletId: OUTLET_ID
+    });
+    if (outletSalesFilter.start) q.set('startDate', outletSalesFilter.start);
+    if (outletSalesFilter.end)   q.set('endDate',   outletSalesFilter.end);
+    if (outletSalesFilter.repId) q.set('repId', outletSalesFilter.repId);
+    
+    const res = await fetch(`/api/outlet/sales?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const sales = json.data || [];
+    const totalCount = json.totalCount || 0;
+
+    if (!sales.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="muted">No sales found</td></tr>';
+    } else {
+      tbody.innerHTML = sales.map(s => {
+        const products = s.items?.map(i => `<strong>${i.productName}</strong> × ${i.qty}`).join('<br>') || '—';
+        return `
+          <tr>
+            <td>${s.date}</td>
+            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
+            <td style="line-height:1.6; white-space:pre-wrap;">${products}</td>
+            <td style="text-align:center;">${s.totalQty || 0}</td>
+            <td style="text-align:right; font-weight:600; color:var(--blue);">${formatNGN(s.totalAmount || 0)}</td>
+            <td>${s.repName || '—'}</td>
+            <td><span class="pill">${s.status || 'Sold'}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Pagination (reuse your existing function)
+    renderPag($('#outletSalesPagination'), totalCount, outletSalesCurPage, n => renderOutletSalesReport(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load</td></tr>';
+    console.error(err);
+    showToast('Error loading sales report', 'error');
+  }
+}
+
+// ─── Print Report ──────────────────────────────────────────────────────────
+document.getElementById('printOutletSalesReportBtn')?.addEventListener('click', () => {
+  const dateRange = $('#outletSalesDateDisplay')?.textContent || 'All time';
+  const tableHTML = $('#outletSalesReportTable').outerHTML;
+
+  const printableContent = `
+    <div style="padding:40px 30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111827;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 12px; font-size:28px;">
+        OUTLET SALES BREAKDOWN REPORT
+      </h2>
+      <p style="text-align:center; color:#555; margin:0 0 30px; font-size:14px;">
+        ${dateRange} • Page ${outletSalesCurPage} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+      <style>
+        table { width:100%; border-collapse:collapse; margin:25px 0; font-size:13px; }
+        th, td { border:1px solid #d1d5db; padding:10px 8px; text-align:left; }
+        th { background:#f0f7ff; color:#111827; font-weight:600; text-transform:uppercase; font-size:11px; }
+        tr:nth-child(even) { background:#f9fafb; }
+        .pill { padding:4px 10px; border-radius:999px; background:#e0f2fe; color:#0b5ed7; font-weight:600; font-size:11px; }
+      </style>
+      ${tableHTML}
+      <div style="margin-top:60px; text-align:center; color:#6b7280; font-size:12px;">
+        Generated by WareAdmin • ${new Date().toLocaleDateString('en-GB')}
+      </div>
+    </div>
+  `;
+
+  // Use your existing print preview modal (or create a simple one)
+  showModal(`
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview – Outlet Sales Report</h4>
+    <div style="max-height:75vh; overflow-y:auto; background:white; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+      ${printableContent}
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doPrintOutletReport()">
+        Print Now
+      </button>
+    </div>
+  `);
+
+  window.doPrintOutletReport = function() {
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Outlet Sales Report</title>
+      <style>@page { margin: 1.2cm; } body { font-family: system-ui, Arial, sans-serif; }</style>
+      </head>
+      <body onload="window.print(); setTimeout(()=>window.close(), 800)">
+        ${printableContent}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    closeModal();
+  };
+});
+
+
+async function loadRepFilter() {
+  try {
+    // Fetch outlet details (includes repIds and repNames)
+    const res = await fetch(`/api/outlets/${OUTLET_ID}`);
+    if (!res.ok) throw new Error('Failed to load outlet');
+    const outlet = await res.json();
+
+    const select = $('#repFilter');
+    select.innerHTML = '<option value="">All Reps</option>';
+
+    // Use repNames array (already populated by backend)
+    if (outlet.repNames?.length > 0) {
+      outlet.repNames.forEach((name, index) => {
+        const id = outlet.repIds?.[index]; // match by index
+        const opt = document.createElement('option');
+        opt.value = id || name; // fallback to name if no id
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+    } else {
+      select.innerHTML += '<option disabled>No other reps assigned</option>';
+    }
+
+    // Change listener
+    select.onchange = () => {
+      outletSalesFilter.repId = select.value || null;
+      outletSalesCurPage = 1;
+      renderOutletSalesReport();
+    };
+
+  } catch (err) {
+    console.error('Failed to load rep filter', err);
+    $('#repFilter').innerHTML = '<option value="">All Reps (error loading)</option>';
   }
 }
   </script>
