@@ -4715,26 +4715,26 @@ function initShipmentDatePicker() {
 // ─── Load Warehouse + Outlet + Status filters ────────────────────────
 async function loadShipmentFilters() {
   try {
-    const [whRes, outRes] = await Promise.all([
-      fetch('/api/warehouses'),
-      fetch('/api/outlets')
-    ]);
+    const whRes = await fetch('/api/warehouses');
     const warehouses = await whRes.json();
-    const outlets    = await outRes.json();
 
     const whSel = $('#shipmentWarehouseFilter');
     whSel.innerHTML = '<option value="">All Warehouses</option>';
     warehouses.forEach(w => {
       const opt = document.createElement('option');
       opt.value = w.id;
-      opt.text  = w.name;
+      opt.text = w.name;
       whSel.appendChild(opt);
     });
 
+    // Warehouse change listener only
+    whSel.onchange = () => {
+      shipmentFilter.warehouseId = whSel.value || null;
+      shipmentCurPage = 1;
+      renderShipmentReport();
+    };
 
-    // Change listeners
-    whSel.onchange = () => { shipmentFilter.warehouseId = whSel.value || null; shipmentCurPage=1; renderShipmentReport(); };
-    outSel.onchange = () => { shipmentFilter.outletId   = outSel.value   || null; shipmentCurPage=1; renderShipmentReport(); };
+    // Status change listener (already working, just ensure it's attached)
     $('#shipmentStatusFilter').onchange = () => {
       shipmentFilter.status = $('#shipmentStatusFilter').value || null;
       shipmentCurPage = 1;
@@ -4744,6 +4744,7 @@ async function loadShipmentFilters() {
     console.error('Failed to load shipment filters', e);
   }
 }
+
 
 function clearShipmentFilters() {
   shipmentFilter = { start:null, end:null, warehouseId:null, outletId:null, status:null };
@@ -4771,7 +4772,8 @@ async function renderShipmentReport(page = 1) {
 
 
     const res = await fetch(`/api/shipments/breakdown?${q}`);
-   console.log('Response status:', res.status);
+   console.log('Sent status filter:', shipmentFilter.status);
+    console.log('Response status:', res.status);
     const json = await res.json();
     console.log('Raw JSON from server:', json);
 
