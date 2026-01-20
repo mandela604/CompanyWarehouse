@@ -1346,6 +1346,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (route === 'salesViewer') renderSalesViewerPage();
     }
 
+
+    // ─── Extra initialization for the Shipment Breakdown button ────────────────────────────────
+document.querySelectorAll('[onclick*="navigateTo(\'shipmentReport\')"]').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault(); // just in case
+    console.log('Shipment Breakdown button clicked → loading data');
+
+    // These are the exact same lines you already have for other reports
+    if (!shipmentPicker) {
+      initShipmentDatePicker();
+    }
+    await loadShipmentFilters();
+    await renderShipmentReport();
+  });
+});
+
+
    async function renderOverviewCards() {
   const cards = $('#overviewCards');
   cards.innerHTML = '<div class="muted">Loading...</div>';
