@@ -984,10 +984,10 @@
 
   <!-- Main Table -->
   <div class="table">
-    <!-- Example: put this right above the table in HTML -->
-<div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827;">
+<div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
   Products Sold 
-  <span id="currentPeriodDisplay" style="color: var(--blue);">
+  <span id="currentPeriodDisplay" style="color: var(--blue); font-weight: normal;">
+    (loading...)
   </span>
 </div>
     <table id="reportSalesTable">
@@ -4303,7 +4303,7 @@ function clearReportFilters() {
   renderSalesReport();
 }
 
-// ─── Render the report table ───────────────────────────────────────
+
 // ─── SALES REPORT RENDER FUNCTION (product summary + period display) ────────
 async function renderSalesReport(page = 1) {
   reportCurPage = page;
@@ -4351,16 +4351,17 @@ async function renderSalesReport(page = 1) {
     const grandTotalQty   = productsSold.reduce((sum, p) => sum + p.totalQty,   0);
 
     // ─── Update period display above the table ───────────────────────────
-    const periodEl = $('#currentPeriodDisplay');
-    if (periodEl) {
-      if (!reportFilter.start || !reportFilter.end) {
-        periodEl.textContent = '(Today)';
-      } else {
-        const start = niceDate(new Date(reportFilter.start));
-        const end   = niceDate(new Date(reportFilter.end));
-        periodEl.textContent = `(${start} – ${end})`;
-      }
-    }
+   // ─── Update period display above the table ───────────────────────────
+const periodEl = $('#currentPeriodDisplay');
+if (periodEl) {
+  const displayText = $('#reportDateDisplay').textContent.trim();
+
+  if (!displayText || displayText === 'All time') {
+    periodEl.textContent = '(Today)';
+  } else {
+    periodEl.textContent = `(${displayText})`;
+  }
+}
 
     // ─── Render table rows ───────────────────────────────────────────────
     if (!productsSold.length) {
