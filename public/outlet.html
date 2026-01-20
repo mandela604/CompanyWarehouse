@@ -1893,10 +1893,10 @@ async function renderOutletSalesReport(page = 1) {
             ${formatNGN(p.totalValue || 0)}
           </td>
           <td>
-            ${outletSalesFilter.repId 
-              ? $('#repFilter option:selected').text().trim() 
-              : 'Multiple Reps'}
-          </td>
+  ${outletSalesFilter.repId 
+    ? document.querySelector('#repFilter option:checked')?.textContent.trim() || 'Selected Rep'
+    : 'Multiple Reps'}
+</td>
           <td><span class="pill">Sold</span></td>
         </tr>
       `).join('') + `
