@@ -573,6 +573,58 @@
   border-bottom: none !important;
 }
 
+/* ─── CLEAN BREAKDOWN REPORT TABLE STYLE (perfect alignment, no wasted space) ─── */
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: auto;           /* ← key: let browser auto-size */
+}
+
+.breakdown-table th,
+.breakdown-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #eef3fb;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Long text columns: left-align + allow wrapping */
+.breakdown-table th:nth-child(2),  /* e.g. Products Sold / From / To */
+.breakdown-table td:nth-child(2),
+.breakdown-table th:nth-child(3),  /* adjust numbers based on your table */
+.breakdown-table td:nth-child(3) {
+  text-align: left !important;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  min-width: 220px;              /* breathing room for long names/lists */
+}
+
+/* Numeric columns: stand out */
+.breakdown-table td:nth-child(4),  /* Total Qty */
+.breakdown-table td:nth-child(5) { /* Total Value */
+  font-weight: 600;
+  color: var(--blue);
+  text-align: right !important;
+}
+
+/* Status pill centered nicely */
+.breakdown-table .pill {
+  display: inline-block;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Hover + subtle page total */
+.breakdown-table tr:hover {
+  background: rgba(11,94,215,0.03);
+}
+.breakdown-table tr:last-child {
+  background: #e0f2fe !important;
+  font-weight: 700;
+  font-size: 14px;
+}
+
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -984,7 +1036,7 @@
 
   <!-- Main Table -->
   <div class="table">
-    <table id="reportSalesTable">
+    <table id="reportSalesTable" class="breakdown-table">
       <thead>
         <tr>
           <th>Date</th>
