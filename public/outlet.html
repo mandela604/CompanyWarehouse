@@ -311,15 +311,17 @@
 
   <!-- Main Table -->
   <div class="table">
+      <div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+  Products Sold 
+  <span id="outletCurrentPeriodDisplay" style="color: var(--blue);"></span>
+</div>
     <table id="outletSalesReportTable">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Transaction ID</th>
-          <th>Products Sold</th>
-          <th>Total Qty</th>
-          <th>Total Value</th>
-          <th>Rep (Recorder)</th>
+          <th>Product</th>
+          <th style="text-align:center;">Total Qty Sold</th>
+          <th style="text-align:right;">Total Value</th>
+          <th>Rep</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -1819,11 +1821,11 @@ function clearOutletSalesFilters() {
   renderOutletSalesReport();
 }
 
-// ─── Render Outlet Sales Report ────────────────────────────────────────────
+// ─── OUTLET SALES REPORT RENDER (product summary + period display) ────────
 async function renderOutletSalesReport(page = 1) {
   outletSalesCurPage = page;
   const tbody = $('#outletSalesReportTable tbody');
-  tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
 
   try {
     const q = new URLSearchParams({
@@ -1839,38 +1841,79 @@ async function renderOutletSalesReport(page = 1) {
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
+    // Client-side aggregation: group by product
     const sales = json.data || [];
-    const totalCount = json.totalCount || 0;
+    const productMap = new Map();
 
-    if (!sales.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="muted">No sales found</td></tr>';
-    } else {
-      tbody.innerHTML = sales.map(s => {
-        const products = s.items?.map(i => `<strong>${i.productName}</strong> × ${i.qty}`).join('<br>') || '—';
-        return `
-          <tr>
-            <td>${s.date}</td>
-            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
-            <td style="line-height:1.6; white-space:pre-wrap;">${products}</td>
-            <td style="text-align:center;">${s.totalQty || 0}</td>
-            <td style="text-align:right; font-weight:600; color:var(--blue);">${formatNGN(s.totalAmount || 0)}</td>
-            <td>${s.repName || '—'}</td>
-            <td><span class="pill">${s.status || 'Sold'}</span></td>
-          </tr>
-        `;
-      }).join('');
+    sales.forEach(s => {
+      s.items?.forEach(item => {
+        const name = item.productName;
+        if (!productMap.has(name)) {
+          productMap.set(name, { qty: 0, value: 0 });
+        }
+        const entry = productMap.get(name);
+        entry.qty   += item.qty;
+        entry.value += item.qty * (item.unitPrice || 0);
+      });
+    });
+
+    let productsSold = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      totalQty:    data.qty,
+      totalValue:  data.value
+    }));
+
+    // Sort: most sold first
+    productsSold.sort((a, b) => b.totalQty - a.totalQty);
+
+    const totalCount = productsSold.length;
+    const grandTotalValue = productsSold.reduce((sum, p) => sum + p.totalValue, 0);
+    const grandTotalQty   = productsSold.reduce((sum, p) => sum + p.totalQty,   0);
+
+    
+    const periodEl = $('#outletCurrentPeriodDisplay');
+    if (periodEl) {
+      const displayText = $('#outletSalesDateDisplay').textContent.trim();
+      if (!displayText || displayText === 'All time') {
+        periodEl.textContent = '(Today)';
+      } else {
+        periodEl.textContent = `(${displayText})`;
+      }
     }
 
-    // Pagination (reuse your existing function)
+    // Render rows
+    if (!productsSold.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No products sold in this period</td></tr>';
+    } else {
+      tbody.innerHTML = productsSold.map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue || 0)}
+          </td>
+          <td>${outletSalesFilter.repId ? '—' : 'Multiple'}</td>
+          <td><span class="pill">Sold</span></td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td style="text-align:center;">${grandTotalQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandTotalValue)}</td>
+          <td colspan="2"></td>
+        </tr>
+      `;
+    }
+
+    
     renderPag($('#outletSalesPagination'), totalCount, outletSalesCurPage, n => renderOutletSalesReport(n));
 
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="7" class="error">Failed to load</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load</td></tr>';
     console.error(err);
-    showToast('Error loading sales report', 'error');
+    showToast('Error loading outlet sales summary', 'error');
   }
 }
-
 // ─── Print Report ──────────────────────────────────────────────────────────
 document.getElementById('printOutletSalesReportBtn')?.addEventListener('click', () => {
   const dateRange = $('#outletSalesDateDisplay')?.textContent || 'All time';
