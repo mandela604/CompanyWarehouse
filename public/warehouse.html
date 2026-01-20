@@ -152,6 +152,28 @@
   box-shadow: 0 0 0 3px rgba(11,94,215,0.1);
 }
 
+/* Fix: Force pagination full width + centered */
+.table > .pagination {
+  width: 100% !important;
+  margin: 20px 0 0 !important;
+  padding: 20px 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Optional: nicer button spacing & look */
+.table > .pagination button {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -336,7 +358,7 @@
       <select id="warehouseShipmentStatusFilter" class="sales-filter-input">
         <option value="">All Statuses</option>
         <option value="In Transit">In Transit</option>
-        <option value="delivered">Delivered</option>
+
         <option value="Received">Received</option>
         <option value="cancelled">Cancelled</option>
         <option value="Rejected">Rejected</option>

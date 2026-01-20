@@ -994,7 +994,7 @@
           <th>Outlet</th>
           <th>Rep</th>
           <th>Status</th>
-          <th>Action</th>
+        <!--  <th>Action</th> -->
         </tr>
       </thead>
       <tbody></tbody>
@@ -4337,7 +4337,7 @@ async function renderSalesReport(page = 1) {
             <td>${s.outletName||'—'}</td>
             <td>${s.repName||'—'}</td>
             <td><span class="pill">${s.status||'—'}</span></td>
-            <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
+            
           </tr>
         `;
       }).join('') + `
@@ -4348,6 +4348,11 @@ async function renderSalesReport(page = 1) {
         </tr>
       `;
     }
+
+    console.log('Total from API:', total);
+console.log('Calculated pages:', Math.ceil(total / REPORT_PER_PAGE));
+console.log('Current page:', reportCurPage);
+console.log('Pagination container exists?', !!$('#reportPagination'));
 
     renderPag($('#reportPagination'), total, reportCurPage, n => renderSalesReport(n));
   } catch (err) {
