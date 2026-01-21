@@ -311,12 +311,20 @@ router.get('/sales', ensureAuth, async (req, res) => {
     const skip = (page - 1) * limit;
 
     // 1. Build filter (add date filter if needed)
-    const filter = {};
-    if (startDate || endDate) {
-      filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
-    }
+  const filter = {};
+
+// Date filter — make sure end of day is included
+if (startDate || endDate) {
+  filter.createdAt = {};
+  if (startDate) {
+    filter.createdAt.$gte = new Date(startDate + 'T00:00:00.000Z');
+  }
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    filter.createdAt.$lte = end;
+  }
+}
 
     // NEW: Outlet filter
 if (req.query.outletId) {
