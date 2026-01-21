@@ -4379,8 +4379,16 @@ if (periodEl) {
           <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue || 0)}
           </td>
-          <td>${reportFilter.outletId ? '—' : 'Multiple'}</td>
-          <td>${reportFilter.repId    ? '—' : 'Multiple'}</td>
+          <td>
+            ${reportFilter.outletId 
+              ? document.querySelector('#reportOutletFilter option:checked')?.textContent.trim() || 'Selected Outlet'
+              : 'All Outlets'}
+          </td>
+          <td>
+            ${reportFilter.repId 
+              ? document.querySelector('#reportRepFilter option:checked')?.textContent.trim() || 'Selected Rep'
+              : 'All Reps'}
+          </td>
           <td><span class="pill">Sold</span></td>
         </tr>
       `).join('') + `
@@ -4533,7 +4541,7 @@ async function renderProductReport(page = 1) {
     if (productFilter.warehouseId) q.set('warehouseId', productFilter.warehouseId);
     if (productFilter.outletId)    q.set('outletId',    productFilter.outletId);
 
-    const res = await fetch(`/api/products/report?${q}`);
+    const res = await fetch(`/api/products/report-v2?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
