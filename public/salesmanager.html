@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sales Manager — WareAdmin</title>
+  <title>Warehouse Manager — WareAdmin</title>
   <style>
-    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
+    :root{--blue:#0b5ed7;--dark-red:#b71c1c;--bg:#f6f8fb;--card:#ffffff;--muted:#6b7280;--glass:rgba(255,255,255,0.75);--shadow:0 6px 18px rgba(11,94,215,0.08);--radius:12px}
     *{box-sizing:border-box}
     body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,var(--bg),#eef3fb);color:#111827}
     .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;gap:20px;padding:20px}
@@ -29,6 +29,9 @@
     .card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
     .card h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
     .card .value{font-size:24px;font-weight:700}
+    .panel{display:flex;gap:16px}
+    .panel-left{flex:2}
+    .panel-right{flex:1;display:flex;flex-direction:column;gap:16px}
     .table{background:var(--card);border-radius:14px;padding:0;box-shadow:var(--shadow);overflow:hidden;border:1px solid #e5e7eb}
     table{width:100%;border-collapse:collapse;font-size:13px}
     th{background:#f8fafc;color:var(--muted);font-weight:600;padding:14px 12px;text-align:left;font-size:11px}
@@ -36,386 +39,2212 @@
     tr:hover{background:rgba(11,94,215,0.03)}
     .pill{padding:6px 8px;border-radius:999px;background:rgba(11,94,215,0.08);color:var(--blue);font-weight:600;display:inline-block}
     .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.35);display:none;align-items:center;justify-content:center;z-index:60}
-    .modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:800px;box-shadow:0 20px 40px rgba(0,0,0,0.2)}
-    .form-row{margin:12px 0;display:flex;gap:12px;align-items:end}
-    .form-row label{display:block;margin-bottom:6px;font-weight:600}
-    .form-row select,.form-row input{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd}
+    .modal{background:white;border-radius:12px;padding:18px;min-width:320px;max-width:680px}
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    .form-row input,.form-row select{flex:1;padding:10px;border-radius:8px;border:1px solid #e6eefb}
     .section{display:none}
     .section.active{display:block}
-    .inline-list{display:flex;flex-wrap:wrap;gap:16px}
-    .box{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);flex:1 1 300px;border:1px solid #e5e7eb;position:relative;overflow:hidden}
-    .box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--dark-red))}
-    .box:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(11,94,215,0.15)}
-  </style>
+
+    /* CENTERED SHIPMENT TABLES - CLEAN & SIMPLE */
+#recentShipments,
+#shipmentsTable {
+  table-layout: fixed;  /* Keeps columns perfectly aligned */
+  width: 100%;
+}
+
+#recentShipments th,
+#recentShipments td,
+#shipmentsTable th,
+#shipmentsTable td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Balanced column widths (adds up to ~100%) */
+#recentShipments th:nth-child(1), #recentShipments td:nth-child(1),
+#shipmentsTable th:nth-child(1), #shipmentsTable td:nth-child(1) { width: 14%; } /* Date */
+
+#recentShipments th:nth-child(2), #recentShipments td:nth-child(2),
+#shipmentsTable th:nth-child(2), #shipmentsTable td:nth-child(2) { width: 18%; } /* From */
+
+#recentShipments th:nth-child(3), #recentShipments td:nth-child(3),
+#shipmentsTable th:nth-child(3), #shipmentsTable td:nth-child(3) { width: 12%; } /* Items */
+
+#recentShipments th:nth-child(4), #recentShipments td:nth-child(4),
+#shipmentsTable th:nth-child(4), #shipmentsTable td:nth-child(4) { width: 10%; } /* Qty */
+
+#recentShipments th:nth-child(5), #recentShipments td:nth-child(5),
+#shipmentsTable th:nth-child(5), #shipmentsTable td:nth-child(5) { width: 15%; } /* Total Value */
+
+#recentShipments th:nth-child(6), #recentShipments td:nth-child(6),
+#shipmentsTable th:nth-child(6), #shipmentsTable td:nth-child(6) { width: 12%; } /* Status */
+
+#recentShipments th:nth-child(7), #recentShipments td:nth-child(7),
+#shipmentsTable th:nth-child(7), #shipmentsTable td:nth-child(7) { width: 19%; } /* Action */
+
+/* FINAL FIX: Make sure Action column shows both buttons fully */
+#shipmentsTable th,
+#shipmentsTable td {
+  text-align: right !important;  /* keep centering for other columns */
+}
+
+/* Override specifically for the Action column (7th) */
+#shipmentsTable th:nth-child(7),
+#shipmentsTable td:nth-child(7) {
+  width: 25% !important;           /* Give plenty of space */
+  text-align: right !important;    /* Align buttons to the right */
+  padding-right: 20px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;    /* Critical: prevents "..." clipping */
+  text-overflow: unset !important;
+}
+
+/* Style the tiny buttons properly */
+#shipmentsTable .btn.tiny {
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  margin: 0 4px !important;
+  border-radius: 8px !important;
+  min-width: 70px;
+  display: inline-block;
+}
+
+
+/* Make all shipment report filters look consistent with date picker */
+.sales-filter-input,
+#warehouseShipmentTypeFilter,
+#warehouseShipmentOutletFilter,
+#warehouseShipmentStatusFilter {
+  height: 42px !important;                /* same height as date picker */
+  padding: 10px 12px !important;          /* same padding */
+  border: 1px solid #e6eefb !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  background: white !important;
+  min-width: 180px !important;            /* minimum width like date */
+  box-sizing: border-box !important;
+  appearance: none;                       /* remove default arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+}
+
+/* Remove default arrow in Firefox */
+.sales-filter-input::-moz-focus-inner,
+#warehouseShipmentTypeFilter::-moz-focus-inner,
+#warehouseShipmentOutletFilter::-moz-focus-inner,
+#warehouseShipmentStatusFilter::-moz-focus-inner {
+  border: 0;
+}
+
+/* Hover & focus states */
+.sales-filter-input:focus,
+#warehouseShipmentTypeFilter:focus,
+#warehouseShipmentOutletFilter:focus,
+#warehouseShipmentStatusFilter:focus {
+  outline: none;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px rgba(11,94,215,0.1);
+}
+
+/* Fix: Force pagination full width + centered */
+.table > .pagination {
+  width: 100% !important;
+  margin: 20px 0 0 !important;
+  padding: 20px 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Optional: nicer button spacing & look */
+.table > .pagination button {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+
 </head>
 <body>
   <button class="hamburger" id="hambBtn">Menu</button>
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="logo">S</div>
+        <div class="logo">M</div>
         <div>
-          <h2>Sales Manager</h2>
-          <div class="small" style="color:var(--muted)" id="managerName">Loading...</div>
+          <h2>Warehouse Manager</h2>
+          <div class="small" style="color:var(--muted)" id="warehouseName">Loading...</div>
         </div>
       </div>
       <div class="nav">
-        <a href="#" class="active" data-route="outlets">My Outlets</a>
-        <a href="#" data-route="sales">All Sales</a>
+        <a href="#" class="active" data-route="overview">Overview</a>
+        <a href="#" data-route="shipments">Incoming Shipments</a>
+        <!--    <a href="#" data-route="outlets">My Outlets</a>--> 
+        <a href="#" data-route="inventory">Inventory</a>
+        <a href="#" data-route="warehouseShipmentReport">Shipment Breakdown</a>
+      <!-- <a href="#" data-route="sales">Sales Records</a>
+        <a href="#" data-route="reports">Reports</a> --> 
       </div>
-      <div style="margin-top:auto;padding-top:20px;">
-        <button class="btn" id="recordSaleBtn">+ Record Sale</button>
-        <button class="btn secondary" onclick="logout()" style="width:100%;margin-top:8px;">Logout</button>
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn" id="shipToOutletBtn">+ Ship to Outlet</button>
+        <button class="btn" id="createOutletBtn" style="display:none">+ Create Outlet</button>
       </div>
     </aside>
 
     <main>
       <div class="topbar">
         <div class="search">
-          <input id="globalSearch" placeholder="Search outlets, sales...">
+          <input id="globalSearch" placeholder="Search products, outlets...">
+        </div>
+        <div class="actions">
+          <div class="small muted" id="managerName">Manager</div>
+          <button class="btn secondary" onclick="logout()">Logout</button>
         </div>
       </div>
 
-      <!-- OUTLETS -->
-      <section id="outletsSection" class="section active">
-        <h2>My Outlets</h2>
-        <div class="inline-list" id="myOutletsList">Loading...</div>
+      <!-- OVERVIEW -->
+      <section id="overviewSection" class="section active">
+        <div class="grid" id="managerCards"></div>
+        <div class="panel">
+          <div class="panel-left">
+            <div class="table">
+              <h3 style="margin:0 0 16px;padding:0 16px">Recent Incoming Shipments</h3>
+              <table id="recentShipments">
+                  <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>From</th>
+                    <th>Items</th>
+                    <th>Qty</th>
+                    <th>Total Value</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+               <tbody></tbody></table>
+            </div>
+
+            <div class="table" style="margin-top:24px;">
+  <h3 style="margin:0 0 16px;padding:0 16px">Recent Outgoing Shipments</h3>
+  <table id="recentOutgoingShipments">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>From</th>
+        <th>Items</th>
+        <th>Qty</th>
+        <th>Total Value</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+          </div>
+        <!--  <div class="panel-right">
+            <div class="card">
+              <h3>Pending Approval</h3>
+              <div class="value" id="pendingCount">0</div>
+            </div>
+            <div class="card">
+              <h3>Low Stock Items</h3>
+              <div class="value" id="lowStockCount">0</div>
+            </div>
+          </div> -->
+        </div>
       </section>
 
-      <!-- SALES -->
-      <section id="salesSection" class="section">
-        <h2>All Sales (My Outlets)</h2>
-        <button id="printSalesBtn" class="btn" style="background:var(--blue);color:white;margin-bottom:16px;">
-          Print This Page
-        </button>
-        <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="date" id="filterStart">
-          <input type="date" id="filterEnd">
-          <button class="btn secondary" id="applyFilter">Apply Filter</button>
-          <button class="btn secondary" id="clearFilter">Clear</button>
-        </div>
+      <!-- SHIPMENTS -->
+      <section id="shipmentsSection" class="section">
+        <h2>Incoming Shipments</h2>
         <div class="table">
-          <table id="salesTable">
-            <thead>
+          <table id="shipmentsTable">
+           <thead>
               <tr>
                 <th>Date</th>
-                <th>Outlet</th>
-                <th>Rep</th>
-                <th>Products</th>
+                <th>From</th>
+                <th>Items</th>
                 <th>Qty</th>
-                <th>Amount</th>
-                <th>Actions</th>
+                <th>Total Value</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
       </section>
+
+      <!-- OUTLETS -->
+      <section id="outletsSection" class="section">
+        <h2>My Outlets</h2>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn" id="createOutletBtn2" style="display:none">+ Create Outlet</button>
+        </div>
+        <div class="inline-list" id="myOutletsList"></div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section id="inventorySection" class="section">
+        <h2>Warehouse Inventory</h2>
+        <div class="table">
+          <table id="inventoryTable">
+            <thead><tr><th>SKU</th><th>Name</th><th>In Stock</th><th>Unit Price</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SALES & REPORTS -->
+      <section id="salesSection" class="section">
+        <h2>Sales Records (All My Outlets)</h2>
+      <button id="printManagerSalesBtn" class="btn" style="background:var(--blue); color:white; padding:11px 20px; font-size:14px; border-radius:12px;">
+      Print This Page
+    </button>
+        <div class="filter-bar" style="padding:12px;display:flex;gap:8px;align-items:center">
+        <input type="date" id="whFilterStart">
+        <input type="date" id="whFilterEnd">
+        <button class="btn secondary" id="applyWhFilter">Apply</button>
+        <button class="btn secondary" id="clearWhFilter">Clear</button>
+        <div style="flex:1"></div>
+        <input id="globalSearch" placeholder="Search outlet / rep / product..." style="min-width:200px;padding:8px;border-radius:8px;border:1px solid #e6eefb">
+      </div>
+        <div class="table">
+          <table id="managerSalesTable">
+            <thead><tr><th>Date</th><th>Outlet</th><th>Rep</th><th>Product</th><th>Qty</th><th>Amount</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+   <!--   <section id="reportsSection" class="section">
+        <h2>Reports</h2>
+        <div class="grid" id="managerReportCards"></div>
+      </section> -->
+
+
+      <!-- ==================== WAREHOUSE SHIPMENT BREAKDOWN REPORT ==================== -->
+<section id="warehouseShipmentReportSection" class="section">
+  <h2 style="margin-top:0">Shipment Breakdown Report</h2>
+  <!-- Filters -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="warehouseShipmentDateContainer" style="min-width:240px;"></div>
+      <select id="warehouseShipmentTypeFilter" class="sales-filter-input">
+        <option value="">All Types</option>
+        <option value="incoming">Incoming from Company</option>
+        <option value="outgoing">Outgoing to Outlets</option>
+      </select>
+      <select id="warehouseShipmentOutletFilter" class="sales-filter-input" style="display:none;">
+        <option value="">All Outlets</option>
+      </select>
+      <select id="warehouseShipmentStatusFilter" class="sales-filter-input">
+        <option value="">All Statuses</option>
+        <option value="In Transit">In Transit</option>
+
+        <option value="Received">Received</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button class="btn secondary" onclick="clearWarehouseShipmentFilters()">Clear Filters</button>
+      <div class="small muted" id="warehouseShipmentDateDisplay">All time</div>
+    </div>
+    <button id="printWarehouseShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print This Page
+    </button>
+  </div>
+  <!-- Main Table -->
+  <div class="table">
+    <table id="warehouseShipmentReportTable">
+      <thead>
+        <tr>
+      
+          <th>From</th>
+          <th>To</th>
+          <th>Products</th>
+          <th>Total Qty</th>
+          <th>Total Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="warehouseShipmentPagination"></div>
+  </div>
+</section>
+
     </main>
   </div>
 
   <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal">
-      <h3>Record Sale</h3>
-      <div id="successMsg" style="display:none;background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin-bottom:16px;">
-        Sale recorded successfully!
+    <div class="modal" id="modal"></div>
+  </div>
+
+ 
+  <div id="toastContainer" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none; /* Allows clicks to pass through */
+"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script>
+
+function updatePeriodDisplay(periodId, dateDisplayId) {
+  const periodEl = document.getElementById(periodId);
+  if (!periodEl) return;  // safety check if element doesn't exist
+
+  // Get the current text from the date display element (e.g. "All time" or "1 Jan 2025 – 15 Jan 2025")
+  const displayText = document.getElementById(dateDisplayId)?.textContent?.trim() || 'All time';
+
+  // Set the period text above the table
+  periodEl.textContent = (displayText === 'All time' || !displayText)
+    ? '(All time / Lifetime)'
+    : `(${displayText})`;
+}
+
+const params = new URLSearchParams(window.location.search);
+
+if (params.get('select')) {
+  let warehouses = [];
+
+  try {
+    const raw = params.get('warehouses');
+    if (raw) warehouses = JSON.parse(decodeURIComponent(raw));
+  } catch (e) {
+    console.error('Failed to parse warehouses:', e);
+    document.body.innerHTML = `<div style="text-align:center;padding:50px;"><h3>Error loading warehouses</h3><p><a href="/login.html">Back to login</a></p></div>`;
+    throw e;
+  }
+
+  fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(user => {
+      let html = `<div style="text-align:center;padding:60px;background:#f8f9fa;border-radius:16px;margin:40px auto;max-width:500px;">
+        <h2>Welcome, ${user.name || 'Manager'}!</h2>
+        <p style="color:#666;margin:20px 0;">Please select a warehouse to manage:</p>`;
+
+      if (warehouses.length === 0) {
+        html += `<p>No warehouses assigned.</p>`;
+      } else {
+        warehouses.forEach(w => {
+          html += `<button onclick="selectWarehouse('${w.id}')" 
+            style="display:block;width:100%;max-width:360px;margin:16px auto;padding:16px;font-size:16px;
+                   border-radius:12px;background:var(--blue);color:white;border:none;
+                   cursor:pointer;box-shadow:0 4px 12px rgba(11,94,215,0.2);">
+            <div><strong>${w.name}</strong></div>
+            <div style="font-size:13px;margin-top:4px;color:rgba(255,255,255,0.8);">
+              ${w.location || 'No location'}
+            </div>
+          </button>`;
+        });
+      }
+
+      html += `<div style="margin-top:40px;"><a href="/login.html" style="color:var(--muted);text-decoration:underline;">← Back to login</a></div></div>`;
+      document.body.innerHTML = html;
+    })
+    .catch(() => {
+      document.body.innerHTML = `<div style="text-align:center;padding:50px;"><h3>Session error</h3><p><a href="/login.html">Login again</a></p></div>`;
+    });
+
+  // Stop normal loading
+  throw new Error('Selection mode');
+}
+
+function selectWarehouse(id) {
+  fetch('/api/select-warehouse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ warehouseId: id })
+  }).then(() => location.href = '/warehouse.html');
+}
+
+
+
+function logout() {
+  fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+  .then(res => res.json())
+  .then(data => window.location.href = data.redirect);
+}
+
+    
+// Toast function
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const colors = { info: '#0b5ed7', success: '#10b981', error: '#b71c1c' };
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.background = colors[type] || colors.info;
+  toast.style.color = 'white';
+  toast.style.padding = '10px 16px';
+  toast.style.borderRadius = '8px';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.3s, transform 0.3s';
+  toast.style.transform = 'translateY(20px)';
+
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, duration);
+}
+
+
+
+
+
+
+  
+    let myWarehouse = null;
+
+    function $(s) { return document.querySelector(s); }
+    function $all(s) { return document.querySelectorAll(s); }
+    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
+    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(new Date(d)); }
+
+async function loadManagerData() {
+  try {
+    const userRes = await fetch('/api/auth/me');
+    if (!userRes.ok) throw new Error('Session expired');
+    const user = await userRes.json();
+    $('#managerName').textContent = user.name || 'Manager';
+
+    window.currentUser = user;
+
+    let whRes;
+    if (user.role === 'admin') {
+      // Get warehouseId from URL query
+      const params = new URLSearchParams(window.location.search);
+      const warehouseId = params.get('warehouseId');
+      if (!warehouseId) throw new Error('Warehouse ID not specified in URL');
+      whRes = await fetch(`/api/warehouse/my?warehouseId=${warehouseId}`);
+    } else {
+      whRes = await fetch('/api/warehouse/my');
+    }
+
+    myWarehouse = await whRes.json();
+
+    $('#warehouseName').textContent = `${myWarehouse.name} • ${myWarehouse.location}`;
+
+    if (myWarehouse.canCreateOutlets) {
+      $all('#createOutletBtn, #createOutletBtn2').forEach(b => b.style.display = 'block');
+    }
+
+    refreshAll();
+  } catch (err) {
+    showToast('Failed to load dashboard. Please refresh or contact admin.', 'error');
+    console.error(err);
+    if (err.message.includes('Session')) location.href = '/login';
+  }
+}
+
+    function navigateTo(route) {
+  $all('.section').forEach(s => s.classList.remove('active'));
+  const section = $(`#${route}Section`);
+  if (section) section.classList.add('active');
+
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+  if (navLink) navLink.classList.add('active');
+}
+
+
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      const route = a.dataset.route;
+      navigateTo(route);
+      if (route === 'overview') refreshAll();
+      if (route === 'shipments') renderShipments();
+      if (route === 'outlets') renderMyOutlets();
+      if (route === 'inventory') renderInventory();
+if (route === 'warehouseShipmentReport') {
+  $('#warehouseShipmentReportSection').classList.add('active');  // ← This is required!
+  if (!warehouseShipmentPicker) initWarehouseShipmentDatePicker();
+  loadWarehouseShipmentFilters();
+  renderWarehouseShipmentReport();
+}
+     // if (route === 'sales') renderManagerSales();
+    //  if (route === 'reports') renderManagerReports();
+    }));
+
+    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
+    $('#modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') closeModal(); };
+
+    function showModal(html) {
+      $('#modal').innerHTML = html;
+      $('#modalBackdrop').style.display = 'flex';
+    }
+    function closeModal() {
+      $('#modalBackdrop').style.display = 'none';
+      $('#modal').innerHTML = '';
+    }
+
+
+
+//OVERVIEW SECTION
+// //OVERVIEW SECTION
+//OVERVIEW SECTION
+    async function renderManagerOverview() {
+  const cards = $('#managerCards');
+  cards.innerHTML = '<div class="muted">Loading...</div>';
+
+  try {
+
+    const params = new URLSearchParams(window.location.search);
+    const warehouseId = params.get('warehouseId');
+    const res = await fetch(`/api/manager/overview?warehouseId=${warehouseId}`);
+     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();   
+
+    console.log('All recent shipments from backend:', data.recentShipments);
+
+
+    cards.innerHTML = `
+      <div class="card">
+        <h3>Total Stock</h3>
+        <div class="value">${data.totalStock || 0}</div>
+        <div class="small-note" style="color:var(--muted)">units</div>
       </div>
 
+      <div class="card">
+        <h3>Total Outlets</h3>
+        <div class="value">${data.totalOutlets || 0}</div>
+      </div>
+
+      <div class="card">
+        <h3>Total Sales</h3>
+        <div class="value">${formatNGN(data.totalRevenue || 0)}</div>
+      </div>
+
+      <div class="card">
+        <h3>Pending Shipments</h3>
+        <div class="value">${data.pendingShipments || 0}</div>
+      </div>
+    `;
+
+    // recent shipments table
+const tbody = $('#recentShipments tbody');
+tbody.innerHTML = '';
+const incomingOnly = (data.recentShipments || []).filter(s => s.toType === 'Warehouse');
+console.log('Filtered incoming only:', incomingOnly);
+  if (incomingOnly.length > 0){
+  incomingOnly.slice(0, 6).forEach(s => {
+    const itemCount = s.products?.length || 1;
+    const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || s.qty || 0;
+    const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0) || 0;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${niceDate(s.date)}</td>
+      <td>${s.fromName || 'Head Office'}</td>
+      <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+      <td style="text-align:center;"><strong>${totalQty}</strong></td>
+      <td style="text-align:right;">${formatNGN(totalValue)}</td>
+      <td><span class="pill">${s.status}</span></td>
+      <td style="text-align:center;">
+        <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+} else {
+  tbody.innerHTML = '<tr><td colspan="7" class="muted">No recent shipments</td></tr>';
+}
+
+    // right panel boxes
+   // $('#pendingCount').textContent = data.pendingCount || 0;
+   // $('#lowStockCount').textContent = data.lowStockCount || 0;
+
+  } catch (err) {
+    cards.innerHTML = `<div class="error">Failed: ${err.message}</div>`;
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+   
+  }
+  await renderRecentOutgoingShipments();
+}
+
+async function renderRecentOutgoingShipments() {
+  const tbody = $('#recentOutgoingShipments tbody');
+  if (!tbody) return; // table not present
+
+  tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+
+ try {
+  const res = await fetch(`/api/manager/overview?warehouseId=${myWarehouse.id}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const response = await res.json();
+
+  // Debug: see what backend really returns
+  console.log('Overview API full response:', response);
+
+  // Safely get recentShipments (array)
+  const allShipments = response.recentShipments || [];
+  console.log('All recent shipments (array):', allShipments);
+
+  // Filter outgoing
+  const outgoing = allShipments.filter(s => 
+    s.fromId === myWarehouse.id && s.fromType === 'Warehouse'
+  );
+  console.log('Filtered outgoing:', outgoing);
+
+  tbody.innerHTML = '';
+
+  if (outgoing.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">No recent outgoing shipments</td></tr>';
+    return;
+  }
+    // Show only first 6 (same as incoming)
+    outgoing.slice(0, 6).forEach(s => {
+      const itemCount = s.products?.length || 1;
+      const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || 0;
+      const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0) || 0;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${myWarehouse.name}</td> <!-- Always this warehouse -->
+          <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+          <td style="text-align:center;"><strong>${totalQty}</strong></td>
+          <td style="text-align:right;">${formatNGN(totalValue)}</td>
+          <td><span class="pill">${s.status}</span></td>
+          <td style="text-align:center;">
+            <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;" data-id="${s.id}">View</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="muted">Failed to load</td></tr>';
+  }
+}
+
+
+
+async function renderShipments() {
+  const tbody = $('#shipmentsTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/warehouse?limit=15&warehouseId=${myWarehouse.id}`);
+    const shipments = await res.json();
+    console.log('shipments:', shipments);
+    if (!Array.isArray(shipments)) {
+  tbody.innerHTML = '<tr><td colspan="6">No shipments found</td></tr>';
+  return;
+}
+
+
+    tbody.innerHTML = '';
+    if (shipments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No incoming shipments</td></tr>';
+      return;
+    }
+
+   shipments.forEach(s => {
+  const itemCount = s.products?.length || 1;
+  const totalQty = s.products?.reduce((sum, p) => sum + p.qty, 0) || s.qty || 0;
+  const totalValue = s.products?.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0) || 0;
+
+  tbody.innerHTML += `
+    <tr>
+      <td>${niceDate(s.date)}</td>
+      <td>${s.fromName || 'Head Office'}</td>
+      <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
+      <td style="text-align:center;"><strong>${totalQty}</strong></td>
+      <td style="text-align:right;">${formatNGN(totalValue)}</td>
+      <td><span class="pill">${s.status}</span></td>
+      <td style="text-align: right; white-space: nowrap; padding-right: 20px;">
+  <button class="btn view-details" 
+          style="font-size:11px;padding:6px 12px;background:var(--blue);color:white;border-radius:8px;margin-right:6px;"
+          data-id="${s.id}">
+    View
+  </button>
+  ${s.status.toLowerCase() === 'in transit' ? 
+    `<button class="btn tiny" 
+             style="margin-right:6px;" 
+             data-id="${s.id}" 
+             data-action="approve">
+      Approve
+    </button>
+    <button class="btn tiny" 
+             style="background:#dc3545;color:white;" 
+             data-id="${s.id}" 
+             data-action="reject">
+      Reject
+    </button>` 
+    : ''
+  }
+</td>
+    </tr>
+  `;
+});
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load shipments</td></tr>';
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+
+$('#shipmentsTable').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.action === 'approve') approveShipment(id);
+  if (btn.dataset.action === 'reject') rejectShipment(id);
+});
+
+async function approveShipment(id) {
+  const res = await fetch(`/api/shipments/approve/${id}`, { method: 'PUT' });
+  const data = await res.json();
+  if (res.ok)  { showToast('Shipped!', 'success');
+                renderShipments();}
+  else     showToast( data?.message || 'Failed to approve. Please refresh.', 'error');
+}
+
+async function rejectShipment(id) {
+  const res = await fetch(`/api/shipments/reject/${id}`, { method: 'PUT' });
+  const data = await res.json();
+  if (res.ok) renderShipments();
+  else showToast( data?.message || 'Failed to reject. Please refresh.', 'error');
+}
+
+
+
+async function renderMyOutlets() {
+  const container = $('#myOutletsList');
+  container.innerHTML = '<div class="muted">Loading outlets...</div>';
+
+  try {
+    const res = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+    if (!res.ok) throw new Error('Failed');
+    const outlets = await res.json();
+
+    container.innerHTML = '';
+
+    if (outlets.length === 0) {
+      container.innerHTML = '<div class="muted">No outlets assigned to this warehouse</div>';
+      return;
+    }
+
+    outlets.forEach(o => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.style = 'padding:16px; border:1px solid #e5e7eb; border-radius:12px; background:white; margin-bottom:12px';
+
+      box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+          <h4 style="margin:0; font-size:15px">${o.name}</h4>
+          <div>
+           ${myWarehouse.canCreateOutlets 
+  ? `<button class="btn secondary edit-outlet-btn" style="font-size:10px; padding:3px 8px" data-id="${o.id}">Edit</button>`
+  : ''
+}
+          </div>
+        </div>
+
+        <p style="margin:4px 0; color:var(--muted); font-size:13px">${o.location || '—'}</p>
+        ${o.repName 
+          ? `<p class="small muted" style="margin:4px 0">Rep: <strong>${o.repName}</strong></p>` 
+          : `<p class="small muted" style="margin:4px 0">Rep: <strong>No rep assigned</strong></p>`
+        }
+        ${o.phone 
+          ? `<p class="small muted" style="margin:4px 0">Phone: <strong>${o.phone}</strong></p>` 
+          : ''
+        }
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:14px">
+          <div>
+            <strong>${o.totalStock || 0}</strong><br>
+            <small style="color:var(--muted)">In Stock</small>
+          </div>  
+          <div>
+            <strong>${formatNGN(o.revenue || 0)}</strong><br>
+            <small style="color:var(--muted)">Total Sales</small>
+          </div>
+          <a href="/outlet.html?outletId=${o.id}" 
+     target="_blank"
+     style="display:none;"
+     class="btn" 
+     style="font-size:12px; padding:6px 12px; background:var(--blue); color:white; text-decoration:none; border-radius:8px;">
+     Open
+  </a>
+        <!-- <button style="display:none;" class="btn secondary view-sales-btn" style="font-size:11px;padding:5px 10px" data-id="${o.id}">View Sales</button> -->
+        </div>
+      `;
+
+      container.appendChild(box);
+    });
+
+  } catch (err) {
+    container.innerHTML = '<div class="error">Failed to load outlets</div>';
+    console.error(err);
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+$('#myOutletsList').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.classList.contains('edit-outlet-btn')) editOutlet(btn.dataset.id);
+  if (btn.classList.contains('view-sales-btn')) {
+    navigateTo('sales');
+    renderManagerSales(btn.dataset.id);
+  }
+});
+
+const ITEMS_PER_PAGE = 10;
+let inventoryPage = 1;
+let totalInventoryPages = 1;
+
+async function  renderInventory() {
+  const tbody = $('#inventoryTable tbody');
+  const paginationContainer = document.getElementById('inventoryPagination') || createInventoryPagination();
+
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+  try {
+    // paginated warehouse inventory
+    const res = await fetch(`/api/warehouse/inventory?warehouseId=${myWarehouse.id}&page=${inventoryPage}&limit=${ITEMS_PER_PAGE}`);
+    const data = await res.json();
+
+    totalInventoryPages = data.totalPages || 1;
+
+    tbody.innerHTML = ''; 
+
+    if (!data.products || data.products.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No products in warehouse inventory</td></tr>';
+      renderInventoryPagination(); // still show pagination (maybe page 1/1)
+      return;
+    }
+
+    data.products.forEach(p => {
+      const tr = document.createElement('tr');
+    tr.innerHTML = `
+  <td>${p.sku}</td>
+  <td>${p.productName || p.name}</td>
+  <td><strong>${p.qty}</strong></td>
+  <td>${formatNGN(p.unitPrice)}</td>
+  <td>
+    <button class="btn secondary ship-inventory-btn" 
+            style="font-size:11px;padding:4px 8px"
+            data-id="${p.id || p.productId}">
+      Ship →
+    </button>
+  </td>
+`;
+      tbody.appendChild(tr);
+    });
+
+    renderInventoryPagination();
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5">Failed to load inventory</td></tr>';
+    showToast( err?.message || 'Failed to load. Please refresh.', 'error');
+  }
+}
+
+
+$('#inventoryTable').addEventListener('click', e => {
+  const btn = e.target.closest('.ship-inventory-btn');
+  if (!btn) return;
+  quickShipToOutlet(btn.dataset.id);
+});
+
+
+// Helper: pagination controls under the inventory table if not exists
+function createInventoryPagination() {
+  const pagination = document.createElement('div');
+  pagination.id = 'inventoryPagination';
+  pagination.style.cssText = 'padding:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px';
+
+  // Inserting right after the table
+  const tableWrapper = $('#inventoryTable').parentElement;
+  tableWrapper.parentElement.appendChild(pagination);
+
+  return pagination;
+}
+
+function renderInventoryPagination() {
+  const pagination = $('#inventoryPagination');
+  if (!pagination) return;
+
+  pagination.innerHTML = '';
+
+  // Prev button
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = inventoryPage === 1;
+  prevBtn.onclick = () => {
+    inventoryPage--;
+    renderInventory();
+  };
+  pagination.appendChild(prevBtn);
+
+  // Page numbers (smart range)
+  const startPage = Math.max(1, inventoryPage - 2);
+  const endPage = Math.min(totalInventoryPages, inventoryPage + 2);
+
+  if (startPage > 1) {
+    const first = document.createElement('button');
+    first.className = 'btn secondary';
+    first.textContent = '1';
+    first.onclick = () => { inventoryPage = 1; renderInventory(); };
+    pagination.appendChild(first);
+    if (startPage > 2) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (i === inventoryPage ? '' : ' secondary');
+    btn.textContent = i;
+    btn.onclick = () => {
+      inventoryPage = i;
+      renderInventory();
+    };
+    pagination.appendChild(btn);
+  }
+
+  if (endPage < totalInventoryPages) {
+    if (endPage < totalInventoryPages - 1) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+    const last = document.createElement('button');
+    last.className = 'btn secondary';
+    last.textContent = totalInventoryPages;
+    last.onclick = () => { inventoryPage = totalInventoryPages; renderInventory(); };
+    pagination.appendChild(last);
+  }
+
+  // Next button
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = inventoryPage === totalInventoryPages;
+  nextBtn.onclick = () => {
+    inventoryPage++;
+    renderInventory();
+  };
+  pagination.appendChild(nextBtn);
+}
+
+
+// ─── WAREHOUSE SHIPMENT REPORT VARIABLES ────────────────────────────────────────
+let warehouseShipmentCurPage = 1;
+const WAREHOUSE_SHIPMENT_PER_PAGE = 15;
+let warehouseShipmentFilter = { start: null, end: null, type: null, outletId: null, status: null };
+let warehouseShipmentPicker = null;
+
+// ─── Date Picker for Warehouse Shipment Report ─────────────────────────────────
+function initWarehouseShipmentDatePicker() {
+  const container = $('#warehouseShipmentDateContainer');
+  if (container.innerHTML) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+  warehouseShipmentPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        warehouseShipmentFilter.start = start.toISOString().slice(0,10);
+        warehouseShipmentFilter.end = end.toISOString().slice(0,10);
+        $('#warehouseShipmentDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        warehouseShipmentFilter.start = warehouseShipmentFilter.end = null;
+        $('#warehouseShipmentDateDisplay').textContent = 'All time';
+      }
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    }
+  });
+}
+
+// ─── Load Warehouse Filters (Type, Outlet, Status) ────────────────────────────────
+async function loadWarehouseShipmentFilters() {
+  try {
+    const [outRes] = await Promise.all([
+      fetch('/api/outlets')  // All outlets (warehouse can ship to any)
+    ]);
+    const outlets = await outRes.json();
+
+    const typeSel = $('#warehouseShipmentTypeFilter');
+    typeSel.onchange = () => {
+      warehouseShipmentFilter.type = typeSel.value || null;
+      const outletFilter = $('#warehouseShipmentOutletFilter');
+      outletFilter.style.display = (typeSel.value === 'outgoing') ? 'block' : 'none';
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+
+    const outSel = $('#warehouseShipmentOutletFilter');
+    outSel.innerHTML = '<option value="">All Outlets</option>';
+    outlets.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.id;
+      opt.text = o.name;
+      outSel.appendChild(opt);
+    });
+    outSel.onchange = () => {
+      warehouseShipmentFilter.outletId = outSel.value || null;
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+
+    $('#warehouseShipmentStatusFilter').onchange = () => {
+      warehouseShipmentFilter.status = $('#warehouseShipmentStatusFilter').value || null;
+      warehouseShipmentCurPage = 1;
+      renderWarehouseShipmentReport();
+    };
+  } catch(e) {
+    console.error('Failed to load warehouse shipment filters', e);
+  }
+}
+
+function clearWarehouseShipmentFilters() {
+  warehouseShipmentFilter = { start:null, end:null, type:null, outletId:null, status:null };
+  $('#warehouseShipmentDateDisplay').textContent = 'All time';
+  warehouseShipmentPicker?.clear();
+  $('#warehouseShipmentTypeFilter').value = '';
+  $('#warehouseShipmentOutletFilter').value = '';
+  $('#warehouseShipmentOutletFilter').style.display = 'none';
+  $('#warehouseShipmentStatusFilter').value = '';
+  warehouseShipmentCurPage = 1;
+  renderWarehouseShipmentReport();
+}
+
+// ─── Render Warehouse Shipment Report Table ─────────────────────────────────
+async function renderWarehouseShipmentReport(page = 1) {
+  warehouseShipmentCurPage = page;
+  const tbody = $('#warehouseShipmentReportTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>'; // colspan=6 now
+
+  try {
+    const q = new URLSearchParams({ warehouseId: myWarehouse.id, page, limit: WAREHOUSE_SHIPMENT_PER_PAGE });
+    if (warehouseShipmentFilter.start) q.set('startDate', warehouseShipmentFilter.start);
+    if (warehouseShipmentFilter.end)   q.set('endDate',   warehouseShipmentFilter.end);
+    if (warehouseShipmentFilter.type)  q.set('type',      warehouseShipmentFilter.type);
+    if (warehouseShipmentFilter.outletId) q.set('outletId', warehouseShipmentFilter.outletId);
+    if (warehouseShipmentFilter.status) q.set('status',   warehouseShipmentFilter.status);
+
+    const res = await fetch(`/api/warehouse/shipments/breakdown?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+
+    const shipments = json.data || [];
+    const totalCount = json.totalCount || shipments.length;
+
+    // ─── CLIENT-SIDE AGGREGATION: one row per product ────────────────────────
+    const productMap = new Map();
+
+    shipments.forEach(s => {
+      const fromName = s.from?.name || (s.fromType === 'Company' ? 'Company' : '—');
+      const toName   = s.to?.name   || (s.toType === 'Warehouse' ? myWarehouse.name : '—');
+      const status   = s.status || '—';
+
+      s.products?.forEach(p => {
+        const name = p.name || p.productName || 'Unknown';
+        if (!productMap.has(name)) {
+          productMap.set(name, {
+            totalQty: 0,
+            totalValue: 0,
+            from: fromName,           // take first occurrence
+            to: toName,
+            status: status,
+            fromCount: 1,
+            toCount: 1,
+            statusCount: 1
+          });
+        }
+        const entry = productMap.get(name);
+        entry.totalQty += p.qty || 0;
+        entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
+
+        // Update summary if different values appear
+        if (entry.from !== fromName) {
+          entry.from = 'Multiple';
+          entry.fromCount++;
+        }
+        if (entry.to !== toName) {
+          entry.to = 'Multiple';
+          entry.toCount++;
+        }
+        if (entry.status !== status) {
+          entry.status = 'Various';
+          entry.statusCount++;
+        }
+      });
+    });
+
+    let aggregatedProducts = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      from: data.from,
+      to: data.to,
+      totalQty: data.totalQty,
+      totalValue: data.totalValue,
+      status: data.status
+    }));
+
+    // Sort: most shipped first
+    aggregatedProducts.sort((a, b) => b.totalQty - a.totalQty);
+
+    // Force pagination visible even for 1 or 0 pages
+    const paginationContainer = $('#warehouseShipmentPagination');
+    if (paginationContainer) paginationContainer.style.display = 'flex';
+
+    // Update period display (assuming you already have updatePeriodDisplay function)
+    updatePeriodDisplay('warehouseCurrentPeriodDisplay', 'warehouseShipmentDateDisplay');
+
+    // ─── Render aggregated rows ─────────────────────────────────────────────
+    if (!aggregatedProducts.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products shipped in this period</td></tr>';
+    } else {
+      const grandTotalQty   = aggregatedProducts.reduce((sum, p) => sum + p.totalQty, 0);
+      const grandTotalValue = aggregatedProducts.reduce((sum, p) => sum + p.totalValue, 0);
+
+      tbody.innerHTML = aggregatedProducts.map(p => `
+        <tr>
+          <td style="text-align:left; color:#555;">${p.from}</td>
+          <td style="text-align:left; color:#555;">${p.to}</td>
+          <td style="font-weight:600; text-align:left;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue)}
+          </td>
+          <td><span class="pill">${p.status}</span></td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td colspan="2"></td>
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td style="text-align:center;">${grandTotalQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandTotalValue)}</td>
+          <td></td>
+        </tr>
+      `;
+    }
+
+    renderPag($('#warehouseShipmentPagination'), totalCount, warehouseShipmentCurPage, n => renderWarehouseShipmentReport(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load</td></tr>';
+    console.error(err);
+    showToast('Error loading warehouse shipment report', 'error');
+  }
+}
+
+// ─── Print Warehouse Shipment Report ─────────────────────────────────
+document.getElementById('printWarehouseShipmentReportBtn')?.addEventListener('click', () => {
+  const dateRange = $('#warehouseShipmentDateDisplay')?.textContent || 'All time';
+  const tableHTML = $('#warehouseShipmentReportTable').outerHTML;
+  const printableContent = `
+    <div style="padding:40px 30px; font-family:system-ui,Arial,sans-serif; background:white; color:#111827;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 12px; font-size:28px;">
+        WAREHOUSE SHIPMENT BREAKDOWN REPORT
+      </h2>
+      <p style="text-align:center; color:#555; margin:0 0 30px; font-size:14px;">
+        ${dateRange} • Page ${warehouseShipmentCurPage} • Printed ${new Date().toLocaleString('en-GB')}
+      </p>
+      <style>
+        table { width:100%; border-collapse:collapse; margin:25px 0; font-size:13px; }
+        th, td { border:1px solid #d1d5db; padding:10px 8px; text-align:left; }
+        th { background:#f0f7ff; color:#111827; font-weight:600; text-transform:uppercase; font-size:11px; }
+        tr:nth-child(even) { background:#f9fafb; }
+        .pill { padding:4px 10px; border-radius:999px; background:#e0f2fe; color:#0b5ed7; font-weight:600; font-size:11px; }
+      </style>
+      ${tableHTML}
+      <div style="margin-top:60px; text-align:center; color:#6b7280; font-size:12px;">
+        Generated by WareAdmin • ${new Date().toLocaleDateString('en-GB')}
+      </div>
+    </div>
+  `;
+  showModal(`
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview – Warehouse Shipment Breakdown</h4>
+    <div style="max-height:75vh; overflow-y:auto; background:white; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+      ${printableContent}
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doRealWarehouseShipmentPrint()">
+        Print Now
+      </button>
+    </div>
+  `);
+  window.doRealWarehouseShipmentPrint = function() {
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Warehouse Shipment Breakdown Report</title>
+      <style>@page { margin: 1.2cm; } body { font-family: system-ui, Arial, sans-serif; }</style>
+      </head>
+      <body onload="window.print(); setTimeout(()=>window.close(), 800)">
+        ${printableContent}
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+    closeModal();
+  };
+});
+
+
+// Reusable pagination – same as in company dashboard
+function renderPag(container, totalItems, currentPage, onPageChange) {
+  if (!container) return;
+  const itemsPerPage = WAREHOUSE_SHIPMENT_PER_PAGE; // or 15
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  container.innerHTML = '';
+
+  // Prev
+  const prev = document.createElement('button');
+  prev.textContent = 'Prev';
+  prev.className = 'btn secondary';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => onPageChange(currentPage - 1);
+  container.appendChild(prev);
+
+  // Pages (smart: show first, last, and around current)
+  for (let i = 1; i <= totalPages; i++) {
+    if (
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - 2 && i <= currentPage + 2)
+    ) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = i === currentPage ? 'btn' : 'btn secondary';
+      btn.onclick = () => onPageChange(i);
+      container.appendChild(btn);
+    } else if (
+      container.lastChild &&
+      container.lastChild.textContent !== '...'
+    ) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      container.appendChild(dots);
+    }
+  }
+
+  // Next
+  const next = document.createElement('button');
+  next.textContent = 'Next';
+  next.className = 'btn secondary';
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => onPageChange(currentPage + 1);
+  container.appendChild(next);
+}
+
+
+async function loadWarehouseSales(page = 1) {
+  const warehouseId = myWarehouse.id;
+  const tbody = $('#managerSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+  try {
+    console.log('myWarehouse:', myWarehouse);
+console.log('Query params:', salesFilter);
+
+    const q = new URLSearchParams({ warehouseId, page, limit: 20 });
+    if (salesFilter.start) q.set('startDate', salesFilter.start);
+    if (salesFilter.end) q.set('endDate', salesFilter.end);
+
+    const res = await fetch(`/api/warehouse/sales?${q.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No sales</td></tr>';
+    } else {
+      tbody.innerHTML = json.data.map(s => `
+        <tr>
+          <td>${niceDate(s.date)}</td>
+          <td>${s.outletName}</td>
+          <td>${s.repName || '-'}</td>
+          <td>${s.productName}</td>
+          <td>${s.qty}</td>
+          <td>${formatNGN(s.totalAmount)}</td>
+        </tr>
+      `).join('');
+    }
+
+   const totalPages = Math.ceil(json.totalCount / 20); // 20 = limit
+renderSalesPagination(totalPages, page, n => loadWarehouseSales(n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
+    console.error(err);
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+  }
+}
+
+function renderSalesPagination(totalPages, currentPage, onPageChange) {
+  const pagination = $('#salesPagination');
+  if (!pagination) return;
+  pagination.innerHTML = '';
+
+  const prev = document.createElement('button');
+  prev.textContent = '← Prev';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => onPageChange(currentPage - 1);
+  pagination.appendChild(prev);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = i === currentPage ? '' : 'secondary';
+    btn.onclick = () => onPageChange(i);
+    pagination.appendChild(btn);
+  }
+
+  const next = document.createElement('button');
+  next.textContent = 'Next →';
+  next.disabled = currentPage === totalPages;
+  next.onclick = () => onPageChange(currentPage + 1);
+  pagination.appendChild(next);
+}
+
+// Initial call after warehouse data is loaded
+//await loadWarehouseSales(1);
+
+
+//Display Sales For Specific Outlet
+//Display Sales For Specific Outlet
+//Display Sales For Specific Outlet
+async function renderManagerSales(outletId, page = 1) {
+  const tbody = $('#managerSalesTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+  try {
+   const res = await fetch(`/api/outlet/sales?outletId=${outletId}&page=${page}&limit=20`);
+   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (!json.data || json.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6">No sales</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = json.data.map(s => `
+      <tr>
+        <td>${niceDate(s.date)}</td>
+        <td>${s.outletName}</td>
+        <td>${s.repName || '-'}</td>
+        <td>${s.productName}</td>
+        <td>${s.qty}</td>
+        <td>${formatNGN(s.totalAmount)}</td>
+      </tr>
+    `).join('');
+
+    renderSalesPagination(json.totalPages, page, n => renderManagerSales(outletId, n));
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6">Failed to load sales</td></tr>';
+    showToast('Failed to load sales: ' + (err?.message || ''), 'error');
+  }
+}
+
+
+let salesFilter = {
+  start: null,
+  end: null
+};
+
+function applyWarehouseSalesFilter() {
+  salesFilter.start = $('#whFilterStart').value;
+  salesFilter.end = $('#whFilterEnd').value;
+  loadWarehouseSales(1);   // reload API results
+}
+
+function clearWarehouseSalesFilter() {
+  $('#whFilterStart').value = "";
+  $('#whFilterEnd').value = "";
+
+  salesFilter = { start: null, end: null };
+  loadWarehouseSales(1);
+}
+
+
+
+    // Ship to Outlet button
+let shipmentCart = []; // Global cart for multi-shipment
+
+// Multi-product shipment modal (Warehouse → Outlet)
+$('#shipToOutletBtn').addEventListener('click', openMultiShipmentToOutlet);
+
+async function openMultiShipmentToOutlet() {
+  shipmentCart = [];
+  try {
+    // Fetch outlets assigned to this warehouse
+   // const outletsRes = await fetch(`/api/outlets/warehouse/${myWarehouse.id}`);
+   const outletsRes = await fetch('/api/outlets/select');
+   if (!outletsRes.ok) throw new Error('Failed to load outlets');
+    const outlets = await outletsRes.json();
+
+    if (outlets.length === 0) return showToast('No outlets available', 'error');
+
+    // Fetch current warehouse inventory
+    const prodRes = await fetch(`/api/products/warehouse/${myWarehouse.id}`);
+    if (!prodRes.ok) throw new Error('Failed to load products');
+    const prodData = await prodRes.json();
+    const products = Array.isArray(prodData) ? prodData : (prodData.products || []);
+
+    if (products.length === 0) return showToast('No products in stock', 'error');
+
+    const outletOptions = outlets
+      .map(o => `<option value="${o.id}">${o.name} (${o.location || '—'})</option>`)
+      .join('');
+
+    const productOptions = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option value="${p.id}"
+                data-qty="${p.qty}"
+                data-price="${p.unitPrice || 0}">
+          ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+        </option>
+      `)
+      .join('');
+
+    showModal(`
+      <h3>Ship Multiple Products to Outlet</h3>
+      <div id="successMsg" class="success" style="display:none;">Shipment created successfully!</div>
+
       <div class="form-row">
-        <label>Select Outlet</label>
-        <select id="outletSelect"></select>
+        <label>Destination Outlet</label>
+        <select id="targetOutletSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
+          <option value="">Select outlet...</option>
+          ${outletOptions}
+        </select>
       </div>
 
       <table style="width:100%;margin:16px 0;">
         <thead style="background:#f8fafc;">
-          <tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr>
+          <tr>
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Unit Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
+          </tr>
         </thead>
-        <tbody id="saleItems"></tbody>
+        <tbody id="shipmentItems"></tbody>
       </table>
 
       <div class="form-row">
-        <select id="productSelect"></select>
-        <input type="number" id="qtyInput" min="1" value="1" placeholder="Qty">
-        <button class="btn secondary" id="addItemBtn">+ Add</button>
+        <select id="productSelect" style="width:100%;padding:10px;">
+          <option value="">Select product to add...</option>
+          ${productOptions}
+        </select>
       </div>
 
-      <div style="text-align:right;margin:20px 0;font-size:18px;font-weight:600;">
-        Grand Total: <span id="grandTotal">₦0</span>
+      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+        <div style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
+        </div>
+        <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
       </div>
 
-      <div style="text-align:right;">
+      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+        Total Quantity: <span id="shipmentTotalQty">0</span> units
+      </div>
+
+      <div style="text-align:right;margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn" id="confirmSaleBtn" disabled>Complete Sale</button>
+        <button class="btn" id="confirmShipmentBtn" disabled>Create Shipment</button>
+      </div>
+    `);
+
+    // Safe render after modal is inserted
+    setTimeout(() => {
+      renderShipmentCartToOutlet();
+
+      $('#addShipmentItemBtn').onclick = addItemToShipmentCartToOutlet;
+      $('#confirmShipmentBtn').onclick = confirmMultiShipmentToOutlet;
+
+      $('#targetOutletSelect').onchange = () => {
+        const enabled = !!$('#targetOutletSelect').value && shipmentCart.length > 0;
+        $('#confirmShipmentBtn').disabled = !enabled;
+      };
+    }, 0);
+
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to load data: ' + err.message, 'error');
+  }
+}
+
+function renderShipmentCartToOutlet() {
+  const tbody = $('#shipmentItems');
+  if (shipmentCart.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added yet</td></tr>';
+    $('#confirmShipmentBtn').disabled = true;
+    $('#shipmentTotalQty').textContent = '0';
+    return;
+  }
+
+  let totalQty = 0;
+  tbody.innerHTML = shipmentCart.map((item, i) => {
+    const lineTotal = item.qty * item.price;
+    totalQty += item.qty;
+    return `
+      <tr>
+        <td style="padding:8px;"><strong>${item.name}</strong></td>
+        <td>
+          <input type="number" min="1" max="${item.max}" value="${item.qty}"
+                 onchange="updateShipmentQtyToOutlet(${i}, this.value)" style="width:70px;padding:6px;">
+        </td>
+        <td style="text-align:right;">₦${(item.price || 0).toLocaleString()}</td>
+        <td style="text-align:right;font-weight:600;">₦${lineTotal.toLocaleString()}</td>
+        <td><button onclick="removeShipmentItemToOutlet(${i})" style="color:#b71c1c;background:none;border:none;font-size:18px;">×</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  $('#shipmentTotalQty').textContent = totalQty.toLocaleString();
+  const outletSelected = !!$('#targetOutletSelect')?.value;
+  $('#confirmShipmentBtn').disabled = !(outletSelected && shipmentCart.length > 0);
+}
+
+function addItemToShipmentCartToOutlet() {
+  const select = $('#productSelect');
+  const qtyInput = $('#qtyInput');
+  if (!select.value) return showToast('Select a product', 'error');
+
+  let qty = parseInt(qtyInput.value) || 1;
+  const option = select.selectedOptions[0];
+  const max = parseInt(option.dataset.qty);
+  const price = parseFloat(option.dataset.price) || 0;
+  const name = option.text.split(' (')[0];
+
+  if (qty > max) return showToast(`Only ${max} available`, 'error');
+
+  const existingIndex = shipmentCart.findIndex(it => it.productId === select.value);
+  if (existingIndex > -1) {
+    const newQty = shipmentCart[existingIndex].qty + qty;
+    if (newQty > max) {
+      shipmentCart[existingIndex].qty = max;
+      showToast(`Quantity capped at ${max}`, 'info');
+    } else {
+      shipmentCart[existingIndex].qty = newQty;
+    }
+  } else {
+    shipmentCart.push({ productId: select.value, name, price, qty, max });
+  }
+
+  qtyInput.value = 1;
+  select.value = '';
+  renderShipmentCartToOutlet();
+}
+
+function updateShipmentQtyToOutlet(index, newVal) {
+  let qty = parseInt(newVal) || 1;
+  if (qty > shipmentCart[index].max) {
+    qty = shipmentCart[index].max;
+    showToast(`Maximum available: ${qty}`, 'info');
+  }
+  shipmentCart[index].qty = qty;
+  renderShipmentCartToOutlet();
+}
+
+function removeShipmentItemToOutlet(index) {
+  shipmentCart.splice(index, 1);
+  renderShipmentCartToOutlet();
+}
+
+async function confirmMultiShipmentToOutlet() {
+  const outletId = $('#targetOutletSelect').value;
+  if (!outletId) return showToast('Select an outlet', 'error');
+  if (shipmentCart.length === 0) return showToast('Add at least one item', 'error');
+
+  $('#confirmShipmentBtn').disabled = true;
+  $('#confirmShipmentBtn').textContent = 'Creating...';
+
+  const items = shipmentCart.map(item => ({
+    productId: item.productId,
+    qty: item.qty
+  }));
+
+  const payload = {
+    fromId: myWarehouse.id,
+    fromType: 'Warehouse',
+    toId: outletId,
+    toType: 'Outlet',
+    products: items,
+    senderId: currentUser?.id || null
+  };
+
+  try {
+    const res = await fetch('/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed');
+
+    $('#successMsg').style.display = 'block';
+    showToast('Shipment created successfully!', 'success');
+
+    setTimeout(() => {
+      closeModal();
+      refreshAll();
+    }, 1000);
+
+  } catch (err) {
+    showToast(err.message || 'Failed to create shipment', 'error');
+  } finally {
+    $('#confirmShipmentBtn').disabled = false;
+    $('#confirmShipmentBtn').textContent = 'Create Shipment';
+  }
+}
+
+
+
+
+async function quickShipToOutlet(productId) {
+  // Fetch fresh data 
+  const [outletsRes, productsRes] = await Promise.all([
+    fetch('/api/outlets/select'),
+    fetch(`/api/products/warehouse/${myWarehouse.id}`)
+  ]);
+
+  const outlets = await outletsRes.json();
+  const products = await productsRes.json();
+
+  // Find the product name & current qty for display
+  const selectedProduct = products.find(p => p.id === productId) || { name: 'Unknown', qty: 0 };
+
+  showModal(`
+    <h4>Ship to Outlet</h4>
+    <div class="form-row">
+      <select id="targetOutlet">${outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <select id="productId">
+        ${products.map(p => `
+          <option value="${p.id}" ${p.id === productId ? 'selected' : ''}>
+            ${p.name} (${p.qty} left)
+          </option>
+        `).join('')}
+      </select>
+    </div>
+    <div class="form-row"><input id="qty" type="number" min="1" max="${selectedProduct.qty}" placeholder="Quantity (max ${selectedProduct.qty})" /></div>
+    <div style="text-align:right;margin-top:12px">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="doShip">Ship Now</button>
+    </div>
+  `);
+$('#doShip').onclick = async () => {
+  const btn = $('#doShip');
+  btn.disabled = true;
+
+  const outletId = $('#targetOutlet').value;
+  const qty = Number($('#qty').value);
+
+  if (!qty || qty <= 0 || qty > selectedProduct.qty) {
+    showToast('Enter a valid quantity', 'info');
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/shipments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fromId: myWarehouse.id,
+        fromType: 'Warehouse',
+        toId: outletId,
+        toType: 'Outlet',
+        products: [{ productId, qty }]
+      })
+    });
+
+    if (res.ok) {
+      closeModal();
+      showToast('Shipped successfully!', 'success');
+      renderInventory();
+    } else {
+      const err = await res.json();
+      showToast(err.message || 'Failed to ship', 'error');
+    }
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+}
+
+// PRINT MANAGER SALES PAGE WITH PREVIEW MODAL (SWEET!)
+function printManagerSales() {
+  const warehouseName = $('#warehouseName')?.innerText || 'Warehouse';
+  const tableHTML = $('#managerSalesTable').outerHTML;
+
+  const printableContent = `
+    <div style="padding:30px; font-family:system-ui,Arial,sans-serif; background:white;">
+      <h2 style="text-align:center; color:#0b5ed7; margin:0 0 20px; font-size:24px;">
+        SALES REPORT
+      </h2>
+      <div style="text-align:center; color:#555; margin-bottom:25px; font-size:15px;">
+        <strong>${warehouseName}</strong><br>
+        All Outlets • Printed on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+      </div>
+
+      <style>
+        table { width:100%; border-collapse:collapse; margin:20px 0; font-size:13px; }
+        th, td { border:1px solid #ddd; padding:10px; text-align:left; }
+        th { background:#f0f7ff; color:#111; font-weight:600; }
+        tr:nth-child(even) { background:#fafafa; }
+      </style>
+
+      ${tableHTML}
+
+      <div style="margin-top:50px; text-align:center; color:#777; font-size:12px;">
+        Generated by WareAdmin Manager
       </div>
     </div>
-  </div>
+  `;
 
-  <div id="toastContainer" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:8px;z-index:1000;pointer-events:none;"></div>
+  showModal(`
+    <h4 style="text-align:center; margin:0 0 16px; color:#0b5ed7;">Print Preview</h4>
+    <div style="max-height:70vh; overflow-y:auto; background:white; border:1px solid #eee; border-radius:12px; padding:20px;">
+      ${printableContent}
+    </div>
+    <div style="text-align:right; margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7; color:white;" onclick="doPrintManagerSales()">Print Now</button>
+    </div>
+  `);
 
-  <script>
-    let currentUser = {};
-    let myOutlets = [];
-    let saleCart = [];
+  window.doPrintManagerSales = function() {
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>Sales Report - ${warehouseName}</title>
+      <style>body{font-family:system-ui,Arial;padding:20px;}</style></head>
+      <body onload="window.print(); setTimeout(() => window.close(), 500)">
+        ${printableContent}
+      </body></html>
+    `);
+    win.document.close();
+    closeModal();
+  };
+}
 
-    function $(s) { return document.querySelector(s); }
-    function formatNGN(n) { return '₦' + (n||0).toLocaleString(); }
-    function niceDate(d) { return new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric'}).format(new Date(d)); }
+// CONNECT THE BUTTON
+document.getElementById('printManagerSalesBtn')?.addEventListener('click', printManagerSales);
 
-    function showToast(msg, type='info') {
-      const colors = {info:'#0b5ed7', success:'#10b981', error:'#b71c1c'};
-      const t = document.createElement('div');
-      t.textContent = msg;
-      t.style.cssText = `background:${colors[type]};color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);margin:4px;`;
-      $('#toastContainer').appendChild(t);
-      setTimeout(() => t.remove(), 3000);
+
+
+async function start() {
+  try {
+    await loadManagerData();      
+    await refreshAll();
+  } catch (e) {
+    if (e.message === 'Selection mode') return; 
+    console.error(e);
+    showToast('Failed to load dashboard', 'error');
+  }
+}
+
+start();
+
+  async function refreshAll() {
+  if (myWarehouse) await loadWarehouseSales(1);
+ // await renderRecentShipments();      
+  await renderManagerOverview();
+  await renderInventory();
+}
+
+
+document.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('view-details')) {
+    const id = e.target.dataset.id;
+    if (!id) return showToast('No shipment ID', 'error');
+
+    try {
+      const res = await fetch(`/api/shipments/${id}`);
+      if (!res.ok) throw new Error('Not found');
+      const shipment = await res.json();
+
+      const totalQty = shipment.products.reduce((sum, p) => sum + p.qty, 0);
+      const grandTotal = shipment.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.style.display = 'flex';
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.style.maxWidth = '720px';
+
+      modal.innerHTML = `
+        <h3 style="margin:0 0 16px;color:var(--blue);">Shipment Details</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;font-size:14px;">
+          <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
+          <div><strong>Status:</strong> <span class="pill">${shipment.status}</span></div>
+          <div><strong>From:</strong> ${shipment.from?.name || 'Head Office'}</div>
+          <div><strong>To:</strong> ${shipment.to?.name || 'Unknown Outlet'}</div>
+        </div>
+
+        <h4 style="margin:20px 0 10px;">Products Shipped</h4>
+        <table class="inner-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th style="text-align:center;">Qty</th>
+              <th style="text-align:right;">Unit Price</th>
+              <th style="text-align:right;">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${shipment.products.map(p => {
+              const lineTotal = p.qty * (p.unitPrice || 0);
+              return `
+                <tr>
+                  <td><strong>${p.name || p.productName || 'Unknown'}</strong></td>
+                  <td style="text-align:center;">${p.qty}</td>
+                  <td style="text-align:right;">${formatNGN(p.unitPrice || 0)}</td>
+                  <td style="text-align:right;font-weight:600;">${formatNGN(lineTotal)}</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr style="font-weight:700;background:#f8fafc;">
+              <td>Total</td>
+              <td style="text-align:center;">${totalQty}</td>
+              <td colspan="2" style="text-align:right;">${formatNGN(grandTotal)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+       <div style="text-align:right;margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+
+  <!-- Edit button ONLY for outgoing In Transit shipments from THIS warehouse -->
+  ${shipment.status.toLowerCase() === 'in ransit' && 
+    shipment.fromType === 'Warehouse' && 
+    shipment.from?.id === myWarehouse.id ? `
+    <button class="btn" id="editOutgoingShipmentBtn"
+            style="background:#f59e0b; color:white;"
+            data-id="${shipment.id}">
+      Edit Shipment
+    </button>
+  ` : ''}
+
+    <!-- Print button always -->
+  <button class="btn" onclick="printShipment(this)">Print Receipt</button>
+
+  <button class="btn secondary" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+</div>
+      `;
+
+
+      // Attach Edit button listener AFTER modal is in DOM
+setTimeout(() => {
+  const editBtn = document.getElementById('editOutgoingShipmentBtn');
+  if (editBtn) {
+    editBtn.onclick = () => {
+      // Close current view modal
+      backdrop.remove();
+      // Open edit modal with pre-filled data
+      editOutgoingShipment(shipment.id);
+    };
+  }
+}, 0);
+
+
+      window.printShipment = function() {
+        const printWin = window.open('', '', 'width=800,height=700');
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Shipment Receipt</title>
+            <style>
+              body{font-family:system-ui,sans-serif;padding:40px;color:#111}
+              h2{text-align:center;color:#0b5ed7;margin-bottom:30px}
+              .info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:30px;font-size:15px}
+              table{width:100%;border-collapse:collapse;margin:20px 0}
+              th,td{border:1px solid #ddd;padding:12px;text-align:left}
+              th{background:#f8fafc}
+              .total-row{font-weight:bold;background:#f0f7ff}
+              .grand{font-size:20px;text-align:right;margin-top:30px}
+            </style>
+            </head>
+            <body>
+              <h2>SHIPMENT RECEIPT</h2>
+              <div class="info">
+                <div><strong>Date:</strong> ${niceDate(shipment.date)}</div>
+                <div><strong>Status:</strong> ${shipment.status}</div>
+                <div><strong>From:</strong> ${shipment.from?.name || 'Head Office'}</div>
+                <div><strong>To:</strong> ${shipment.to?.name || 'Unknown Outlet'}</div>
+              </div>
+              <table>
+                <thead><tr><th>Product</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Line Total</th></tr></thead>
+                <tbody>
+                  ${modal.querySelectorAll('table.inner-table tbody tr:not(:last-child)').innerHTML}
+                  <tr class="total-row">
+                    <td><strong>Total</strong></td>
+                    <td style="text-align:center;"><strong>${totalQty}</strong></td>
+                    <td colspan="2" style="text-align:right;"><strong>${formatNGN(grandTotal)}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="grand">Grand Total: ${formatNGN(grandTotal)}</div>
+            </body>
+          </html>
+        `);
+        printWin.document.close();
+        printWin.focus();
+        printWin.print();
+        printWin.close();
+      };
+
+      backdrop.appendChild(modal);
+      document.body.appendChild(backdrop);
+
+      backdrop.onclick = (ev) => {
+        if (ev.target === backdrop) {
+          backdrop.remove();
+          delete window.printShipment;
+        }
+      };
+    } catch (err) {
+      showToast('Failed to load shipment details', 'error');
+    }
+  }
+});
+
+
+async function editOutgoingShipment(shipmentId) {
+  try {
+    // 1. Fetch the full shipment
+    const res = await fetch(`/api/shipments/${shipmentId}`);
+    if (!res.ok) throw new Error('Failed to load shipment');
+    const shipment = await res.json();
+
+    // Safety checks
+    if (shipment.status.toLowerCase() !== 'in transit') {
+      return showToast('Only In Transit shipments can be edited', 'error');
+    }
+    if (shipment.fromType !== 'Warehouse' || shipment.from?.id !== myWarehouse.id) {
+      return showToast('You can only edit your own outgoing shipments', 'error');
     }
 
-    function navigateTo(route) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      $(`#${route}Section`).classList.add('active');
-      document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`.nav a[data-route="${route}"]`).classList.add('active');
-    }
-
-    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
-      e.preventDefault();
-      navigateTo(a.dataset.route);
-      if (a.dataset.route === 'outlets') loadOutlets();
-      if (a.dataset.route === 'sales') loadSales();
+    // 2. Pre-fill cart
+    shipmentCart = shipment.products.map(p => ({
+      productId: p.productId,
+      name: p.name || p.productName || 'Unknown',
+      price: p.unitPrice || 0,
+      qty: p.qty,
+      max: 9999  // You can make this stricter later by fetching current stock
     }));
 
-    async function loadManagerData() {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (!res.ok) throw new Error();
-        currentUser = await res.json();
-        $('#managerName').textContent = currentUser.name || 'Sales Manager';
-        loadOutlets();
-      } catch (err) {
-        showToast('Session expired. Redirecting...', 'error');
-        setTimeout(() => location.href = '/login', 2000);
-      }
-    }
+    // 3. Load current outlets + inventory (same as create)
+    const [outletsRes, prodRes] = await Promise.all([
+      fetch('/api/outlets/select'),
+      fetch(`/api/products/warehouse/${myWarehouse.id}`)
+    ]);
 
-    async function loadOutlets() {
-      const container = $('#myOutletsList');
-      container.innerHTML = '<div class="muted">Loading outlets...</div>';
-      try {
-        const res = await fetch('/api/outlets/manager'); // backend endpoint for manager's outlets
-        if (!res.ok) throw new Error();
-        myOutlets = await res.json();
+    if (!outletsRes.ok || !prodRes.ok) throw new Error('Failed to load data');
 
-        container.innerHTML = '';
-        myOutlets.forEach(o => {
-          const box = document.createElement('div');
-          box.className = 'box';
-          box.innerHTML = `
-            <h4 style="margin:0 0 8px;display:flex;justify-content:space-between;">
-              <span>${o.name}</span>
-            </h4>
-            <p style="color:var(--muted);margin:4px 0">${o.location || '—'}</p>
-            <p style="margin:4px 0">Rep: <strong>${o.repName || '—'}</strong></p>
-            <div style="display:flex;gap:12px;margin-top:16px;">
-              <div><strong>${o.totalStock || 0}</strong><br><small style="color:var(--muted)">Stock</small></div>
-              <div><strong>${formatNGN(o.revenue || 0)}</strong><br><small style="color:var(--muted)">Sales</small></div>
-            </div>
-            <a href="/outlet.html?outletId=${o.id}" target="_blank" class="btn" style="margin-top:16px;width:100%;text-align:center;">
-              Open Outlet
-            </a>
-          `;
-          container.appendChild(box);
-        });
-      } catch (err) {
-        container.innerHTML = '<div class="error">Failed to load outlets</div>';
-      }
-    }
+    const outlets = await outletsRes.json();
+    const products = (await prodRes.json()).products || [];
 
-    async function loadSales(page=1) {
-      const tbody = $('#salesTable tbody');
-      tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
-      try {
-        const q = new URLSearchParams({ page, limit: 20 });
-        if ($('#filterStart').value) q.set('start', $('#filterStart').value);
-        if ($('#filterEnd').value) q.set('end', $('#filterEnd').value);
+    const outletOptions = outlets
+      .map(o => `<option value="${o.id}" ${o.id === shipment.to?.id ? 'selected' : ''}>
+        ${o.name} (${o.location || '—'})
+      </option>`)
+      .join('');
 
-        const res = await fetch(`/api/sales/manager?${q}`);
-        const data = await res.json();
+    const productOptions = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option value="${p.id}"
+                data-qty="${p.qty}"
+                data-price="${p.unitPrice || 0}">
+          ${p.name} (${p.qty} left) — ₦${(p.unitPrice || 0).toLocaleString()}
+        </option>
+      `)
+      .join('');
 
-        tbody.innerHTML = data.sales.map(s => `
+    // 4. Show modal (same UI as create, but titled "Edit")
+    showModal(`
+      <h3>Edit Outgoing Shipment to Outlet</h3>
+      <div id="successMsg" class="success" style="display:none;">Shipment updated successfully!</div>
+
+      <div class="form-row">
+        <label>Destination Outlet</label>
+        <select id="targetOutletSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;">
+          <option value="">Select outlet...</option>
+          ${outletOptions}
+        </select>
+      </div>
+
+      <table style="width:100%;margin:16px 0;">
+        <thead style="background:#f8fafc;">
           <tr>
-            <td>${niceDate(s.date)}</td>
-            <td>${s.outletName}</td>
-            <td>${s.repName || '—'}</td>
-            <td>${s.products.map(p => `${p.name} × ${p.qty}`).join('<br>')}</td>
-            <td>${s.totalQty}</td>
-            <td>${formatNGN(s.amount)}</td>
-            <td style="white-space:nowrap;">
-              <button class="btn secondary" onclick="viewSale('${s.id}')">View</button>
-              <button class="btn" style="background:#f59e0b;" onclick="editSale('${s.id}')">Edit</button>
-              <button class="btn" style="background:#dc3545;" onclick="deleteSale('${s.id}')">Delete</button>
-            </td>
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Unit Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
           </tr>
-        `).join('');
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7">Failed to load sales</td></tr>';
-      }
+        </thead>
+        <tbody id="shipmentItems"></tbody>
+      </table>
+
+      <div class="form-row">
+        <select id="productSelect" style="width:100%;padding:10px;">
+          <option value="">Add more products...</option>
+          ${productOptions}
+        </select>
+      </div>
+
+      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+        <div style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="qtyInput" min="1" value="1" style="width:100%;">
+        </div>
+        <button class="btn secondary" id="addShipmentItemBtn" style="height:42px;">+ Add Item</button>
+      </div>
+
+      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+        Total Quantity: <span id="shipmentTotalQty">0</span> units
+      </div>
+
+      <div style="text-align:right;margin-top:20px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmShipmentBtn" style="background:#10b981;">Save Changes</button>
+      </div>
+    `);
+
+    // 5. Initialize cart, listeners, etc.
+    setTimeout(() => {
+      renderShipmentCartToOutlet();  // ← your existing function
+
+      $('#addShipmentItemBtn').onclick = addItemToShipmentCartToOutlet;  // ← existing
+      $('#confirmShipmentBtn').onclick = () => confirmEditOutgoingShipment(shipmentId);
+
+      $('#targetOutletSelect').onchange = () => {
+        const enabled = !!$('#targetOutletSelect').value && shipmentCart.length > 0;
+        $('#confirmShipmentBtn').disabled = !enabled;
+      };
+      $('#targetOutletSelect').dispatchEvent(new Event('change'));
+    }, 0);
+
+  } catch (err) {
+    showToast('Failed to open edit modal: ' + (err.message || 'Unknown error'), 'error');
+    console.error(err);
+  }
+}
+
+async function confirmEditOutgoingShipment(shipmentId) {
+  const outletId = $('#targetOutletSelect').value;
+  if (!outletId) return showToast('Select a destination outlet', 'error');
+  if (shipmentCart.length === 0) return showToast('Shipment must have at least one item', 'error');
+
+  $('#confirmShipmentBtn').disabled = true;
+  $('#confirmShipmentBtn').textContent = 'Saving...';
+
+  const items = shipmentCart.map(item => ({
+    productId: item.productId,
+    qty: item.qty
+  }));
+
+  try {
+    const res = await fetch(`/api/shipments/${shipmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toId: outletId,
+        products: items
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || 'Failed to update shipment');
     }
 
-    // Record Sale Modal Logic
-    let selectedOutletId = null;
-    $('#recordSaleBtn').onclick = async () => {
-      try {
-        const res = await fetch('/api/outlets/manager');
-        myOutlets = await res.json();
+    $('#successMsg').style.display = 'block';
+    showToast('Outgoing shipment updated!', 'success');
 
-        $('#outletSelect').innerHTML = myOutlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
-        selectedOutletId = myOutlets[0]?.id || null;
+    setTimeout(() => {
+      closeModal();
+      refreshAll();           // refresh overview + tables
+      renderShipments();      // also refresh incoming table if needed
+    }, 1200);
 
-        $('#outletSelect').onchange = () => {
-          selectedOutletId = $('#outletSelect').value;
-          loadProductsForOutlet(selectedOutletId);
-        };
+  } catch (err) {
+    showToast(err.message || 'Update failed', 'error');
+  } finally {
+    $('#confirmShipmentBtn').disabled = false;
+    $('#confirmShipmentBtn').textContent = 'Save Changes';
+  }
+}
 
-        loadProductsForOutlet(selectedOutletId);
-        saleCart = [];
-        renderSaleCart();
-        $('#modalBackdrop').style.display = 'flex';
-      } catch (err) {
-        showToast('Failed to load outlets', 'error');
-      }
-    };
-
-    async function loadProductsForOutlet(outletId) {
-      if (!outletId) return;
-      const res = await fetch(`/api/outlet/inventory?outletId=${outletId}`);
-      const data = await res.json();
-      const products = data.products || [];
-      $('#productSelect').innerHTML = '<option value="">Select product...</option>' +
-        products.filter(p => p.qty > 0).map(p => `
-          <option value="${p.productId}" data-price="${p.unitPrice}" data-max="${p.qty}">
-            ${p.productName} (${p.qty} left)
-          </option>    
-        `).join('');
-    }
-
-    function renderSaleCart() {
-      const tbody = $('#saleItems');
-      if (saleCart.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888;">No items added</td></tr>';
-        $('#confirmSaleBtn').disabled = true;
-        $('#grandTotal').textContent = '₦0';
-        return;
-      }
-      let total = 0;
-      tbody.innerHTML = saleCart.map((item, i) => {
-        const lineTotal = item.qty * item.price;
-        total += lineTotal;
-        return `<tr>
-          <td><strong>${item.name}</strong></td>
-          <td><input type="number" min="1" max="${item.max}" value="${item.qty}" onchange="updateQty(${i},this.value)"></td>
-          <td>₦${item.price.toLocaleString()}</td>
-          <td>₦${lineTotal.toLocaleString()}</td>
-          <td><button onclick="removeItem(${i})" style="background:none;border:none;color:#b71c1c;">×</button></td>
-        </tr>`;
-      }).join('');
-      $('#grandTotal').textContent = '₦' + total.toLocaleString();
-      $('#confirmSaleBtn').disabled = false;
-    }
-
-    $('#addItemBtn').onclick = () => {
-      const sel = $('#productSelect');
-      if (!sel.value) return;
-      const opt = sel.selectedOptions[0];
-      const existing = saleCart.findIndex(x => x.id === sel.value);
-      const qty = parseInt($('#qtyInput').value) || 1;
-      const max = parseInt(opt.dataset.max);
-      if (qty > max) return showToast('Not enough stock', 'error');
-
-      if (existing >= 0) {
-        saleCart[existing].qty += qty;
-        if (saleCart[existing].qty > max) saleCart[existing].qty = max;
-      } else {
-        saleCart.push({
-          id: sel.value,
-          name: opt.text.split(' (')[0],
-          price: parseFloat(opt.dataset.price),
-          qty,
-          max
-        });
-      }
-      $('#qtyInput').value = 1;
-      sel.value = '';
-      renderSaleCart();
-    };
-
-    function updateQty(i, val) {
-      saleCart[i].qty = Math.min(parseInt(val) || 1, saleCart[i].max);
-      renderSaleCart();
-    }
-
-    function removeItem(i) {
-      saleCart.splice(i, 1);
-      renderSaleCart();
-    }
-
-    $('#confirmSaleBtn').onclick = async () => {
-      if (!selectedOutletId || saleCart.length === 0) return;
-      $('#confirmSaleBtn').disabled = true;
-      try {
-        const items = saleCart.map(item => ({ productId: item.id, qtySold: item.qty }));
-        const res = await fetch('/api/sales/bulk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ outletId: selectedOutletId, items })
-        });
-        if (!res.ok) throw new Error();
-        $('#successMsg').style.display = 'block';
-        showToast('Sale recorded!', 'success');
-        setTimeout(() => {
-          closeModal();
-          loadSales();
-        }, 1000);
-      } catch (err) {
-        showToast('Failed to record sale', 'error');
-      } finally {
-        $('#confirmSaleBtn').disabled = false;
-      }
-    };
-
-    function closeModal() {
-      $('#modalBackdrop').style.display = 'none';
-    }
-
-    $('#modalBackdrop').onclick = e => e.target.id === 'modalBackdrop' && closeModal();
-
-    // Print sales
-    $('#printSalesBtn').onclick = () => {
-      const content = document.querySelector('#salesSection').innerHTML;
-      const win = window.open('', '_blank');
-      win.document.write(`
-        <html><head><title>Sales Report</title><style>
-          body{font-family:system-ui;padding:40px;}
-          table{width:100%;border-collapse:collapse;}
-          th,td{border:1px solid #ccc;padding:10px;}
-          th{background:#f0f7ff;}
-        </style></head><body onload="window.print()">
-          <h2 style="text-align:center;color:#0b5ed7;">All Sales Report</h2>
-          ${content}
-        </body></html>
-      `);
-      win.document.close();
-    };
-
-    // View, Edit, Delete placeholders
-    function viewSale(id) { showToast('View sale: ' + id, 'info'); }
-    function editSale(id) { showToast('Edit sale: ' + id, 'info'); }
-    function deleteSale(id) { if(confirm('Delete this sale?')) showToast('Deleted: ' + id, 'success'); }
-
-    $('#applyFilter').onclick = () => loadSales();
-    $('#clearFilter').onclick = () => { $('#filterStart').value = ''; $('#filterEnd').value = ''; loadSales(); };
-
-    loadManagerData();
-    $('#hambBtn').onclick = () => $('#sidebar').classList.toggle('open');
   </script>
 </body>
 </html>

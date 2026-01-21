@@ -123,22 +123,27 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
     const totalCount = await Shipment.countDocuments(filter);
 
     // Enrich with calculated totals
-    const enriched = shipments.map(s => {
-      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
-      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+// Enrich with calculated totals
+const enriched = shipments.map(s => {
+  const totalQty = s.products.reduce((sum, p) => sum + (p.qty || 0), 0);
+  const totalValue = s.products.reduce((sum, p) => sum + ((p.qty || 0) * (p.unitPrice || 0)), 0);
 
-      return {
-        id: s.id,
-        date: s.date.toISOString().split('T')[0],
-        from: s.from,
-        to: s.to,
-        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
-        totalQty,
-        totalValue,
-        status: s.status
-      };
-    });
-
+  return {
+    id: s._id.toString(),  // or s.id if you have it
+    date: s.date.toISOString().split('T')[0],
+    from: s.from,
+    to: s.to,
+    status: s.status,
+    totalQty,
+    totalValue,
+    // NOW return full per-product info (this is what we need!)
+    products: s.products.map(p => ({
+      name: p.name || p.productName || 'Unknown',
+      qty: p.qty || 0,              // ← qty per product
+      unitPrice: p.unitPrice || 0   // ← price per unit
+    }))
+  };
+});
     res.json({
       data: enriched,
       totalCount,
