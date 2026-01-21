@@ -173,16 +173,20 @@
   padding: 0 12px;
   font-size: 14px;
 }
-/* Improved alignment for Warehouse Shipment Report table */
+
+
+
+/* ─── FINAL PERFECT ALIGNMENT FIX FOR WAREHOUSE SHIPMENT REPORT ────── */
 #warehouseShipmentReportTable {
-  table-layout: fixed;          /* ← Critical: forces equal/defined widths */
+  table-layout: fixed !important;
   width: 100%;
   border-collapse: collapse;
 }
 
 #warehouseShipmentReportTable th,
 #warehouseShipmentReportTable td {
-  padding: 12px 10px;           /* consistent padding */
+  box-sizing: border-box !important;    /* ← prevents padding from shifting width */
+  padding: 12px 10px !important;        /* same padding everywhere */
   vertical-align: middle;
   border-bottom: 1px solid #eef3fb;
   white-space: nowrap;
@@ -190,30 +194,64 @@
   text-overflow: ellipsis;
 }
 
-/* Explicit column widths (add up to ~100%) */
+/* Explicit column widths + forced alignment (these win over everything) */
 #warehouseShipmentReportTable th:nth-child(1),
-#warehouseShipmentReportTable td:nth-child(1) { width: 20%; text-align: left;  padding-left: 20px; }  /* From */
-#warehouseShipmentReportTable th:nth-child(2),
-#warehouseShipmentReportTable td:nth-child(2) { width: 20%; text-align: left; }                     /* To */
-#warehouseShipmentReportTable th:nth-child(3),
-#warehouseShipmentReportTable td:nth-child(3) { width: 28%; text-align: left; font-weight: 600; }  /* Products */
-#warehouseShipmentReportTable th:nth-child(4),
-#warehouseShipmentReportTable td:nth-child(4) { width: 12%; text-align: center; font-weight: 700; } /* Total Qty */
-#warehouseShipmentReportTable th:nth-child(5),
-#warehouseShipmentReportTable td:nth-child(5) { width: 14%; text-align: right;  padding-right: 20px; font-weight: 700; color: var(--blue); } /* Total Value */
-#warehouseShipmentReportTable th:nth-child(6),
-#warehouseShipmentReportTable td:nth-child(6) { width: 6%;  text-align: center; }                   /* Status */
+#warehouseShipmentReportTable td:nth-child(1) {
+  width: 20% !important;
+  text-align: left !important;
+  padding-left: 24px !important;        /* extra left space for "From" */
+}
 
-/* Grand total row */
+#warehouseShipmentReportTable th:nth-child(2),
+#warehouseShipmentReportTable td:nth-child(2) {
+  width: 20% !important;
+  text-align: left !important;
+}
+
+#warehouseShipmentReportTable th:nth-child(3),
+#warehouseShipmentReportTable td:nth-child(3) {
+  width: 26% !important;
+  text-align: left !important;
+  font-weight: 600;
+}
+
+#warehouseShipmentReportTable th:nth-child(4),
+#warehouseShipmentReportTable td:nth-child(4) {
+  width: 12% !important;
+  text-align: center !important;        /* Qty MUST be centered */
+  font-weight: 700 !important;
+}
+
+#warehouseShipmentReportTable th:nth-child(5),
+#warehouseShipmentReportTable td:nth-child(5) {
+  width: 16% !important;
+  text-align: right !important;         /* Value MUST be right-aligned */
+  padding-right: 24px !important;       /* matches header spacing */
+  font-weight: 700 !important;
+  color: var(--blue) !important;
+}
+
+#warehouseShipmentReportTable th:nth-child(6),
+#warehouseShipmentReportTable td:nth-child(6) {
+  width: 6% !important;
+  text-align: center !important;
+}
+
+/* Grand total row – force perfect alignment */
 #warehouseShipmentReportTable tbody tr:last-child {
   background: #e0f2fe !important;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 700 !important;
+  font-size: 15px !important;
 }
+
+#warehouseShipmentReportTable tbody tr:last-child td:nth-child(4) {
+  text-align: center !important;
+}
+
 #warehouseShipmentReportTable tbody tr:last-child td:nth-child(5) {
   text-align: right !important;
-  padding-right: 20px;
-  color: var(--blue);
+  padding-right: 24px !important;
+  color: var(--blue) !important;
 }
 
 </style>
@@ -405,23 +443,7 @@
         <option value="Rejected">Rejected</option>
       </select>
       <button class="btn secondary" onclick="clearWarehouseShipmentFilters()">Clear Filters</button>
-     
-      <div style="
-  height: 42px;                   /* same as other inputs/selects */
-  display: flex;
-  align-items: center;            /* vertical center */
-  padding: 0 12px;
-  background: white;
-  border: 1px solid #e6eefb;
-  border-radius: 10px;
-  font-size: 14px;
-  color: var(--muted);
-  min-width: 180px;               /* match other filters */
-  box-sizing: border-box;
-">
-  <span id="warehouseShipmentDateDisplay">All time</span>
-</div>
-
+      <div class="small muted" id="warehouseShipmentDateDisplay">All time</div>
     </div>
     <button id="printWarehouseShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
       Print This Page
