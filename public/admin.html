@@ -4882,12 +4882,13 @@ async function renderShipmentReport(page = 1) {
     if (!res.ok) throw new Error(json.message || 'Failed');
 
 
-    const warehouseName =
-    shipments[0]?.to?.name || shipments[0]?.warehouseName || '—';
-
     // Client-side aggregation: group by product
     const shipments = json.data || [];
     const productMap = new Map();
+
+    
+    const warehouseName =
+    shipments[0]?.to?.name || shipments[0]?.warehouseName || '—';
 
     shipments.forEach(s => {
       s.products?.forEach(p => {
