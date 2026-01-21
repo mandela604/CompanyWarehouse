@@ -173,7 +173,48 @@
   padding: 0 12px;
   font-size: 14px;
 }
+/* Improved alignment for Warehouse Shipment Report table */
+#warehouseShipmentReportTable {
+  table-layout: fixed;          /* ← Critical: forces equal/defined widths */
+  width: 100%;
+  border-collapse: collapse;
+}
 
+#warehouseShipmentReportTable th,
+#warehouseShipmentReportTable td {
+  padding: 12px 10px;           /* consistent padding */
+  vertical-align: middle;
+  border-bottom: 1px solid #eef3fb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Explicit column widths (add up to ~100%) */
+#warehouseShipmentReportTable th:nth-child(1),
+#warehouseShipmentReportTable td:nth-child(1) { width: 20%; text-align: left;  padding-left: 20px; }  /* From */
+#warehouseShipmentReportTable th:nth-child(2),
+#warehouseShipmentReportTable td:nth-child(2) { width: 20%; text-align: left; }                     /* To */
+#warehouseShipmentReportTable th:nth-child(3),
+#warehouseShipmentReportTable td:nth-child(3) { width: 28%; text-align: left; font-weight: 600; }  /* Products */
+#warehouseShipmentReportTable th:nth-child(4),
+#warehouseShipmentReportTable td:nth-child(4) { width: 12%; text-align: center; font-weight: 700; } /* Total Qty */
+#warehouseShipmentReportTable th:nth-child(5),
+#warehouseShipmentReportTable td:nth-child(5) { width: 14%; text-align: right;  padding-right: 20px; font-weight: 700; color: var(--blue); } /* Total Value */
+#warehouseShipmentReportTable th:nth-child(6),
+#warehouseShipmentReportTable td:nth-child(6) { width: 6%;  text-align: center; }                   /* Status */
+
+/* Grand total row */
+#warehouseShipmentReportTable tbody tr:last-child {
+  background: #e0f2fe !important;
+  font-weight: 700;
+  font-size: 15px;
+}
+#warehouseShipmentReportTable tbody tr:last-child td:nth-child(5) {
+  text-align: right !important;
+  padding-right: 20px;
+  color: var(--blue);
+}
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -364,7 +405,23 @@
         <option value="Rejected">Rejected</option>
       </select>
       <button class="btn secondary" onclick="clearWarehouseShipmentFilters()">Clear Filters</button>
-      <div class="small muted" id="warehouseShipmentDateDisplay">All time</div>
+     
+      <div style="
+  height: 42px;                   /* same as other inputs/selects */
+  display: flex;
+  align-items: center;            /* vertical center */
+  padding: 0 12px;
+  background: white;
+  border: 1px solid #e6eefb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  min-width: 180px;               /* match other filters */
+  box-sizing: border-box;
+">
+  <span id="warehouseShipmentDateDisplay">All time</span>
+</div>
+
     </div>
     <button id="printWarehouseShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
       Print This Page
@@ -372,10 +429,16 @@
   </div>
   <!-- Main Table -->
   <div class="table">
+    <!-- Inside #shipmentReportSection, right after the filters div -->
+<div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+  Products Shipped
+  <span id="shipmentCurrentPeriodDisplay" style="color: var(--blue); font-weight: normal;">
+    (loading...)
+  </span>
+</div>
     <table id="warehouseShipmentReportTable">
       <thead>
         <tr>
-      
           <th>From</th>
           <th>To</th>
           <th>Products</th>
