@@ -4554,10 +4554,22 @@ async function renderProductReport(page = 1) {
 
     // Update summary cards
     const summary = json.summary || {};
-    $('#productSummaryCards .value')[0].textContent = (summary.totalSold || 0).toLocaleString();
-    $('#productSummaryCards .value')[1].textContent = formatNGN(summary.totalRevenue || 0);
-    $('#productSummaryCards .value')[2].textContent = (products.length).toLocaleString();
-    $('#productSummaryCards .value')[3].textContent = (summary.zeroSaleProducts || 0);
+   // Inside renderProductReport, after fetching data
+const valueEls = document.querySelectorAll('#productSummaryCards .value');
+
+if (valueEls.length >= 4) {
+  valueEls[0].textContent = (summary.totalSold || 0).toLocaleString();
+  valueEls[1].textContent = formatNGN(summary.totalRevenue || 0);
+  valueEls[2].textContent = (products.length).toLocaleString();
+  valueEls[3].textContent = (summary.zeroSaleProducts || 0);
+} else {
+  console.warn('Summary cards not fully rendered yet');
+  // Optional: set fallback values
+  if (valueEls[0]) valueEls[0].textContent = '—';
+  if (valueEls[1]) valueEls[1].textContent = '—';
+  if (valueEls[2]) valueEls[2].textContent = '—';
+  if (valueEls[3]) valueEls[3].textContent = '—';
+}
 
     // Update period display 
     const periodEl = document.getElementById('productCurrentPeriodDisplay');
