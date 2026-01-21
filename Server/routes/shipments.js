@@ -21,34 +21,18 @@ router.get('/shipments/breakdown', async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Build filter query
-const filter = {
+ const filter = {
   fromType: 'Company',
   toType: 'Warehouse'
 };
 
-if (req.query.startDate || req.query.endDate) {
-  filter.date = {};
-
-      if (req.query.startDate) {
-        filter.date.$gte = new Date(`${req.query.startDate}T00:00:00.000Z`);
-      }
-
-      if (req.query.endDate) {
-        filter.date.$lt = new Date(
-          new Date(`${req.query.endDate}T00:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000
-        );
-      }
-    }
-
-    if (req.query.warehouseId) {
-      filter['to.id'] = req.query.warehouseId;
-    }
-
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
-
+if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
+if (req.query.endDate) {
+  if (!filter.date) filter.date = {};
+  filter.date.$lte = new Date(req.query.endDate);
+}
+if (req.query.warehouseId) filter['to.id'] = req.query.warehouseId;
+if (req.query.status) filter.status = req.query.status;
     // Fetch paginated shipments
     const shipments = await Shipment.find(filter)
       .sort({ date: -1 })
@@ -71,9 +55,7 @@ if (req.query.startDate || req.query.endDate) {
         products: s.products.map(p => ({ name: p.name || 'Unknown' })),
         totalQty,
         totalValue,
-        status: s.status,
-        warehouseName: s.to?.name || '—'
-
+        status: s.status
       };
     });
 
@@ -141,27 +123,22 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
     const totalCount = await Shipment.countDocuments(filter);
 
     // Enrich with calculated totals
-// Enrich with calculated totals
-const enriched = shipments.map(s => {
-  const totalQty = s.products.reduce((sum, p) => sum + (p.qty || 0), 0);
-  const totalValue = s.products.reduce((sum, p) => sum + ((p.qty || 0) * (p.unitPrice || 0)), 0);
+    const enriched = shipments.map(s => {
+      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
+      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
 
-  return {
-    id: s._id.toString(),  // or s.id if you have it
-    date: s.date.toISOString().split('T')[0],
-    from: s.from,
-    to: s.to,
-    status: s.status,
-    totalQty,
-    totalValue,
-    // NOW return full per-product info (this is what we need!)
-    products: s.products.map(p => ({
-      name: p.name || p.productName || 'Unknown',
-      qty: p.qty || 0,              // ← qty per product
-      unitPrice: p.unitPrice || 0   // ← price per unit
-    }))
-  };
-});
+      return {
+        id: s.id,
+        date: s.date.toISOString().split('T')[0],
+        from: s.from,
+        to: s.to,
+        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
+        totalQty,
+        totalValue,
+        status: s.status
+      };
+    });
+
     res.json({
       data: enriched,
       totalCount,
