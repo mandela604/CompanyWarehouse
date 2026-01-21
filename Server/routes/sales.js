@@ -314,17 +314,22 @@ router.get('/sales', ensureAuth, async (req, res) => {
   const filter = {};
 
 // Date filter — make sure end of day is included
+// Date filter — UTC-safe, full-day coverage
 if (startDate || endDate) {
   filter.createdAt = {};
+
   if (startDate) {
-    filter.createdAt.$gte = new Date(startDate + 'T00:00:00.000Z');
+    filter.createdAt.$gte = new Date(`${startDate}T00:00:00.000Z`);
   }
+
   if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    filter.createdAt.$lte = end;
+    // Go to NEXT day midnight UTC, then subtract nothing
+    filter.createdAt.$lt = new Date(
+      new Date(`${endDate}T00:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000
+    );
   }
 }
+
 
     // NEW: Outlet filter
 if (req.query.outletId) {
