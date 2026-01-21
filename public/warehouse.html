@@ -375,11 +375,10 @@
     <table id="warehouseShipmentReportTable">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Shipment ID</th>
+      
           <th>From</th>
           <th>To</th>
-          <th>Products Shipped</th>
+          <th>Products</th>
           <th>Total Qty</th>
           <th>Total Value</th>
           <th>Status</th>
@@ -1165,50 +1164,117 @@ function clearWarehouseShipmentFilters() {
 async function renderWarehouseShipmentReport(page = 1) {
   warehouseShipmentCurPage = page;
   const tbody = $('#warehouseShipmentReportTable tbody');
-  tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>'; // colspan=6 now
+
   try {
     const q = new URLSearchParams({ warehouseId: myWarehouse.id, page, limit: WAREHOUSE_SHIPMENT_PER_PAGE });
     if (warehouseShipmentFilter.start) q.set('startDate', warehouseShipmentFilter.start);
-    if (warehouseShipmentFilter.end) q.set('endDate', warehouseShipmentFilter.end);
-    if (warehouseShipmentFilter.type) q.set('type', warehouseShipmentFilter.type);
+    if (warehouseShipmentFilter.end)   q.set('endDate',   warehouseShipmentFilter.end);
+    if (warehouseShipmentFilter.type)  q.set('type',      warehouseShipmentFilter.type);
     if (warehouseShipmentFilter.outletId) q.set('outletId', warehouseShipmentFilter.outletId);
-    if (warehouseShipmentFilter.status) q.set('status', warehouseShipmentFilter.status);
+    if (warehouseShipmentFilter.status) q.set('status',   warehouseShipmentFilter.status);
 
     const res = await fetch(`/api/warehouse/shipments/breakdown?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
     const shipments = json.data || [];
-    const totalCount = json.totalCount || 0;
+    const totalCount = json.totalCount || shipments.length;
 
-    if (!shipments.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="muted">No shipments found</td></tr>';
+    // ─── CLIENT-SIDE AGGREGATION: one row per product ────────────────────────
+    const productMap = new Map();
+
+    shipments.forEach(s => {
+      const fromName = s.from?.name || (s.fromType === 'Company' ? 'Company' : '—');
+      const toName   = s.to?.name   || (s.toType === 'Warehouse' ? myWarehouse.name : '—');
+      const status   = s.status || '—';
+
+      s.products?.forEach(p => {
+        const name = p.name || p.productName || 'Unknown';
+        if (!productMap.has(name)) {
+          productMap.set(name, {
+            totalQty: 0,
+            totalValue: 0,
+            from: fromName,           // take first occurrence
+            to: toName,
+            status: status,
+            fromCount: 1,
+            toCount: 1,
+            statusCount: 1
+          });
+        }
+        const entry = productMap.get(name);
+        entry.totalQty += p.qty || 0;
+        entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
+
+        // Update summary if different values appear
+        if (entry.from !== fromName) {
+          entry.from = 'Multiple';
+          entry.fromCount++;
+        }
+        if (entry.to !== toName) {
+          entry.to = 'Multiple';
+          entry.toCount++;
+        }
+        if (entry.status !== status) {
+          entry.status = 'Various';
+          entry.statusCount++;
+        }
+      });
+    });
+
+    let aggregatedProducts = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      from: data.from,
+      to: data.to,
+      totalQty: data.totalQty,
+      totalValue: data.totalValue,
+      status: data.status
+    }));
+
+    // Sort: most shipped first
+    aggregatedProducts.sort((a, b) => b.totalQty - a.totalQty);
+
+    // Force pagination visible even for 1 or 0 pages
+    const paginationContainer = $('#warehouseShipmentPagination');
+    if (paginationContainer) paginationContainer.style.display = 'flex';
+
+    // Update period display (assuming you already have updatePeriodDisplay function)
+    updatePeriodDisplay('warehouseCurrentPeriodDisplay', 'warehouseShipmentDateDisplay');
+
+    // ─── Render aggregated rows ─────────────────────────────────────────────
+    if (!aggregatedProducts.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products shipped in this period</td></tr>';
     } else {
-      tbody.innerHTML = shipments.map(s => {
-        const productList = s.products?.length > 0 
-          ? s.products.map(p => `<strong>${p.name}</strong>`).join('<br>') 
-          : '—';
-        return `
-          <tr>
-            <td>${niceDate(new Date(s.date))}</td>
-            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
-            <td>${s.from?.name || 'Company'}</td>
-            <td>${s.to?.name || s.warehouseName || '—'}</td>
-            <td style="line-height:1.6; white-space:pre-wrap;">${productList}</td>
-            <td style="text-align:center;">${s.totalQty || 0}</td>
-            <td style="text-align:right; font-weight:600; color:var(--blue);">
-              ${formatNGN(s.totalValue || 0)}
-            </td>
-            <td><span class="pill">${s.status || '—'}</span></td>
-          </tr>
-        `;
-      }).join('');
+      const grandTotalQty   = aggregatedProducts.reduce((sum, p) => sum + p.totalQty, 0);
+      const grandTotalValue = aggregatedProducts.reduce((sum, p) => sum + p.totalValue, 0);
+
+      tbody.innerHTML = aggregatedProducts.map(p => `
+        <tr>
+          <td style="text-align:left; color:#555;">${p.from}</td>
+          <td style="text-align:left; color:#555;">${p.to}</td>
+          <td style="font-weight:600; text-align:left;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue)}
+          </td>
+          <td><span class="pill">${p.status}</span></td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td colspan="2"></td>
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td style="text-align:center;">${grandTotalQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandTotalValue)}</td>
+          <td></td>
+        </tr>
+      `;
     }
 
-    // Pagination (reuse your existing renderPag function)
     renderPag($('#warehouseShipmentPagination'), totalCount, warehouseShipmentCurPage, n => renderWarehouseShipmentReport(n));
+
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load</td></tr>';
     console.error(err);
     showToast('Error loading warehouse shipment report', 'error');
   }
