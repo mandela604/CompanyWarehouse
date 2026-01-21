@@ -21,18 +21,34 @@ router.get('/shipments/breakdown', async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Build filter query
- const filter = {
+const filter = {
   fromType: 'Company',
   toType: 'Warehouse'
 };
 
-if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
-if (req.query.endDate) {
-  if (!filter.date) filter.date = {};
-  filter.date.$lte = new Date(req.query.endDate);
-}
-if (req.query.warehouseId) filter['to.id'] = req.query.warehouseId;
-if (req.query.status) filter.status = req.query.status;
+if (req.query.startDate || req.query.endDate) {
+  filter.date = {};
+
+      if (req.query.startDate) {
+        filter.date.$gte = new Date(`${req.query.startDate}T00:00:00.000Z`);
+      }
+
+      if (req.query.endDate) {
+        filter.date.$lt = new Date(
+          new Date(`${req.query.endDate}T00:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000
+        );
+      }
+    }
+
+    if (req.query.warehouseId) {
+      filter['to.id'] = req.query.warehouseId;
+    }
+
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+
     // Fetch paginated shipments
     const shipments = await Shipment.find(filter)
       .sort({ date: -1 })
@@ -55,7 +71,9 @@ if (req.query.status) filter.status = req.query.status;
         products: s.products.map(p => ({ name: p.name || 'Unknown' })),
         totalQty,
         totalValue,
-        status: s.status
+        status: s.status,
+        warehouseName: s.to?.name || '—'
+
       };
     });
 

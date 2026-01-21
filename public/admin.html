@@ -4877,7 +4877,7 @@ async function renderShipmentReport(page = 1) {
     if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
     if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
 
-    const res = await fetch(`/api/shipments?${q}`);
+    const res = await fetch(`/api/shipments/breakdown?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
@@ -4928,7 +4928,7 @@ async function renderShipmentReport(page = 1) {
           <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue || 0)}
           </td>
-          <td>${shipmentFilter.warehouseId ? '—' : 'Multiple'}</td>
+          <td>${p.warehouseName || '—'}</td>
           <td><span class="pill">Shipped</span></td>
           <td colspan="2"></td> <!-- extra space if needed -->
         </tr>
