@@ -4887,8 +4887,13 @@ async function renderShipmentReport(page = 1) {
     const productMap = new Map();
 
     
-    const warehouseName =
-    shipments[0]?.to?.name || shipments[0]?.warehouseName || '—';
+  let warehouseName = 'All Warehouses';
+
+    if (shipmentFilter.warehouseId) {
+      warehouseName =
+        document.querySelector('#shipmentWarehouseFilter option:checked')
+          ?.textContent?.trim() || 'Selected Warehouse';
+    }
 
     shipments.forEach(s => {
       s.products?.forEach(p => {
