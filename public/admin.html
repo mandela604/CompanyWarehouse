@@ -4895,6 +4895,11 @@ async function renderShipmentReport(page = 1) {
           ?.textContent?.trim() || 'Selected Warehouse';
     }
 
+    let displayStatus = 'All Statuses';
+    if (shipmentFilter.status) {
+      displayStatus = shipmentFilter.status;
+    }
+
     shipments.forEach(s => {
       s.products?.forEach(p => {
         const name = p.name || p.productName;
@@ -4939,7 +4944,7 @@ async function renderShipmentReport(page = 1) {
             ${formatNGN(p.totalValue || 0)}
           </td>
           <td>${ warehouseName || '—'}</td>
-          <td><span class="pill">Shipped</span></td>
+          <td><span class="pill">${displayStatus}</span></td>
           <td colspan="2"></td> <!-- extra space if needed -->
         </tr>
       `).join('') + `
