@@ -1250,47 +1250,58 @@ async function renderWarehouseShipmentReport(page = 1) {
     const totalCount = json.totalCount || shipments.length;
 
     // ─── CLIENT-SIDE AGGREGATION: one row per product ────────────────────────
-    const productMap = new Map();
+  // ─── CLIENT-SIDE AGGREGATION: one row per product ────────────────────────
+const productMap = new Map();
 
-    shipments.forEach(s => {
-      const fromName = s.from?.name || (s.fromType === 'Company' ? 'Company' : '—');
-      const toName   = s.to?.name   || (s.toType === 'Warehouse' ? myWarehouse.name : '—');
-      const status   = s.status || '—';
+shipments.forEach(s => {
+  let fromName = s.from?.name || (s.fromType === 'Company' ? 'Company' : '—');
+  const toName   = s.to?.name   || (s.toType   === 'Warehouse' ? myWarehouse.name : '—');
+  const status   = s.status || '—';
 
-      s.products?.forEach(p => {
-        const name = p.name || p.productName || 'Unknown';
-        if (!productMap.has(name)) {
-          productMap.set(name, {
-            totalQty: 0,
-            totalValue: 0,
-            from: fromName,           // take first occurrence
-            to: toName,
-            status: status,
-            fromCount: 1,
-            toCount: 1,
-            statusCount: 1
-          });
-        }
-        const entry = productMap.get(name);
-        entry.totalQty += p.qty || 0;
-        entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
+  // ─── SPECIAL RULE FOR INCOMING FILTER ───────────────────────────────
+  // If user filtered by incoming → force "Company" as From (never "Multiple")
+  if (warehouseShipmentFilter.type === 'incoming') {
+    fromName = 'Company';  // or 'Head Office' — choose your preferred label
+  }
 
-        // Update summary if different values appear
-        if (entry.from !== fromName) {
-          entry.from = 'Multiple';
-          entry.fromCount++;
-        }
-        if (entry.to !== toName) {
-          entry.to = 'Multiple';
-          entry.toCount++;
-        }
-        if (entry.status !== status) {
-          entry.status = 'Various';
-          entry.statusCount++;
-        }
+  s.products?.forEach(p => {
+    const name = p.name || p.productName || 'Unknown';
+
+    if (!productMap.has(name)) {
+      productMap.set(name, {
+        totalQty: 0,
+        totalValue: 0,
+        from: fromName,
+        to: toName,
+        status: status,
+        fromCount: 1,
+        toCount: 1,
+        statusCount: 1
       });
-    });
+    }
 
+    const entry = productMap.get(name);
+    entry.totalQty += p.qty || 0;
+    entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
+
+    // Only allow "Multiple" for outgoing (or when no type filter)
+    if (warehouseShipmentFilter.type !== 'incoming') {
+      if (entry.from !== fromName) {
+        entry.from = 'Multiple';
+        entry.fromCount++;
+      }
+    }
+
+    if (entry.to !== toName) {
+      entry.to = 'Multiple';
+      entry.toCount++;
+    }
+    if (entry.status !== status) {
+      entry.status = 'Various';
+      entry.statusCount++;
+    }
+  });
+});
     let aggregatedProducts = Array.from(productMap.entries()).map(([name, data]) => ({
       productName: name,
       from: data.from,
