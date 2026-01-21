@@ -4355,6 +4355,11 @@ async function renderSalesReport(page = 1) {
     const grandTotalValue = productsSold.reduce((sum, p) => sum + p.totalValue, 0);
     const grandTotalQty   = productsSold.reduce((sum, p) => sum + p.totalQty,   0);
 
+    const paginationContainer = $('#reportPagination');
+    if (paginationContainer) {
+      paginationContainer.style.display = 'flex';
+    }
+
     // ─── Update period display above the table ───────────────────────────
    // ─── Update period display above the table ───────────────────────────
 const periodEl = $('#currentPeriodDisplay');
@@ -4362,7 +4367,7 @@ if (periodEl) {
   const displayText = $('#reportDateDisplay').textContent.trim();
 
   if (!displayText || displayText === 'All time') {
-    periodEl.textContent = '(Today)';
+    periodEl.textContent = '(All time / Lifetime)';
   } else {
     periodEl.textContent = `(${displayText})`;
   }
@@ -4908,7 +4913,7 @@ async function renderShipmentReport(page = 1) {
    const periodEl = document.getElementById('shipmentCurrentPeriodDisplay');
     if (periodEl) {
       const displayText = document.getElementById('shipmentDateDisplay').textContent.trim();
-      periodEl.textContent = displayText && displayText !== 'All time' ? `(${displayText})` : '(Today)';
+      periodEl.textContent = displayText && displayText !== 'All time' ? `(${displayText})` : '(All time / Lifetime)';
     }
 
     // Render rows
