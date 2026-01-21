@@ -176,7 +176,8 @@
 
 
 
-/* ─── FINAL PERFECT ALIGNMENT FIX FOR WAREHOUSE SHIPMENT REPORT ────── */
+
+/* ─── ALL-CENTERED + FIXED STATUS CUT-OFF ────── */
 #warehouseShipmentReportTable {
   table-layout: fixed !important;
   width: 100%;
@@ -185,75 +186,48 @@
 
 #warehouseShipmentReportTable th,
 #warehouseShipmentReportTable td {
-  box-sizing: border-box !important;    /* ← prevents padding from shifting width */
-  padding: 12px 10px !important;        /* same padding everywhere */
+  box-sizing: border-box !important;
+  padding: 12px 8px !important;          /* reduced side padding → more space for content */
   vertical-align: middle;
   border-bottom: 1px solid #eef3fb;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center !important;         /* ← EVERYTHING centered now */
 }
 
-/* Explicit column widths + forced alignment (these win over everything) */
+/* New balanced widths — Status gets much more room */
 #warehouseShipmentReportTable th:nth-child(1),
-#warehouseShipmentReportTable td:nth-child(1) {
-  width: 20% !important;
-  text-align: left !important;
-  padding-left: 24px !important;        /* extra left space for "From" */
-}
-
+#warehouseShipmentReportTable td:nth-child(1) { width: 18%; }  /* From */
 #warehouseShipmentReportTable th:nth-child(2),
-#warehouseShipmentReportTable td:nth-child(2) {
-  width: 20% !important;
-  text-align: left !important;
-}
-
+#warehouseShipmentReportTable td:nth-child(2) { width: 18%; }  /* To */
 #warehouseShipmentReportTable th:nth-child(3),
-#warehouseShipmentReportTable td:nth-child(3) {
-  width: 26% !important;
-  text-align: left !important;
-  font-weight: 600;
-}
-
+#warehouseShipmentReportTable td:nth-child(3) { width: 30%; }  /* Products — biggest column */
 #warehouseShipmentReportTable th:nth-child(4),
-#warehouseShipmentReportTable td:nth-child(4) {
-  width: 12% !important;
-  text-align: center !important;        /* Qty MUST be centered */
-  font-weight: 700 !important;
-}
-
+#warehouseShipmentReportTable td:nth-child(4) { width: 12%; font-weight: 700; } /* Qty */
 #warehouseShipmentReportTable th:nth-child(5),
-#warehouseShipmentReportTable td:nth-child(5) {
-  width: 16% !important;
-  text-align: right !important;         /* Value MUST be right-aligned */
-  padding-right: 24px !important;       /* matches header spacing */
-  font-weight: 700 !important;
-  color: var(--blue) !important;
-}
-
+#warehouseShipmentReportTable td:nth-child(5) { width: 14%; font-weight: 700; color: var(--blue); } /* Value */
 #warehouseShipmentReportTable th:nth-child(6),
-#warehouseShipmentReportTable td:nth-child(6) {
-  width: 6% !important;
-  text-align: center !important;
+#warehouseShipmentReportTable td:nth-child(6) { width: 8%; }   /* Status — increased from 6% */
+
+/* Make pills look good when centered */
+#warehouseShipmentReportTable .pill {
+  display: inline-block;
+  min-width: 80px;                      /* prevents very short statuses from looking tiny */
+  text-align: center;
+  padding: 6px 10px;
 }
 
-/* Grand total row – force perfect alignment */
+/* Grand total row */
 #warehouseShipmentReportTable tbody tr:last-child {
   background: #e0f2fe !important;
   font-weight: 700 !important;
   font-size: 15px !important;
 }
 
-#warehouseShipmentReportTable tbody tr:last-child td:nth-child(4) {
-  text-align: center !important;
-}
-
 #warehouseShipmentReportTable tbody tr:last-child td:nth-child(5) {
-  text-align: right !important;
-  padding-right: 24px !important;
   color: var(--blue) !important;
 }
-
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
