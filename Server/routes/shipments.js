@@ -52,7 +52,11 @@ if (req.query.status) filter.status = req.query.status;
         date: s.date.toISOString().split('T')[0],
         from: s.from,
         to: s.to,
-        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
+        products: s.products.map(p => ({
+        name: p.name || p.productName || 'Unknown',
+        qty: Number(p.qty) || 0,
+        unitPrice: Number(p.unitPrice) || 0
+      })),
         totalQty,
         totalValue,
         status: s.status
