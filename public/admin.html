@@ -824,21 +824,22 @@
   </div>
 
   <!-- Main Table – NO summary cards -->
+   <div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+  Products Shipped 
+  <span id="shipmentCurrentPeriodDisplay" style="color: var(--blue);"></span>
+</div>
   <div class="table">
     <table id="shipmentReportTable">
       <thead>
-        <tr>
-          <th>Date</th>
-          <th>Shipment ID</th>
-          <th>From</th>
-          <th>To</th>
-          <th>Products Shipped</th>
-          <th>Total Qty</th>
-          <th>Total Value</th>
-          <th>Status</th>
-         
-        </tr>
-      </thead>
+  <tr>
+    <th>Product</th>
+    <th style="text-align:center;">Total Qty Shipped</th>
+    <th style="text-align:right;">Total Value</th>
+    <th>Warehouse</th>
+    <th>Status</th>
+  <!--  <th></th> empty for spacing -->
+  </tr>
+</thead>
       <tbody></tbody>
     </table>
     <div class="pagination" id="shipmentPagination"></div>
@@ -4515,58 +4516,68 @@ function clearProductFilters() {
 }
 
 // ─── Render Product Report ──────────────────────────────────────────
+// ─── PRODUCT PERFORMANCE REPORT (client-side enhanced) ─────────────────
 async function renderProductReport(page = 1) {
   productCurPage = page;
   const tbody = $('#productReportTable tbody');
-  const summaryCards = $('#productSummaryCards');
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
 
   try {
     const q = new URLSearchParams({ page, limit: PRODUCT_PER_PAGE });
     if (productFilter.start) q.set('startDate', productFilter.start);
-    if (productFilter.end) q.set('endDate', productFilter.end);
+    if (productFilter.end)   q.set('endDate',   productFilter.end);
     if (productFilter.warehouseId) q.set('warehouseId', productFilter.warehouseId);
-    if (productFilter.outletId) q.set('outletId', productFilter.outletId);
+    if (productFilter.outletId)    q.set('outletId',    productFilter.outletId);
 
-    const res = await fetch(`/api/products/report-v2?${q}`);
+    const res = await fetch(`/api/products/report?${q}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
-    const { products, totalCount, summary } = json;
+    // Use backend data directly (assuming it returns aggregated per product)
+    let products = json.products || [];
+    const totalCount = json.totalCount || products.length;
+
+    // Optional client-side sort (most sold first)
+    products.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
 
     // Update summary cards
-    summaryCards.querySelectorAll('.value')[0].textContent = (summary.totalSold || 0).toLocaleString();
-    summaryCards.querySelectorAll('.value')[1].textContent = formatNGN(summary.totalRevenue || 0);
-    summaryCards.querySelectorAll('.value')[2].textContent = (summary.totalProducts || 0).toLocaleString();
-    summaryCards.querySelectorAll('.value')[3].textContent = (summary.zeroSaleProducts || 0);
-    summaryCards.querySelectorAll('.value')[3].style.color = (summary.zeroSaleProducts || 0) > 0 ? 'var(--dark-red)' : '#10b981';
+    const summary = json.summary || {};
+    $('#productSummaryCards .value')[0].textContent = (summary.totalSold || 0).toLocaleString();
+    $('#productSummaryCards .value')[1].textContent = formatNGN(summary.totalRevenue || 0);
+    $('#productSummaryCards .value')[2].textContent = (products.length).toLocaleString();
+    $('#productSummaryCards .value')[3].textContent = (summary.zeroSaleProducts || 0);
 
-    // Render table
+    // Render rows
     if (!products.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products in this period</td></tr>';
     } else {
       tbody.innerHTML = products.map(p => `
         <tr>
-          <td style="font-weight:700;">${p.name} <small class="muted">(${p.sku})</small></td>
-          <td>${p.totalSold || 0}</td>
-          <td style="color:var(--blue);font-weight:700;">${formatNGN(p.revenue || 0)}</td>
-          <td>${p.currentStock || 0}</td>
-          <td>${p.unitsReceived || 0}</td>
+          <td style="font-weight:600;">${p.name} <small class="muted">(${p.sku})</small></td>
+          <td style="text-align:center; font-weight:600;">${p.totalSold || 0}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.revenue || 0)}
+          </td>
+          <td style="text-align:center;">${p.currentStock || 0}</td>
+          <td style="text-align:center;">${p.unitsReceived || 0}</td>
           <td>
-            <button class="btn secondary" onclick="showProductDetails('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Details</button>
+            <button class="btn secondary" onclick="showProductDetails('${p.id}', '${p.name.replace(/'/g,"\\'")}')">
+              Details
+            </button>
           </td>
         </tr>
       `).join('');
     }
 
-    // Pagination
     renderPag($('#productPagination'), totalCount, productCurPage, n => renderProductReport(n));
+
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load</td></tr>';
     console.error(err);
     showToast('Error loading product report', 'error');
   }
 }
+
 
 // ─── Product Details Modal ──────────────────────────────────────────
 function showProductDetails(productId, productName) {
@@ -4814,10 +4825,11 @@ function clearShipmentFilters() {
 }
 
 // ─── Render Shipment Breakdown Table ─────────────────────────────────
+// ─── SHIPMENT BREAKDOWN REPORT (product summary + period display) ────────
 async function renderShipmentReport(page = 1) {
   shipmentCurPage = page;
   const tbody = $('#shipmentReportTable tbody');
-  tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
 
   try {
     const q = new URLSearchParams({ page, limit: SHIPMENT_PER_PAGE });
@@ -4825,56 +4837,81 @@ async function renderShipmentReport(page = 1) {
     if (shipmentFilter.end)   q.set('endDate',   shipmentFilter.end);
     if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
     if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
-    console.log('Fetching shipments with query:', q.toString());
 
-
-    const res = await fetch(`/api/shipments/breakdown?${q}`);
-   console.log('Sent status filter:', shipmentFilter.status);
-    console.log('Response status:', res.status);
+    const res = await fetch(`/api/shipments?${q}`);
     const json = await res.json();
-    console.log('Raw JSON from server:', json);
+    if (!res.ok) throw new Error(json.message || 'Failed');
 
-    if (!res.ok) {
-         throw new Error(json.message || `HTTP ${res.status}`);      
-      }
-
+    // Client-side aggregation: group by product
     const shipments = json.data || [];
-    const totalCount = json.totalCount || 0;
+    const productMap = new Map();
 
-    if (!shipments.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="muted">No shipments found</td></tr>';
-    } else {
-      tbody.innerHTML = shipments.map(s => {
-        // List all product names (one per line)
-        const productList = s.products?.length > 0
-          ? s.products.map(p => `<strong>${p.name}</strong>`).join('<br>')
-          : '—';
+    shipments.forEach(s => {
+      s.products?.forEach(p => {
+        const name = p.name || p.productName;
+        if (!productMap.has(name)) {
+          productMap.set(name, { qty: 0, value: 0 });
+        }
+        const entry = productMap.get(name);
+        entry.qty   += p.qty;
+        entry.value += p.qty * (p.unitPrice || 0);
+      });
+    });
 
-        return `
-          <tr>
-            <td>${niceDate(new Date(s.date))}</td>
-            <td>${s.id?.slice(0,8).toUpperCase() || '—'}</td>
-            <td>${s.from?.name || 'Company'}</td>
-            <td>${s.to?.name || s.warehouseName || '—'}</td>
-            <td style="line-height:1.6; white-space:pre-wrap;">${productList}</td>
-            <td style="text-align:center;">${s.totalQty || 0}</td>
-            <td style="text-align:right; font-weight:600; color:var(--blue);">
-              ${formatNGN(s.totalValue || 0)}
-            </td>
-            <td><span class="pill">${s.status || '—'}</span></td>
-          </tr>
-        `;
-      }).join('');
+    let productsShipped = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      totalQty:    data.qty,
+      totalValue:  data.value
+    }));
+
+    // Sort: most shipped first
+    productsShipped.sort((a, b) => b.totalQty - a.totalQty);
+
+    const totalCount = productsShipped.length;
+    const grandTotalValue = productsShipped.reduce((sum, p) => sum + p.totalValue, 0);
+    const grandTotalQty   = productsShipped.reduce((sum, p) => sum + p.totalQty,   0);
+
+    // Update period display (reuses your existing element)
+   const periodEl = document.getElementById('shipmentCurrentPeriodDisplay');
+    if (periodEl) {
+      const displayText = document.getElementById('shipmentDateDisplay').textContent.trim();
+      periodEl.textContent = displayText && displayText !== 'All time' ? `(${displayText})` : '(Today)';
     }
 
-    // Pagination
+    // Render rows
+    if (!productsShipped.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No shipments in this period</td></tr>';
+    } else {
+      tbody.innerHTML = productsShipped.map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue || 0)}
+          </td>
+          <td>${shipmentFilter.warehouseId ? '—' : 'Multiple'}</td>
+          <td><span class="pill">Shipped</span></td>
+          <td colspan="2"></td> <!-- extra space if needed -->
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td style="text-align:center;">${grandTotalQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandTotalValue)}</td>
+          <td colspan="3"></td>
+        </tr>
+      `;
+    }
+
     renderPag($('#shipmentPagination'), totalCount, shipmentCurPage, n => renderShipmentReport(n));
+
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="9" class="error">Failed to load shipments</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load</td></tr>';
     console.error(err);
-    showToast('Error loading shipment report', 'error');
+    showToast('Error loading shipment summary', 'error');
   }
 }
+
 
 // ─── Print Shipment Report (same pattern as others) ──────────────────
 document.getElementById('printShipmentReportBtn')?.addEventListener('click', () => {

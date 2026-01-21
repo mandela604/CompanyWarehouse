@@ -558,6 +558,21 @@
   font-weight: 700;
 }
 
+/* Stronger horizontal row separators – only in Shipment Breakdown table */
+#shipmentReportTable tbody tr td {
+  border-bottom: 2px solid #cbd5e1 !important;   /* thicker + medium-dark gray */
+}
+
+/* Optional: even stronger contrast if 2px still feels faint */
+#shipmentReportTable tbody tr td {
+  border-bottom: 2px solid #9ca3af !important;   /* darker gray */
+}
+
+/* Optional: make the last row clean (no bottom line) */
+#shipmentReportTable tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -790,23 +805,22 @@
       <select id="shipmentWarehouseFilter" class="sales-filter-input">
         <option value="">All Warehouses</option>
       </select>
-     <!----> <select id="shipmentOutletFilter" class="sales-filter-input">
-        <option value="">All Outlets / Destinations</option>
-      </select> -->
+    
       <select id="shipmentStatusFilter" class="sales-filter-input">
         <option value="">All Statuses</option>
         <option value="In Transit">In Transit</option>
-        <option value="Delivered">Delivered</option>
+  
         <option value="Received">Received</option>
-        <option value="Cancelled">Cancelled</option>
+        <option value="cancelled">Cancelled</option>
         <option value="Rejected">Rejected</option>
       </select>
       <button class="btn secondary" onclick="clearShipmentFilters()">Clear Filters</button>
       <div class="small muted" id="shipmentDateDisplay">All time</div>
-    </div>
-    <button id="printShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+   <button id="printShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
       Print This Page
     </button>
+    </div>
+    
   </div>
 
   <!-- Main Table – NO summary cards -->
@@ -822,7 +836,7 @@
           <th>Total Qty</th>
           <th>Total Value</th>
           <th>Status</th>
-          <th>Action</th>
+         
         </tr>
       </thead>
       <tbody></tbody>
@@ -970,19 +984,23 @@
 
   <!-- Main Table -->
   <div class="table">
+<div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+  Products Sold 
+  <span id="currentPeriodDisplay" style="color: var(--blue); font-weight: normal;">
+    (loading...)
+  </span>
+</div>
     <table id="reportSalesTable">
       <thead>
-        <tr>
-          <th>Date</th>
-          <th>Products Sold</th>
-          <th>Total Qty</th>
-          <th style="text-align:right;">Total Value</th>
-          <th>Outlet</th>
-          <th>Rep</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
+      <tr>
+        <th>Product</th>
+        <th style="text-align:center;">Total Qty Sold</th>
+        <th style="text-align:right;">Total Value</th>
+        <th>Outlet</th>
+        <th>Rep</th>
+        <th>Status</th>
+      </tr>
+    </thead>
       <tbody></tbody>
     </table>
     <div class="pagination" id="reportPagination"></div>
@@ -4285,11 +4303,12 @@ function clearReportFilters() {
   renderSalesReport();
 }
 
-// ─── Render the report table ───────────────────────────────────────
+
+// ─── SALES REPORT RENDER FUNCTION (product summary + period display) ────────
 async function renderSalesReport(page = 1) {
   reportCurPage = page;
   const tbody = $('#reportSalesTable tbody');
-  tbody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
 
   try {
     const q = new URLSearchParams({ page, limit: REPORT_PER_PAGE });
@@ -4302,45 +4321,82 @@ async function renderSalesReport(page = 1) {
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
 
+    // ─── Client-side aggregation (use this until backend changes) ────────
     const sales = json.data || [];
-    const total = json.totalCount || 0;
+    const productMap = new Map();
 
-    let pageTotalValue = 0;
+    sales.forEach(s => {
+      s.items?.forEach(item => {
+        const name = item.productName;
+        if (!productMap.has(name)) {
+          productMap.set(name, { qty: 0, value: 0 });
+        }
+        const entry = productMap.get(name);
+        entry.qty   += item.qty;
+        entry.value += item.qty * (item.unitPrice || 0);
+      });
+    });
 
-    if (!sales.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="muted">No sales found</td></tr>';
+    let productsSold = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      totalQty:    data.qty,
+      totalValue:  data.value
+    }));
+
+    // Sort: most sold products first
+    productsSold.sort((a, b) => b.totalQty - a.totalQty);
+
+    const totalCount = productsSold.length;
+    const grandTotalValue = productsSold.reduce((sum, p) => sum + p.totalValue, 0);
+    const grandTotalQty   = productsSold.reduce((sum, p) => sum + p.totalQty,   0);
+
+    // ─── Update period display above the table ───────────────────────────
+   // ─── Update period display above the table ───────────────────────────
+const periodEl = $('#currentPeriodDisplay');
+if (periodEl) {
+  const displayText = $('#reportDateDisplay').textContent.trim();
+
+  if (!displayText || displayText === 'All time') {
+    periodEl.textContent = '(Today)';
+  } else {
+    periodEl.textContent = `(${displayText})`;
+  }
+}
+
+    // ─── Render table rows ───────────────────────────────────────────────
+    if (!productsSold.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No products sold in this period</td></tr>';
     } else {
-      tbody.innerHTML = sales.map(s => {
-        pageTotalValue += s.totalAmount || 0;
-        const products = s.items?.map(i => `${i.productName} × ${i.qty}`).join('<br>') || '—';
-
-        return `
-          <tr>
-            <td>${s.date}</td>
-            <td style="line-height:1.5;">${products}</td>
-            <td>${s.totalQty || 0}</td>
-            <td style="text-align:right;font-weight:600;color:var(--blue);">${formatNGN(s.totalAmount||0)}</td>
-            <td>${s.outletName||'—'}</td>
-            <td>${s.repName||'—'}</td>
-            <td><span class="pill">${s.status||'—'}</span></td>
-            <td><button class="btn secondary" onclick="viewSale('${s.id}')">View</button></td>
-          </tr>
-        `;
-      }).join('') + `
-        <tr style="background:#eff6ff;font-weight:700;">
-          <td colspan="3" style="text-align:right;padding:16px;">Page Total:</td>
-          <td style="text-align:right;color:var(--blue);padding:16px;">${formatNGN(pageTotalValue)}</td>
-          <td colspan="4"></td>
+      tbody.innerHTML = productsSold.map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue || 0)}
+          </td>
+          <td>${reportFilter.outletId ? '—' : 'Multiple'}</td>
+          <td>${reportFilter.repId    ? '—' : 'Multiple'}</td>
+          <td><span class="pill">Sold</span></td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td style="text-align:center;">${grandTotalQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandTotalValue)}</td>
+          <td colspan="3"></td>
         </tr>
       `;
     }
 
-    renderPag($('#reportPagination'), total, reportCurPage, n => renderSalesReport(n));
+    renderPag($('#reportPagination'), totalCount, reportCurPage, n => renderSalesReport(n));
+
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="8" class="error">Failed to load</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="error">Failed to load report</td></tr>';
     console.error(err);
+    showToast('Error loading sales summary', 'error');
   }
 }
+
 
 // ─── Print Report ──────────────────────────────────────────────────
 document.getElementById('printReportBtn')?.addEventListener('click', () => {
@@ -4716,34 +4772,26 @@ function initShipmentDatePicker() {
 // ─── Load Warehouse + Outlet + Status filters ────────────────────────
 async function loadShipmentFilters() {
   try {
-    const [whRes, outRes] = await Promise.all([
-      fetch('/api/warehouses'),
-      fetch('/api/outlets')
-    ]);
+    const whRes = await fetch('/api/warehouses');
     const warehouses = await whRes.json();
-    const outlets    = await outRes.json();
 
     const whSel = $('#shipmentWarehouseFilter');
     whSel.innerHTML = '<option value="">All Warehouses</option>';
     warehouses.forEach(w => {
       const opt = document.createElement('option');
       opt.value = w.id;
-      opt.text  = w.name;
+      opt.text = w.name;
       whSel.appendChild(opt);
     });
 
-    const outSel = $('#shipmentOutletFilter');
-    outSel.innerHTML = '<option value="">All Destinations</option>';
-    outlets.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o.id;
-      opt.text  = o.name;
-      outSel.appendChild(opt);
-    });
+    // Warehouse change listener only
+    whSel.onchange = () => {
+      shipmentFilter.warehouseId = whSel.value || null;
+      shipmentCurPage = 1;
+      renderShipmentReport();
+    };
 
-    // Change listeners
-    whSel.onchange = () => { shipmentFilter.warehouseId = whSel.value || null; shipmentCurPage=1; renderShipmentReport(); };
-    outSel.onchange = () => { shipmentFilter.outletId   = outSel.value   || null; shipmentCurPage=1; renderShipmentReport(); };
+    // Status change listener (already working, just ensure it's attached)
     $('#shipmentStatusFilter').onchange = () => {
       shipmentFilter.status = $('#shipmentStatusFilter').value || null;
       shipmentCurPage = 1;
@@ -4754,12 +4802,12 @@ async function loadShipmentFilters() {
   }
 }
 
+
 function clearShipmentFilters() {
   shipmentFilter = { start:null, end:null, warehouseId:null, outletId:null, status:null };
   $('#shipmentDateDisplay').textContent = 'All time';
   shipmentPicker?.clear();
   $('#shipmentWarehouseFilter').value = '';
-  $('#shipmentOutletFilter').value = '';
   $('#shipmentStatusFilter').value = '';
   shipmentCurPage = 1;
   renderShipmentReport();
@@ -4776,13 +4824,13 @@ async function renderShipmentReport(page = 1) {
     if (shipmentFilter.start) q.set('startDate', shipmentFilter.start);
     if (shipmentFilter.end)   q.set('endDate',   shipmentFilter.end);
     if (shipmentFilter.warehouseId) q.set('warehouseId', shipmentFilter.warehouseId);
-    if (shipmentFilter.outletId)    q.set('outletId',    shipmentFilter.outletId);
     if (shipmentFilter.status)      q.set('status',      shipmentFilter.status);
     console.log('Fetching shipments with query:', q.toString());
 
 
     const res = await fetch(`/api/shipments/breakdown?${q}`);
-   console.log('Response status:', res.status);
+   console.log('Sent status filter:', shipmentFilter.status);
+    console.log('Response status:', res.status);
     const json = await res.json();
     console.log('Raw JSON from server:', json);
 
@@ -4814,9 +4862,6 @@ async function renderShipmentReport(page = 1) {
               ${formatNGN(s.totalValue || 0)}
             </td>
             <td><span class="pill">${s.status || '—'}</span></td>
-            <td>
-              <button class="btn secondary" onclick="viewShipment('${s.id}')">View</button>
-            </td>
           </tr>
         `;
       }).join('');
