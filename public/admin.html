@@ -776,6 +776,10 @@
 
   <!-- Main Table -->
   <div class="table">
+    <div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+  Products Performance 
+  <span id="productCurrentPeriodDisplay" style="color: var(--blue);"></span>
+</div>
     <table id="productReportTable">
       <thead>
         <tr>
@@ -4546,6 +4550,15 @@ async function renderProductReport(page = 1) {
     $('#productSummaryCards .value')[1].textContent = formatNGN(summary.totalRevenue || 0);
     $('#productSummaryCards .value')[2].textContent = (products.length).toLocaleString();
     $('#productSummaryCards .value')[3].textContent = (summary.zeroSaleProducts || 0);
+
+    // Update period display 
+    const periodEl = document.getElementById('productCurrentPeriodDisplay');
+    if (periodEl) {
+      const displayText = document.getElementById('productDateDisplay').textContent.trim();
+      periodEl.textContent = displayText && displayText !== 'All time' 
+        ? `(${displayText})` 
+        : '(All time / Lifetime)';
+    }
 
     // Render rows
     if (!products.length) {
