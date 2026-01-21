@@ -4351,7 +4351,7 @@ async function renderSalesReport(page = 1) {
     // Sort: most sold products first
     productsSold.sort((a, b) => b.totalQty - a.totalQty);
 
-    const totalCount = productsSold.length;
+    const totalCount = Math.max(1, productsSold.length);
     const grandTotalValue = productsSold.reduce((sum, p) => sum + p.totalValue, 0);
     const grandTotalQty   = productsSold.reduce((sum, p) => sum + p.totalQty,   0);
 
@@ -4547,7 +4547,7 @@ async function renderProductReport(page = 1) {
 
     // Use backend data directly (assuming it returns aggregated per product)
     let products = json.products || [];
-    const totalCount = json.totalCount || products.length;
+    const totalCount = Math.max(1, json.totalCount || products.length);
 
     // Optional client-side sort (most sold first)
     products.sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0));
