@@ -424,7 +424,18 @@
 
   <script>
 
+function updatePeriodDisplay(periodId, dateDisplayId) {
+  const periodEl = document.getElementById(periodId);
+  if (!periodEl) return;  // safety check if element doesn't exist
 
+  // Get the current text from the date display element (e.g. "All time" or "1 Jan 2025 – 15 Jan 2025")
+  const displayText = document.getElementById(dateDisplayId)?.textContent?.trim() || 'All time';
+
+  // Set the period text above the table
+  periodEl.textContent = (displayText === 'All time' || !displayText)
+    ? '(All time / Lifetime)'
+    : `(${displayText})`;
+}
 
 const params = new URLSearchParams(window.location.search);
 
