@@ -202,6 +202,7 @@
         <a href="#" data-route="sales">Sales History</a>
         <a href="#" data-route="shipments">Incoming Shipments</a>
         <a href="#" data-route="salesReport">Sales Breakdown Report</a>
+        <a href="#" data-route="outletShipmentReport">Incoming Shipment Breakdown</a>
         <div class="user-info"></div>
          <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
@@ -332,6 +333,48 @@
 </section>
 
 
+<!-- ==================== OUTLET INCOMING SHIPMENT BREAKDOWN REPORT ==================== -->
+<section id="outletShipmentReportSection" class="section">
+  <h2 style="margin-top:0">Incoming Shipment Breakdown Report</h2>
+  <!-- Filters (simplified – only date + status, no type/outlet since it's always this outlet) -->
+  <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div id="outletShipmentDateContainer" style="min-width:240px;"></div>
+      <select id="outletShipmentStatusFilter" class="sales-filter-input">
+        <option value="">All Statuses</option>
+        <option value="In Transit">In Transit</option>
+        <option value="Received">Received</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button class="btn secondary" onclick="clearOutletShipmentFilters()">Clear Filters</button>
+      <div class="small muted" id="outletShipmentDateDisplay">All time</div>
+    </div>
+    <button id="printOutletShipmentReportBtn" class="btn" style="background:var(--blue);color:white;min-width:140px;">
+      Print This Page
+    </button>
+  </div>
+  <!-- Main Table -->
+  <div class="table">
+    <div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
+      Products Received
+      <span id="outletCurrentPeriodDisplay" style="color: var(--blue); font-weight: normal;">(loading...)</span>
+    </div>
+    <table id="outletShipmentReportTable">
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>Products</th>
+          <th>Total Qty</th>
+          <th>Total Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="outletShipmentPagination"></div>
+  </div>
+</section>
 
     </main>
   </div>
@@ -642,13 +685,17 @@ function showToast(message, type = 'info', duration = 3000) {
       if(r==='sales') loadSales();
       if(r==='shipments') renderShipments();
       if (r === 'salesReport') {
-  $('#salesReportSection').classList.add('active');
-  if (!outletSalesPicker) initOutletSalesDatePicker();
-
-  loadRepFilter();
-  renderOutletSalesReport();
-}
-    }
+      $('#salesReportSection').classList.add('active');
+      if (!outletSalesPicker) initOutletSalesDatePicker();
+      loadRepFilter();
+      renderOutletSalesReport();
+       }
+      if (route === 'outletShipmentReport') {
+        if (!outletShipmentPicker) initOutletShipmentDatePicker();
+        loadOutletShipmentFilters();
+        renderOutletShipmentReport();
+        }
+      }
     document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
     $('#hambBtn').onclick=()=>$('#sidebar').classList.toggle('open');
 
@@ -2029,6 +2076,187 @@ document.addEventListener('click', function(e) {
     }
   }
 });
+
+
+
+// ─── OUTLET INCOMING SHIPMENT REPORT VARIABLES ────────────────────────────────────────
+let outletShipmentCurPage = 1;
+const OUTLET_SHIPMENT_PER_PAGE = 15;
+let outletShipmentFilter = { start: null, end: null, status: null };
+let outletShipmentPicker = null;
+
+// ─── Date Picker ───────────────────────────────────────────────────────────
+function initOutletShipmentDatePicker() {
+  const container = $('#outletShipmentDateContainer');
+  if (container.innerHTML) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Select date range';
+  input.style.cssText = 'height:42px;padding:10px 12px;border:1px solid #e6eefb;border-radius:10px;font-size:14px;min-width:220px;';
+  container.appendChild(input);
+  outletShipmentPicker = flatpickr(input, {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    onChange: dates => {
+      if (dates.length === 2) {
+        const [start, end] = dates.sort((a,b)=>a-b);
+        outletShipmentFilter.start = start.toISOString().slice(0,10);
+        outletShipmentFilter.end = end.toISOString().slice(0,10);
+        $('#outletShipmentDateDisplay').textContent = `${niceDate(start)} – ${niceDate(end)}`;
+      } else {
+        outletShipmentFilter.start = outletShipmentFilter.end = null;
+        $('#outletShipmentDateDisplay').textContent = 'All time';
+      }
+      outletShipmentCurPage = 1;
+      renderOutletShipmentReport();
+    }
+  });
+}
+
+// ─── Load Filters (only status) ────────────────────────────────────────────
+function loadOutletShipmentFilters() {
+  $('#outletShipmentStatusFilter').onchange = () => {
+    outletShipmentFilter.status = $('#outletShipmentStatusFilter').value || null;
+    outletShipmentCurPage = 1;
+    renderOutletShipmentReport();
+  };
+}
+
+function clearOutletShipmentFilters() {
+  outletShipmentFilter = { start: null, end: null, status: null };
+  $('#outletShipmentDateDisplay').textContent = 'All time';
+  outletShipmentPicker?.clear();
+  $('#outletShipmentStatusFilter').value = '';
+  outletShipmentCurPage = 1;
+  renderOutletShipmentReport();
+}
+
+// ─── Render Outlet Incoming Shipment Report ─────────────────────────────────
+async function renderOutletShipmentReport(page = 1) {
+  outletShipmentCurPage = page;
+  const tbody = $('#outletShipmentReportTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+  try {
+    const q = new URLSearchParams({
+      outletId: OUTLET_ID,
+      page,
+      limit: OUTLET_SHIPMENT_PER_PAGE
+    });
+    if (outletShipmentFilter.start) q.set('startDate', outletShipmentFilter.start);
+    if (outletShipmentFilter.end) q.set('endDate', outletShipmentFilter.end);
+    if (outletShipmentFilter.status) q.set('status', outletShipmentFilter.status);
+    const res = await fetch(`/api/outlet/shipments/breakdown?${q}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed');
+    const shipments = json.data || [];
+    const totalCount = json.totalCount || shipments.length;
+
+    // Client-side aggregation: one row per product (only incoming)
+    const productMap = new Map();
+    shipments.forEach(s => {
+      const fromName = s.from?.name || 'Warehouse / Company';
+      const status = s.status || '—';
+      s.products?.forEach(p => {
+        const name = p.name || p.productName || 'Unknown';
+        if (!productMap.has(name)) {
+          productMap.set(name, {
+            totalQty: 0,
+            totalValue: 0,
+            from: fromName,
+            status: status
+          });
+        }
+        const entry = productMap.get(name);
+        entry.totalQty += p.qty || 0;
+        entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
+        if (entry.status !== status) entry.status = 'Various';
+      });
+    });
+
+    let aggregated = Array.from(productMap.entries()).map(([name, data]) => ({
+      productName: name,
+      from: data.from,
+      totalQty: data.totalQty,
+      totalValue: data.totalValue,
+      status: data.status
+    }));
+
+    aggregated.sort((a, b) => b.totalQty - a.totalQty);
+
+    updatePeriodDisplay('outletCurrentPeriodDisplay', 'outletShipmentDateDisplay');
+
+    if (!aggregated.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No incoming shipments in this period</td></tr>';
+    } else {
+      const grandQty = aggregated.reduce((sum, p) => sum + p.totalQty, 0);
+      const grandValue = aggregated.reduce((sum, p) => sum + p.totalValue, 0);
+      tbody.innerHTML = aggregated.map(p => `
+        <tr>
+          <td style="text-align:left;">${p.from}</td>
+          <td style="font-weight:600; text-align:left;">${p.productName}</td>
+          <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
+            ${formatNGN(p.totalValue)}
+          </td>
+          <td><span class="pill">${p.status}</span></td>
+        </tr>
+      `).join('') + `
+        <tr style="background:#e0f2fe; font-weight:700; font-size:14px;">
+          <td style="text-align:right; padding-right:12px;">Grand Total:</td>
+          <td></td>
+          <td style="text-align:center;">${grandQty.toLocaleString()} units</td>
+          <td style="text-align:right; color:var(--blue);">${formatNGN(grandValue)}</td>
+          <td></td>
+        </tr>
+      `;
+    }
+
+    renderPag($('#outletShipmentPagination'), totalCount, outletShipmentCurPage, n => renderOutletShipmentReport(n));
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load</td></tr>';
+    showToast('Error loading incoming shipment report', 'error');
+  }
+}
+
+// ─── Print ────────────────────────────────────────────────────────────────
+document.getElementById('printOutletShipmentReportBtn')?.addEventListener('click', () => {
+  const dateRange = $('#outletShipmentDateDisplay')?.textContent || 'All time';
+  const tableHTML = $('#outletShipmentReportTable').outerHTML;
+  const printable = `
+    <div style="padding:40px 30px; font-family:system-ui,Arial,sans-serif;">
+      <h2 style="text-align:center; color:#0b5ed7;">INCOMING SHIPMENT BREAKDOWN</h2>
+      <p style="text-align:center;color:#555;">${dateRange} • Printed ${new Date().toLocaleString('en-GB')}</p>
+      <style>
+        table{width:100%;border-collapse:collapse;margin:25px 0;font-size:13px;}
+        th,td{border:1px solid #d1d5db;padding:10px 8px;text-align:left;}
+        th{background:#f0f7ff;font-weight:600;}
+        .pill{padding:4px 10px;border-radius:999px;background:#e0f2fe;color:#0b5ed7;}
+      </style>
+      ${tableHTML}
+      <div style="margin-top:60px;text-align:center;color:#6b7280;font-size:12px;">
+        Generated by WareAdmin
+      </div>
+    </div>
+  `;
+  showModal(`
+    <h4 style="text-align:center;color:#0b5ed7;">Print Preview</h4>
+    <div style="max-height:75vh;overflow-y:auto;padding:20px;background:white;border:1px solid #e5e7eb;border-radius:12px;">
+      ${printable}
+    </div>
+    <div style="text-align:right;margin-top:20px;">
+      <button class="btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:#0b5ed7;color:white;" onclick="window.printContent('${encodeURIComponent(printable)}')">Print Now</button>
+    </div>
+  `);
+});
+
+window.printContent = str => {
+  const win = window.open('', '_blank');
+  win.document.write(decodeURIComponent(str));
+  win.document.close();
+  win.print();
+  setTimeout(() => win.close(), 800);
+};
 
 
   </script>
