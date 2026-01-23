@@ -336,7 +336,7 @@ if (company.inTransit > 0) {
 });
 
 // POST /api/products/:id/restock
-router.post('/products/:id/restock', ensureAuth, async (req, res) => {
+router.post('/products/:id/restock', /*ensureAdmin,*/ async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
