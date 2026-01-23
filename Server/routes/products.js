@@ -336,12 +336,20 @@ if (company.inTransit > 0) {
 });
 
 // POST /api/products/:id/restock
-router.post('/products/:id/restock', /*ensureAdmin,*/ async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+router.post('/products/:id/restock', ensureAdmin, async (req, res) => {
+  console.log('RESTOCK ROUTE STARTED - BODY:', req.body);
+  console.log('Params ID:', req.params.id);
 
+ 
   try {
+    const session = await mongoose.startSession();
+    console.log('Session started');
+
+    session.startTransaction();
+    console.log('Transaction started');
+
     const { addedQty } = req.body;
+    console.log('addedQty received:', addedQty);
     if (!Number.isInteger(addedQty) || addedQty < 1) {
       return res.status(400).json({ message: 'Added quantity must be a positive integer' });
     }
@@ -376,9 +384,12 @@ router.post('/products/:id/restock', /*ensureAdmin,*/ async (req, res) => {
 
     res.json({ success: true, newQty: product.qty, added: addedQty });
   } catch (err) {
+    console.error('RESTOCK CRASH:', err.stack);
     await session.abortTransaction();
     session.endSession();
     res.status(500).json({ message: err.message || 'Restock failed' });
+  }finally {
+    console.log('RESTOCK ROUTE ENDED');
   }
 });
 
