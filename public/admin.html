@@ -3597,20 +3597,29 @@ async function restockProduct(id) {
         return showToast('Please enter a valid quantity', 'error');
       }
       const newQty = product.qty + addQty;
+      const confirmBtn = document.getElementById('confirmRestockBtn');
+confirmBtn.disabled = true;
+confirmBtn.textContent = 'Processing...';
 
       try {
         const updateRes = await fetch(`/api/products/${id}/restock`,{
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qty: newQty })
+          body: JSON.stringify({ addedQty: newQty })
         });
         if (!updateRes.ok) throw new Error((await updateRes.json()).message || 'Update failed');
 
         showToast(`Added ${addQty} units → New stock: ${newQty}`, 'success');
-        closeModal();
-        renderProducts();
-        refreshAll();
+        confirmBtn.textContent = 'Success!';
+        setTimeout(() => {
+          closeModal();
+          renderProducts();
+          refreshAll();
+        }, 800);
       } catch (err) {
+            confirmBtn.disabled = false;
+confirmBtn.textContent = 'Confirm Restock';
+showToast('Restock failed: ' + err.message, 'error');
         showToast('Restock failed: ' + err.message, 'error');
       }
     };
