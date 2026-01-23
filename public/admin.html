@@ -574,6 +574,19 @@
 }
 
 
+/* ALL BACK BUTTON CSS RULE */
+.back-to-products {
+  font-size: 14px;
+  padding: 8px 16px;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.back-to-products::before {
+  content: '←';
+  font-weight: bold;
+}
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -747,7 +760,12 @@
 
 <!-- ==================== PRODUCT REPORT (new full page) ==================== -->
 <section id="productReportSection" class="section">
-  <h2 style="margin-top:0">Product Performance Report</h2>
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2 style="margin:0">Product Performance Report</h2>
+    <button class="btn secondary" onclick="navigateTo('products')">
+      ← Back to Products / Inventory
+    </button>
+  </div>
 
   <!-- Filters -->
   <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
@@ -965,7 +983,12 @@
 
       <!-- ==================== SALES REPORT (new professional page) ==================== -->
 <section id="salesReportSection" class="section">
-  <h2 style="margin-top:0">Sales Report</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2 style="margin:0">Sales Report Breakdown</h2>
+    <button class="btn secondary" onclick="navigateTo('products')">
+      ← Back to Products / Inventory
+    </button>
+  </div>
 
   <!-- Filters -->
   <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
