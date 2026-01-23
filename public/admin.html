@@ -1325,7 +1325,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const r = await fetch('/api/auth/me');   // tiny endpoint you add
   if (!r.ok) { window.location = '/login.html'; return; }
   const user = await r.json();
-  currentUser = {id:user.id, role:user.role};
+  currentUser = { id:user.id, 
+                  role:user.role,
+                  name: user.name || 'Unknown User'
+                };
 }
 
 
@@ -3574,7 +3577,7 @@ async function restockProduct(id) {
 
       try {
         const updateRes = await fetch(`/api/products/${id}/restock`,{
-          method: 'PUT',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ qty: newQty })
         });
