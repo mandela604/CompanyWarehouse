@@ -146,6 +146,107 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
   }
 });
 
+router.get('/outlet/shipments/warehouses', async (req, res) => {
+  try {
+    const outletId = req.query.outletId;
+    if (!outletId) return res.status(400).json({ message: 'outletId required' });
+
+    // Get unique warehouse IDs that have shipped to this outlet
+    const warehouseIds = await Shipment.distinct('from.id', {
+      toType: 'Outlet',
+      'to.id': outletId,
+      fromType: 'Warehouse'
+    });
+
+    // Fetch warehouse names
+    const warehouses = await Warehouse.find({ id: { $in: warehouseIds } })
+      .select('id name')
+      .lean();
+
+    res.json(warehouses);
+  } catch (err) {
+    console.error('Warehouses list error:', err);
+    res.status(500).json({ message: 'Failed to load warehouses' });
+  }
+});
+
+// ─── OUTLET INCOMING SHIPMENT BREAKDOWN REPORT ────────────────────────────────────────
+router.get('/outlet/shipments/breakdown', ensureAuth, async (req, res) => {
+  try {
+    const outletId = req.query.outletId;
+    if (!outletId) return res.status(400).json({ message: 'outletId is required' });
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
+
+    // Base filter: only incoming to this outlet
+    const filter = {
+      toType: 'Outlet',
+      'to.id': outletId
+    };
+
+    // Optional: filter by source warehouse (new!)
+    if (req.query.warehouseId) {
+      filter.fromType = 'Warehouse';
+      filter['from.id'] = req.query.warehouseId;
+    }
+
+    // Date range
+    if (req.query.startDate) {
+      filter.date = filter.date || {};
+      filter.date.$gte = new Date(req.query.startDate);
+    }
+    if (req.query.endDate) {
+      filter.date = filter.date || {};
+      filter.date.$lte = new Date(`${req.query.endDate}T23:59:59.999Z`);
+    }
+
+    // Status filter
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    // Fetch paginated shipments
+    const shipments = await Shipment.find(filter)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalCount = await Shipment.countDocuments(filter);
+
+    // Enrich (same as before)
+    const enriched = shipments.map(s => {
+      const totalQty = s.products.reduce((sum, p) => sum + (p.qty || 0), 0);
+      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
+      return {
+        id: s.id,
+        date: s.date.toISOString().split('T')[0],
+        from: { name: s.from?.name || 'Warehouse / Company' },
+        products: s.products.map(p => ({
+          name: p.name || p.productName || 'Unknown',
+          qty: Number(p.qty) || 0,
+          unitPrice: Number(p.unitPrice) || 0
+        })),
+        totalQty,
+        totalValue,
+        status: s.status || '—'
+      };
+    });
+
+    res.json({
+      data: enriched,
+      totalCount,
+      page,
+      limit
+    });
+  } catch (err) {
+    console.error('Outlet shipment breakdown error:', err);
+    res.status(500).json({ message: 'Failed to load breakdown', error: err.message });
+  }
+});
+
 
 // CREATE SHIPMENT
 router.post('/shipments', async (req, res) => {

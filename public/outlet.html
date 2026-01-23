@@ -340,6 +340,9 @@
   <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
       <div id="outletShipmentDateContainer" style="min-width:240px;"></div>
+      <select id="outletShipmentWarehouseFilter" class="sales-filter-input">
+        <option value="">All Warehouses</option>
+      </select>
       <select id="outletShipmentStatusFilter" class="sales-filter-input">
         <option value="">All Statuses</option>
         <option value="In Transit">In Transit</option>
@@ -2142,6 +2145,8 @@ async function renderOutletShipmentReport(page = 1) {
       page,
       limit: OUTLET_SHIPMENT_PER_PAGE
     });
+    if (outletShipmentFilter.warehouseId) {
+       q.set('warehouseId', outletShipmentFilter.warehouseId);}
     if (outletShipmentFilter.start) q.set('startDate', outletShipmentFilter.start);
     if (outletShipmentFilter.end) q.set('endDate', outletShipmentFilter.end);
     if (outletShipmentFilter.status) q.set('status', outletShipmentFilter.status);
@@ -2258,6 +2263,57 @@ window.printContent = str => {
   setTimeout(() => win.close(), 800);
 };
 
+
+function updatePeriodDisplay(periodId, dateDisplayId) {
+  const periodEl = document.getElementById(periodId);
+  if (!periodEl) return;
+  const displayText = document.getElementById(dateDisplayId)?.textContent?.trim() || 'All time';
+  periodEl.textContent = (displayText === 'All time' || !displayText)
+    ? '(All time / Lifetime)'
+    : `(${displayText})`;
+}
+
+
+// ─── Populate Warehouse Filter (unique sources that shipped to this outlet) ────────
+async function populateOutletShipmentWarehouseFilter() {
+  try {
+    const res = await fetch(`/api/outlet/shipments/warehouses?outletId=${OUTLET_ID}`);
+    if (!res.ok) throw new Error('Failed to load warehouses');
+    const warehouses = await res.json();
+    
+    const select = $('#outletShipmentWarehouseFilter');
+    select.innerHTML = '<option value="">All Warehouses</option>'; // reset
+    
+    warehouses.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.name;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Failed to load warehouse filter:', err);
+    $('#outletShipmentWarehouseFilter').innerHTML = '<option value="">All Warehouses (error)</option>';
+  }
+}
+
+// ─── Update loadOutletShipmentFilters to include warehouse population ──────────────
+function loadOutletShipmentFilters() {
+  // Date picker already initialized in navigateTo
+  $('#outletShipmentStatusFilter').onchange = () => {
+    outletShipmentFilter.status = $('#outletShipmentStatusFilter').value || null;
+    outletShipmentCurPage = 1;
+    renderOutletShipmentReport();
+  };
+
+  $('#outletShipmentWarehouseFilter').onchange = () => {
+    outletShipmentFilter.warehouseId = $('#outletShipmentWarehouseFilter').value || null;
+    outletShipmentCurPage = 1;
+    renderOutletShipmentReport();
+  };
+
+  // Load warehouses once when filters init
+  populateOutletShipmentWarehouseFilter();
+}
 
   </script>
 </body>
