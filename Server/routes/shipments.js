@@ -126,29 +126,20 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
 
     const totalCount = await Shipment.countDocuments(filter);
 
-    // Enrich with calculated totals
-    const enriched = shipments.map(s => {
-      const totalQty = s.products.reduce((sum, p) => sum + p.qty, 0);
-      const totalValue = s.products.reduce((sum, p) => sum + (p.qty * (p.unitPrice || 0)), 0);
-
-      return {
-        id: s.id,
-        date: s.date.toISOString().split('T')[0],
-        from: s.from,
-        to: s.to,
-        products: s.products.map(p => ({ name: p.name || 'Unknown' })),
-        totalQty,
-        totalValue,
-        status: s.status
-      };
-    });
-
-    res.json({
-      data: enriched,
-      totalCount,
-      page,
-      limit
-    });
+  res.json({
+  data: shipments.map(s => ({
+    ...s,
+    date: s.date.toISOString().split('T')[0],
+    products: s.products?.map(p => ({
+      ...p,
+      name: p.name || p.productName || 'Unknown'
+    })) ?? []
+  })),
+  totalCount,
+  page,
+  limit
+});
+ 
   } catch (err) {
     console.error('Warehouse breakdown error:', err);
     res.status(500).json({ message: 'Failed to load breakdown', error: err.message });
