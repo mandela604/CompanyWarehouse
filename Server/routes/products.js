@@ -12,7 +12,7 @@ const Sale = require('../models/Sale');
 const Shipment = require('../models/Shipment');
 const OutletInventory = require('../models/OutletInventory');
 const Outlet = require('../models/Outlet');
-
+const RestockLog = require('../models/RestockLog');
 
 const router = express.Router();
 
