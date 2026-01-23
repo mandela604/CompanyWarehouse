@@ -174,6 +174,38 @@
   box-shadow: 0 0 0 3px rgba(11,94,215,0.1);
 }
 
+
+#outletShipmentReportTable th:nth-child(3),
+#outletShipmentReportTable th:nth-child(4) {
+  text-align: center !important;
+}
+
+#outletShipmentReportTable td:nth-child(3) {
+  text-align: center !important;
+}
+
+#outletShipmentReportTable td:nth-child(4) {
+  text-align: right !important;
+}
+
+/* Align shipment breakdown table columns */
+#outletShipmentReportTable th:nth-child(1),
+#outletShipmentReportTable td:nth-child(1) { text-align: left; } /* From */
+
+#outletShipmentReportTable th:nth-child(2),
+#outletShipmentReportTable td:nth-child(2) { text-align: left; } /* Products */
+
+#outletShipmentReportTable th:nth-child(3),
+#outletShipmentReportTable td:nth-child(3) { text-align: center; } /* Total Qty */
+
+#outletShipmentReportTable th:nth-child(4),
+#outletShipmentReportTable td:nth-child(4) { text-align: right; } /* Total Value */
+
+#outletShipmentReportTable th:nth-child(5),
+#outletShipmentReportTable td:nth-child(5) { text-align: center; } /* Status - centers the pill */
+
+
+
   </style>
 
 
@@ -361,7 +393,7 @@
   <div class="table">
     <div style="margin: 16px 0; font-size: 15px; font-weight: 600; color: #111827; text-align: center;">
       Products Received
-      <span id="outletCurrentPeriodDisplay" style="color: var(--blue); font-weight: normal;">(loading...)</span>
+      <span id="outletShipmentCurrentPeriodDisplay" style="color: var(--blue); font-weight: normal;">(loading...)</span>
     </div>
     <table id="outletShipmentReportTable">
       <thead>
@@ -2189,9 +2221,9 @@ async function renderOutletShipmentReport(page = 1) {
 
     aggregated.sort((a, b) => b.totalQty - a.totalQty);
 
-    updatePeriodDisplay('outletCurrentPeriodDisplay', 'outletShipmentDateDisplay');
-
-    if (!aggregated.length) {
+      updatePeriodDisplay('outletShipmentCurrentPeriodDisplay', 'outletShipmentDateDisplay');
+ 
+      if (!aggregated.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No incoming shipments in this period</td></tr>';
     } else {
       const grandQty = aggregated.reduce((sum, p) => sum + p.totalQty, 0);
