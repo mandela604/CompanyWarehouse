@@ -2126,10 +2126,11 @@ function loadOutletShipmentFilters() {
 }
 
 function clearOutletShipmentFilters() {
-  outletShipmentFilter = { start: null, end: null, status: null };
+  outletShipmentFilter = { start: null, end: null, status: null, warehouseId: null };
   $('#outletShipmentDateDisplay').textContent = 'All time';
   outletShipmentPicker?.clear();
   $('#outletShipmentStatusFilter').value = '';
+  $('#outletShipmentWarehouseFilter').value = '';
   outletShipmentCurPage = 1;
   renderOutletShipmentReport();
 }
@@ -2276,14 +2277,16 @@ function updatePeriodDisplay(periodId, dateDisplayId) {
 
 // ─── Populate Warehouse Filter (unique sources that shipped to this outlet) ────────
 async function populateOutletShipmentWarehouseFilter() {
+  const select = $('#outletShipmentWarehouseFilter');
+  select.disabled = true;
+  select.innerHTML = '<option value="">Loading warehouses...</option>';
+
   try {
     const res = await fetch(`/api/outlet/shipments/warehouses?outletId=${OUTLET_ID}`);
-    if (!res.ok) throw new Error('Failed to load warehouses');
+    if (!res.ok) throw new Error();
     const warehouses = await res.json();
-    
-    const select = $('#outletShipmentWarehouseFilter');
-    select.innerHTML = '<option value="">All Warehouses</option>'; // reset
-    
+
+    select.innerHTML = '<option value="">All Warehouses</option>';
     warehouses.forEach(w => {
       const opt = document.createElement('option');
       opt.value = w.id;
@@ -2291,11 +2294,12 @@ async function populateOutletShipmentWarehouseFilter() {
       select.appendChild(opt);
     });
   } catch (err) {
-    console.error('Failed to load warehouse filter:', err);
-    $('#outletShipmentWarehouseFilter').innerHTML = '<option value="">All Warehouses (error)</option>';
+    console.error(err);
+    select.innerHTML = '<option value="">Warehouses unavailable</option>';
+  } finally {
+    select.disabled = false;
   }
 }
-
 // ─── Update loadOutletShipmentFilters to include warehouse population ──────────────
 function loadOutletShipmentFilters() {
   // Date picker already initialized in navigateTo
