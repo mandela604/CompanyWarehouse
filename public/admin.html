@@ -740,9 +740,9 @@
 <section id="restockHistorySection" class="section" style="display:none;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
     <h2 style="margin:0">Restock History – <span id="historyProductName">...</span></h2>
-    <button class="btn secondary" onclick="navigateTo('products')">
-      ← Back to Products / Inventory
-    </button>
+   <button class="btn secondary" onclick="goBackToProducts()">
+  ← Back to Products / Inventory
+</button>
   </div>
 
   <div class="table">
@@ -1174,20 +1174,13 @@
 
   <script>
 
-
-function backToProducts() {
-  const historySection = document.getElementById('restockHistorySection');
-  if (historySection) {
-    historySection.classList.remove('active');
-    historySection.style.display = 'none';
-  }
-
+function goBackToProducts() {
   navigateTo('products');
-
+  // Give the DOM a tiny moment to settle, then force reload products
   setTimeout(() => {
     currentPage = 1;
     renderProducts();
-  }, 100);
+  }, 50);
 }
 
 // Close mobile sidebar when clicking outside
