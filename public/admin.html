@@ -1399,7 +1399,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     function navigateTo(route) {
-      $all('.section').forEach(s => s.classList.remove('active'));
+     $all('.section').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';          
+  });
       const target = $(`#${route}Section`);
       if (target) target.classList.add('active');
       $all('.nav a').forEach(a => a.classList.remove('active'));
@@ -3644,8 +3647,12 @@ async function restockProduct(id) {
 
 async function showProductRestockHistory(productId, productName) {
   // Hide all other sections
-  $all('.section').forEach(s => s.classList.remove('active'));
-  $all('.section').forEach(s => s.style.display = 'none');
+ $all('.section').forEach(s => {
+    if (s.id !== 'productsSection') {         
+      s.classList.remove('active');
+      s.style.display = 'none';
+    }
+  });
 
   // Show only history section
   const historySection = document.getElementById('restockHistorySection');
