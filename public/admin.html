@@ -3647,12 +3647,7 @@ async function restockProduct(id) {
 
 async function showProductRestockHistory(productId, productName) {
   // 1. Hide everything except productsSection (so back works later)
-  $all('.section').forEach(s => {
-    if (s.id !== 'productsSection') {
-      s.classList.remove('active');
-      s.style.display = 'none';
-    }
-  });
+navigateTo('restockHistory');
 
   // 2. Show and ACTIVATE history section properly
   const historySection = document.getElementById('restockHistorySection');
