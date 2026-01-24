@@ -1175,12 +1175,18 @@
   <script>
 
 function goBackToProducts() {
+  const history = document.getElementById('restockHistorySection');
+  if (history) {
+    history.style.display = '';          // ← clear any stuck inline style
+    history.classList.remove('active');
+  }
+
   navigateTo('products');
-  // Give the DOM a tiny moment to settle, then force reload products
+
   setTimeout(() => {
     currentPage = 1;
     renderProducts();
-  }, 50);
+  }, 80);   // ← slightly longer delay helps with heavy renders
 }
 
 // Close mobile sidebar when clicking outside
@@ -3645,8 +3651,8 @@ navigateTo('restockHistory');
   // 2. Show and ACTIVATE history section properly
   const historySection = document.getElementById('restockHistorySection');
   if (historySection) {
-    historySection.classList.add('active');          // ← this was missing!
-    historySection.style.display = 'block';
+    historySection.style.display = '';
+    historySection.classList.add('active');         
   }
 
   // 3. Update title
