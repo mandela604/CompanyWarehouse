@@ -3646,54 +3646,59 @@ async function restockProduct(id) {
 
 
 async function showProductRestockHistory(productId, productName) {
-  // Hide all other sections
- $all('.section').forEach(s => {
-    if (s.id !== 'productsSection') {         
+  // 1. Hide everything except productsSection (so back works later)
+  $all('.section').forEach(s => {
+    if (s.id !== 'productsSection') {
       s.classList.remove('active');
       s.style.display = 'none';
     }
   });
 
-  // Show only history section
+  // 2. Show and ACTIVATE history section properly
   const historySection = document.getElementById('restockHistorySection');
-  historySection.style.display = 'block';
-
-  // Update title
-  document.getElementById('historyProductName').textContent = productName;
-
-  // Clear & load table
-  const tbody = document.querySelector('#restockHistoryTable tbody');
-  tbody.innerHTML = '<tr><td colspan="3" class="muted text-center">Loading history...</td></tr>';
-
-  try {
-    const res = await fetch(`/api/products/${productId}/restocks`);
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || 'Failed to load history');
-    }
-    const logs = await res.json();
-
-    if (logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="muted text-center">No restocks recorded yet for this product.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = logs.map(log => `
-      <tr>
-        <td>${niceDate(new Date(log.date))}</td>
-        <td style="text-align:center; color:#10b981; font-weight:600">+${log.addedQty}</td>
-        <td>${log.restockedBy}</td>
-      </tr>
-    `).join('');
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="3" class="error text-center">Error: ${err.message}</td></tr>`;
-    showToast('Failed to load restock history', 'error');
+  if (historySection) {
+    historySection.classList.add('active');          // ← this was missing!
+    historySection.style.display = 'block';
   }
 
-  // Optional: update active nav (if you want visual feedback)
+  // 3. Update title
+  document.getElementById('historyProductName').textContent = productName || 'Product';
+
+  // 4. Load table
+  const tbody = document.querySelector('#restockHistoryTable tbody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="3" class="muted text-center">Loading history...</td></tr>';
+
+    try {
+      const res = await fetch(`/api/products/${productId}/restocks`);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || 'Failed to load history');
+      }
+      const logs = await res.json();
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="muted text-center">No restocks recorded yet.</td></tr>';
+      } else {
+        tbody.innerHTML = logs.map(log => `
+          <tr>
+            <td>${niceDate(new Date(log.date))}</td>
+            <td style="text-align:center; color:#10b981; font-weight:600">+${log.addedQty}</td>
+            <td>${log.restockedBy || 'Admin'}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="3" class="error text-center">Error: ${err.message}</td></tr>`;
+      showToast('Failed to load restock history', 'error');
+    }
+  }
+
+  // 5. Remove nav highlight (clean look)
   $all('.nav a').forEach(a => a.classList.remove('active'));
-  // You can leave it on Products, or highlight none
 }
+
 
 function confirmDeleteWarehouse(id) {
   const confirmHTML = `
