@@ -740,8 +740,8 @@
 <section id="restockHistorySection" class="section">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
     <h2 style="margin:0">Restock History – <span id="historyProductName">...</span></h2>
-   <button class="btn secondary" onclick="navigateTo('products')">
-  ← Back to Products / Inventory (test)
+   <button class="btn secondary" onclick="brutalBackToProducts()">
+  ← Back to Products / Inventory 
 </button>
   </div>
 
@@ -1174,19 +1174,35 @@
 
   <script>
 
-function goBackToProducts() {
+function brutalBackToProducts() {
+  console.log("BRUTAL BACK: forcing products visible");
+
+  // Hide history section completely
   const history = document.getElementById('restockHistorySection');
   if (history) {
-    history.style.display = '';          // ← clear any stuck inline style
+    history.style.display = 'none';
     history.classList.remove('active');
   }
 
-  navigateTo('products');
+  // Force show products section
+  const products = document.getElementById('productsSection');
+  if (products) {
+    products.style.display = 'block';           // direct force
+    products.style.display = 'block !important'; // even stronger
+    products.classList.add('active');
+  }
 
-  setTimeout(() => {
-    currentPage = 1;
-    renderProducts();
-  }, 80);   // ← slightly longer delay helps with heavy renders
+  // Reset and reload the table manually
+  currentPage = 1;
+  const tbody = document.querySelector('#productTable tbody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="8">Loading products (brutal mode)...</td></tr>';
+  }
+
+  // Call render directly
+  renderProducts();
+
+  console.log("BRUTAL BACK finished — check if products show");
 }
 
 // Close mobile sidebar when clicking outside
