@@ -1174,8 +1174,18 @@
 
 
 function backToProducts() {
-  document.getElementById('restockHistorySection').style.display = 'none';
-  navigateTo('products');  // or just show products section
+  const historySection = document.getElementById('restockHistorySection');
+  if (historySection) {
+    historySection.classList.remove('active');
+    historySection.style.display = 'none';
+  }
+
+  navigateTo('products');
+
+  setTimeout(() => {
+    currentPage = 1;
+    renderProducts();
+  }, 100);
 }
 
 // Close mobile sidebar when clicking outside
