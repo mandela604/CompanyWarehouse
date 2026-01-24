@@ -1957,7 +1957,7 @@ async function renderOutletSalesReport(page = 1) {
     if (periodEl) {
       const displayText = $('#outletSalesDateDisplay').textContent.trim();
       if (!displayText || displayText === 'All time') {
-        periodEl.textContent = '(Today)';
+        periodEl.textContent = '(All time/Lifetime)';
       } else {
         periodEl.textContent = `(${displayText})`;
       }
@@ -1971,7 +1971,7 @@ async function renderOutletSalesReport(page = 1) {
         <tr>
           <td style="font-weight:600;">${p.productName}</td>
           <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
-          <td style="text-align:center; font-weight:700; color:var(--blue);">
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue || 0)}
           </td>
           <td>
@@ -2207,7 +2207,7 @@ async function renderOutletShipmentReport(page = 1) {
         const entry = productMap.get(name);
         entry.totalQty += p.qty || 0;
         entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
-        if (entry.status !== status) entry.status = 'Various';
+        if (entry.status !== status) entry.status = 'All status';
       });
     });
 
@@ -2233,7 +2233,7 @@ async function renderOutletShipmentReport(page = 1) {
           <td style="text-align:left;">${p.from}</td>
           <td style="font-weight:600; text-align:left;">${p.productName}</td>
           <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
-          <td style="text-align:center; font-weight:700; color:var(--blue);">
+          <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue)}
           </td>
           <td><span class="pill">${p.status}</span></td>
