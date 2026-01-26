@@ -1413,18 +1413,60 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 
 
-    function navigateTo(route) {
-     $all('.section').forEach(s => {
+  function navigateTo(route) {
+  console.log(`navigateTo called with route: ${route}`);
+
+  // 1. Hide ALL sections first (clean slate)
+  $all('.section').forEach(s => {
     s.classList.remove('active');
-    s.style.display = 'none';          
+    s.style.display = 'none';  // safe — no !important needed here
   });
-      const target = $(`#${route}Section`);
-      if (target) target.classList.add('active');
-      $all('.nav a').forEach(a => a.classList.remove('active'));
-      const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
-      if (navLink) navLink.classList.add('active');
-      if (route === 'salesViewer') renderSalesViewerPage();
-    }
+
+  // 2. Show the requested section
+  const target = document.querySelector(`#${route}Section`);
+  if (target) {
+    target.style.display = 'block';          // THIS fixes blank pages
+    target.classList.add('active');
+    console.log(`Showing #${route}Section → display now = ${target.style.display}`);
+  } else {
+    console.error(`Section not found: #${route}Section`);
+    showToast(`Page "${route}" not found`, 'error');
+    return; // stop here if section missing
+  }
+
+  // 3. Update sidebar navigation highlight
+  $all('.nav a').forEach(a => a.classList.remove('active'));
+  const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
+  if (navLink) navLink.classList.add('active');
+
+  // 4. Run special initialization for each route (your original logic + reports)
+  if (route === 'salesViewer') {
+    renderSalesViewerPage();
+  }
+  if (route === 'salesReport') {
+    if (!reportPicker) initReportDatePicker();
+    loadReportFilters();
+    renderSalesReport();
+  }
+  else if (route === 'productReport') {
+    initProductDatePicker();
+    loadProductFilters();
+    renderProductReport();
+  }
+  else if (route === 'shipmentReport') {
+    if (!shipmentPicker) initShipmentDatePicker();
+    loadShipmentFilters();
+    renderShipmentReport();
+  }
+  // If you have ANY other special route that needs init (e.g. fullSales, settings, etc.)
+  // add them here like this:
+  // else if (route === 'fullSales') { ... }
+
+  // Optional: force refresh overview if going back there
+  if (route === 'overview') {
+    refreshAll();
+  }
+}
 
 
     // ─── Extra initialization for the Shipment Breakdown button ────────────────────────────────
