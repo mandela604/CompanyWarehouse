@@ -255,7 +255,7 @@
 }
 
 
-/* CENTERED SHIPMENT TABLES - CLEAN & SIMPLE (now fully consistent for both recent and full list) */
+/* CENTERED SHIPMENT TABLES - CLEAN & SIMPLE (now with equal columns) */
 #recentShipments,
 #shipmentsTable {
   table-layout: fixed; /* Keeps columns perfectly aligned */
@@ -274,46 +274,45 @@
   text-overflow: ellipsis;
 }
 
-/* Balanced column widths — same for BOTH tables */
+/* Equal column widths — ~14.3% each (100% / 7) */
 #recentShipments th:nth-child(1), #recentShipments td:nth-child(1),
-#shipmentsTable      th:nth-child(1), #shipmentsTable      td:nth-child(1) { width: 14%; } /* Date */
+#shipmentsTable      th:nth-child(1), #shipmentsTable      td:nth-child(1) { width: 14.3%; } /* Date */
 
 #recentShipments th:nth-child(2), #recentShipments td:nth-child(2),
-#shipmentsTable      th:nth-child(2), #shipmentsTable      td:nth-child(2) { width: 18%; } /* From */
+#shipmentsTable      th:nth-child(2), #shipmentsTable      td:nth-child(2) { width: 14.3%; } /* From */
 
 #recentShipments th:nth-child(3), #recentShipments td:nth-child(3),
-#shipmentsTable      th:nth-child(3), #shipmentsTable      td:nth-child(3) { width: 12%; } /* Items */
+#shipmentsTable      th:nth-child(3), #shipmentsTable      td:nth-child(3) { width: 14.3%; } /* Items */
 
 #recentShipments th:nth-child(4), #recentShipments td:nth-child(4),
-#shipmentsTable      th:nth-child(4), #shipmentsTable      td:nth-child(4) { width: 10%; } /* Qty */
+#shipmentsTable      th:nth-child(4), #shipmentsTable      td:nth-child(4) { width: 14.3%; } /* Qty */
 
 #recentShipments th:nth-child(5), #recentShipments td:nth-child(5),
-#shipmentsTable      th:nth-child(5), #shipmentsTable      td:nth-child(5) { width: 15%; } /* Total Value */
+#shipmentsTable      th:nth-child(5), #shipmentsTable      td:nth-child(5) { width: 14.3%; } /* Total Value */
 
 #recentShipments th:nth-child(6), #recentShipments td:nth-child(6),
-#shipmentsTable      th:nth-child(6), #shipmentsTable      td:nth-child(6) { width: 12%; } /* Status */
+#shipmentsTable      th:nth-child(6), #shipmentsTable      td:nth-child(6) { width: 14.3%; } /* Status */
 
 #recentShipments th:nth-child(7), #recentShipments td:nth-child(7),
-#shipmentsTable      th:nth-child(7), #shipmentsTable      td:nth-child(7) { width: 19%; } /* Action */
+#shipmentsTable      th:nth-child(7), #shipmentsTable      td:nth-child(7) { width: 14.3%; } /* Action */
 
-/* FINAL FIX: Make sure Action column shows both buttons fully (only needed on the full incoming table) */
+/* Make Action column show buttons nicely (no clipping) */
 #shipmentsTable th:nth-child(7),
 #shipmentsTable td:nth-child(7) {
-  width: 25% !important;           /* Give plenty of space for View + Approve/Reject */
-  text-align: right !important;
-  padding-right: 20px !important;
+  text-align: right !important;     /* Buttons aligned right */
+  padding-right: 16px !important;   /* Breathing room */
+  overflow: visible !important;     /* Prevents button clipping */
   white-space: nowrap !important;
-  overflow: visible !important;    /* Critical: prevents clipping of buttons */
   text-overflow: unset !important;
 }
 
 /* Style the tiny Approve/Reject buttons properly */
 #shipmentsTable .btn.tiny {
   font-size: 11px !important;
-  padding: 6px 12px !important;
-  margin: 0 4px !important;
+  padding: 6px 10px !important;     /* Slightly smaller padding to fit better */
+  margin: 0 3px !important;
   border-radius: 8px !important;
-  min-width: 70px;
+  min-width: 65px;                  /* Smaller min-width so they fit in 14.3% */
   display: inline-block;
 }
 </style>
