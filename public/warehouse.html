@@ -269,6 +269,58 @@
 #recentOutgoingShipments td:nth-child(7) { width: 19%; } /* Action */
 
 
+/* Shipment Breakdown Report — now with SAME perfect alignment as #recentShipments */
+#warehouseShipmentReportTable {
+  table-layout: fixed !important;
+  width: 100%;
+}
+
+#warehouseShipmentReportTable th,
+#warehouseShipmentReportTable td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Use THE EXACT SAME column proportions as your perfect tables */
+#warehouseShipmentReportTable th:nth-child(1),
+#warehouseShipmentReportTable td:nth-child(1) { width: 18%; }  /* From    → wider like From in shipments */
+
+#warehouseShipmentReportTable th:nth-child(2),
+#warehouseShipmentReportTable td:nth-child(2) { width: 18%; }  /* To      → same as From */
+
+#warehouseShipmentReportTable th:nth-child(3),
+#warehouseShipmentReportTable td:nth-child(3) { width: 26%; }  /* Products → biggest column (long names) */
+
+#warehouseShipmentReportTable th:nth-child(4),
+#warehouseShipmentReportTable td:nth-child(4) { width: 10%; }  /* Total Qty */
+
+#warehouseShipmentReportTable th:nth-child(5),
+#warehouseShipmentReportTable td:nth-child(5) { width: 15%; }  /* Total Value */
+
+#warehouseShipmentReportTable th:nth-child(6),
+#warehouseShipmentReportTable td:nth-child(6) { width: 13%; }  /* Status   → slightly more than 12% for pills */
+
+/* Keep your pill and grand total styles */
+#warehouseShipmentReportTable .pill {
+  display: inline-block;
+  min-width: 90px;
+  text-align: center;
+  padding: 6px 12px;
+}
+
+#warehouseShipmentReportTable tbody tr:last-child {
+  background: #e0f2fe !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
+#warehouseShipmentReportTable tbody tr:last-child td:nth-child(5) {
+  color: var(--blue) !important;
+}
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
