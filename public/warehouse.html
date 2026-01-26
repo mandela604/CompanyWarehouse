@@ -392,7 +392,7 @@
     <thead>
       <tr>
         <th>Date</th>
-        <th>From</th>
+        <th>To</th>
         <th>Items</th>
         <th>Qty</th>
         <th>Total Value</th>
@@ -899,7 +899,7 @@ async function renderRecentOutgoingShipments() {
       tbody.innerHTML += `
         <tr>
           <td>${niceDate(s.date)}</td>
-          <td>${myWarehouse.name}</td> <!-- Always this warehouse -->
+          <td>${s.to?.name || 'Unknown Outlet'}</td>
           <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
           <td style="text-align:center;"><strong>${totalQty}</strong></td>
           <td style="text-align:right;">${formatNGN(totalValue)}</td>
@@ -2406,6 +2406,23 @@ async function confirmEditOutgoingShipment(shipmentId) {
     $('#confirmShipmentBtn').textContent = 'Save Changes';
   }
 }
+
+
+// Close sidebar when clicking outside on mobile/small screens
+document.addEventListener('click', function(e) {
+  const sidebar = document.getElementById('sidebar');
+  const hambBtn = document.getElementById('hambBtn');
+  
+  // Only apply on mobile (where sidebar is hidden/off-screen)
+  if (window.innerWidth <= 900) {
+    // If sidebar is open AND click is NOT on hamburger AND NOT inside sidebar → close it
+    if (sidebar.classList.contains('open') &&
+        !hambBtn.contains(e.target) &&
+        !sidebar.contains(e.target)) {
+      sidebar.classList.remove('open');
+    }
+  }
+});
 
   </script>
 </body>
