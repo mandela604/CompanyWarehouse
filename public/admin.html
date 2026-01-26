@@ -1419,13 +1419,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1. Hide ALL sections first (clean slate)
   $all('.section').forEach(s => {
     s.classList.remove('active');
-    s.style.display = 'none';  // safe — no !important needed here
+    s.style.display = 'none';  
   });
 
   // 2. Show the requested section
   const target = document.querySelector(`#${route}Section`);
   if (target) {
-    target.style.display = 'block';          // THIS fixes blank pages
+    target.style.display = 'block';         
     target.classList.add('active');
     console.log(`Showing #${route}Section → display now = ${target.style.display}`);
   } else {
@@ -1439,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const navLink = document.querySelector(`.nav a[data-route="${route}"]`);
   if (navLink) navLink.classList.add('active');
 
-  // 4. Run special initialization for each route (your original logic + reports)
+  // 4. Run special initialization for each route 
   if (route === 'salesViewer') {
     renderSalesViewerPage();
   }
@@ -1458,11 +1458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadShipmentFilters();
     renderShipmentReport();
   }
-  // If you have ANY other special route that needs init (e.g. fullSales, settings, etc.)
-  // add them here like this:
-  // else if (route === 'fullSales') { ... }
 
-  // Optional: force refresh overview if going back there
   if (route === 'overview') {
     refreshAll();
   }
@@ -1470,7 +1466,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // ─── Extra initialization for the Shipment Breakdown button ────────────────────────────────
-document.querySelectorAll('[onclick*="navigateTo(\'shipmentReport\')"]').forEach(btn => {
+
+/*    document.querySelectorAll('[onclick*="navigateTo(\'shipmentReport\')"]').forEach(btn => {
   btn.addEventListener('click', async (e) => {
     e.preventDefault(); // just in case
     console.log('Shipment Breakdown button clicked → loading data');
@@ -1482,7 +1479,8 @@ document.querySelectorAll('[onclick*="navigateTo(\'shipmentReport\')"]').forEach
     await loadShipmentFilters();
     await renderShipmentReport();
   });
-});
+}); 
+*/
 
 
    async function renderOverviewCards() {
