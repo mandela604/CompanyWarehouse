@@ -899,7 +899,7 @@ async function renderRecentOutgoingShipments() {
       tbody.innerHTML += `
         <tr>
           <td>${niceDate(s.date)}</td>
-          <td>${s.to?.name || 'Unknown Outlet'}</td>
+          <td>${s.toName || '—'}</td>
           <td style="text-align:center;"><strong>${itemCount}</strong> item${itemCount > 1 ? 's' : ''}</td>
           <td style="text-align:center;"><strong>${totalQty}</strong></td>
           <td style="text-align:right;">${formatNGN(totalValue)}</td>
