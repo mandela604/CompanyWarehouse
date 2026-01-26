@@ -793,135 +793,164 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
   session.startTransaction();
 
   try {
-    // 🔒 Atomic approval (prevents double approve)
+    // 1. Atomically find and update status — only if still 'In Transit'
     const shipment = await Shipment.findOneAndUpdate(
-      { id: req.params.id, status: 'In Transit' },
-      { $set: { status: 'Received' } },
-      { session, new: true }
+      {
+        id: req.params.id,
+        status: 'In Transit'                    // Prevent approving twice
+      },
+      {
+        $set: {
+          status: 'Received',
+          lastUpdated: new Date()
+        }
+      },
+      {
+        session,
+        new: true,                              // Return the updated document
+        lean: false                             // Keep it as full Mongoose doc
+      }
     );
 
     if (!shipment) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ message: 'Shipment already approved or invalid' });
+      return res.status(400).json({
+        message: 'Shipment not found, already approved, or not in transit'
+      });
     }
 
     let totalQty = 0;
     let newProducts = 0;
 
+    // 2. Process each product in the shipment
     for (const p of shipment.products) {
-      totalQty += p.qty;
+      totalQty += Number(p.qty) || 0;
 
-      // ================= DESTINATION =================
+      // ─── DESTINATION UPDATES ────────────────────────────────────────
       if (shipment.toType === 'Warehouse') {
-        const existed = await WarehouseInventory.findOne(
-          { warehouseId: shipment.to.id, productId: p.productId }
-        ).session(session);
+        // Check if product already exists in warehouse inventory
+        const existed = await WarehouseInventory.findOne({
+          warehouseId: shipment.to.id,
+          productId: p.productId
+        }).session(session);
 
         if (!existed) newProducts++;
 
-        await WarehouseInventory.updateOne(
-          { warehouseId: shipment.to.id, productId: p.productId },
+        const updateResult = await WarehouseInventory.updateOne(
           {
-            $inc: { qty: p.qty, totalReceived: p.qty },
-            $set: {
-              sku: p.productSku,
-              productName: p.name || p.productName,
-              unitPrice: p.unitPrice || 0,
-              status: 'inStock'
-            },
-            $setOnInsert: { createdAt: new Date() }
+            warehouseId: shipment.to.id,
+            productId: p.productId
           },
-          { session, upsert: true }
-        );
-      }
-
-      if (shipment.toType === 'Outlet') {
-        const existed = await OutletInventory.findOne(
-          { outletId: shipment.to.id, productId: p.productId }
-        ).session(session);
-
-        if (!existed) newProducts++;
-
-        const warehouseId =
-          shipment.fromType === 'Warehouse' ? shipment.from.id : null;
-
-        await OutletInventory.updateOne(
-          { outletId: shipment.to.id, productId: p.productId },
           {
             $inc: { qty: p.qty, totalReceived: p.qty },
             $set: {
-              sku: p.productSku,
-              productName: p.name || p.productName,
-              unitPrice: p.unitPrice || 0,
+              sku: p.productSku || p.sku,
+              productName: p.name || p.productName || 'Unknown',
+              unitPrice: Number(p.unitPrice) || 0,
               status: 'inStock',
-              ...(warehouseId && { warehouseId }),
               lastUpdated: new Date()
             },
             $setOnInsert: { createdAt: new Date() }
           },
           { session, upsert: true }
         );
+
+        if (updateResult.matchedCount === 0 && !updateResult.upsertedCount) {
+          throw new Error(`Failed to update warehouse inventory for product ${p.productId}`);
+        }
       }
 
-      // ================= SOURCE =================
-      if (shipment.fromType === 'Company') {
-        const result = await Company.updateOne(
-        {
-          id: shipment.from.id,
-          inTransit: { $gte: p.qty },
-          'products.productId': p.productId,
-          'products.$.qty': { $gte: p.qty }
-        },
-        {
-          $inc: {
-            inTransit: -p.qty,
-            'products.$.qty': -p.qty,
-            totalShipments: 1
-          }
-        },
-        { session }
-      );
+      if (shipment.toType === 'Outlet') {
+        const existed = await OutletInventory.findOne({
+          outletId: shipment.to.id,
+          productId: p.productId
+        }).session(session);
 
-      if (result.modifiedCount === 0) {
-        throw new Error('Invalid company stock state');
-      }
+        if (!existed) newProducts++;
 
-      }
+        const warehouseId = shipment.fromType === 'Warehouse' ? shipment.from.id : null;
 
-      if (shipment.fromType === 'Warehouse') {
-        const result = await WarehouseInventory.updateOne(
+        const updateResult = await OutletInventory.updateOne(
           {
-            warehouseId: shipment.from.id,
-            productId: p.productId,
-            inTransit: { $gte: p.qty }
+            outletId: shipment.to.id,
+            productId: p.productId
           },
-          { $inc: { inTransit: -p.qty, totalShipped: p.qty } },
+          {
+            $inc: { qty: p.qty, totalReceived: p.qty },
+            $set: {
+              sku: p.productSku || p.sku,
+              productName: p.name || p.productName || 'Unknown',
+              unitPrice: Number(p.unitPrice) || 0,
+              status: 'inStock',
+              lastUpdated: new Date(),
+              ...(warehouseId && { warehouseId })
+            },
+            $setOnInsert: { createdAt: new Date() }
+          },
+          { session, upsert: true }
+        );
+
+        if (updateResult.matchedCount === 0 && !updateResult.upsertedCount) {
+          throw new Error(`Failed to update outlet inventory for product ${p.productId}`);
+        }
+      }
+
+      // ─── SOURCE STOCK RETURN / ADJUSTMENT ───────────────────────────
+      if (shipment.fromType === 'Company') {
+        const companyUpdate = await Company.updateOne(
+          {
+            id: shipment.from.id,
+            inTransit: { $gte: p.qty }          // Safety guard
+          },
+          {
+            $inc: { inTransit: -p.qty }
+          },
           { session }
         );
 
-        if (result.modifiedCount === 0) {
-          throw new Error('Invalid warehouse inTransit state');
+        if (companyUpdate.modifiedCount === 0) {
+          throw new Error(`Company inTransit mismatch for product ${p.productId}`);
         }
 
+        // Also return to company product stock if needed
+        await Product.updateOne(
+          { id: p.productId },
+          { $inc: { qty: p.qty } },
+          { session }
+        );
+      }
 
-       await Warehouse.updateOne(
-        {
-          id: shipment.from.id,
-          totalStock: { $gte: p.qty }
-        },
-        { $inc: { totalStock: -p.qty, totalShipments: p.qty } },
-        { session }
-      );
+      if (shipment.fromType === 'Warehouse') {
+        const whUpdate = await WarehouseInventory.updateOne(
+          {
+            warehouseId: shipment.from.id,
+            productId: p.productId,
+            inTransit: { $gte: p.qty }          // Safety guard
+          },
+          {
+            $inc: { inTransit: -p.qty }
+          },
+          { session }
+        );
 
+        if (whUpdate.modifiedCount === 0) {
+          throw new Error(`Warehouse inTransit mismatch for product ${p.productId}`);
+        }
       }
     }
 
-    // ================= TOTALS =================
+    // ─── UPDATE DESTINATION TOTALS ───────────────────────────────────
     if (shipment.toType === 'Warehouse') {
       await Warehouse.updateOne(
         { id: shipment.to.id },
-        { $inc: { totalStock: totalQty, totalProducts: newProducts } },
+        {
+          $inc: {
+            totalStock: totalQty,
+            totalProducts: newProducts
+          },
+          $set: { lastUpdated: new Date() }
+        },
         { session }
       );
     }
@@ -929,7 +958,13 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
     if (shipment.toType === 'Outlet') {
       await Outlet.updateOne(
         { id: shipment.to.id },
-        { $inc: { totalStock: totalQty, totalProducts: newProducts } },
+        {
+          $inc: {
+            totalStock: totalQty,
+            totalProducts: newProducts
+          },
+          $set: { lastUpdated: new Date() }
+        },
         { session }
       );
     }
@@ -937,12 +972,25 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.json({ message: 'Shipment approved successfully', shipment });
+    return res.json({
+      message: 'Shipment approved and inventory updated successfully',
+      shipment
+    });
+
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error('Shipment approval failed:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
+
+    console.error('APPROVE SHIPMENT FAILED:', {
+      shipmentId: req.params.id,
+      error: err.message,
+      stack: err.stack
+    });
+
+    return res.status(500).json({
+      message: 'Server error during shipment approval',
+      error: err.message
+    });
   }
 });
 
