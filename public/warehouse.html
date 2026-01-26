@@ -230,6 +230,45 @@
 }
 
 
+/* Make Recent Outgoing Shipments match the perfect alignment of Incoming */
+#recentOutgoingShipments {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#recentOutgoingShipments th,
+#recentOutgoingShipments td {
+  text-align: center !important;
+  vertical-align: middle;
+  padding: 12px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Use EXACT same column widths as #recentShipments */
+#recentOutgoingShipments th:nth-child(1),
+#recentOutgoingShipments td:nth-child(1) { width: 14%; } /* Date */
+
+#recentOutgoingShipments th:nth-child(2),
+#recentOutgoingShipments td:nth-child(2) { width: 18%; } /* From */
+
+#recentOutgoingShipments th:nth-child(3),
+#recentOutgoingShipments td:nth-child(3) { width: 12%; } /* Items */
+
+#recentOutgoingShipments th:nth-child(4),
+#recentOutgoingShipments td:nth-child(4) { width: 10%; } /* Qty */
+
+#recentOutgoingShipments th:nth-child(5),
+#recentOutgoingShipments td:nth-child(5) { width: 15%; } /* Total Value */
+
+#recentOutgoingShipments th:nth-child(6),
+#recentOutgoingShipments td:nth-child(6) { width: 12%; } /* Status */
+
+#recentOutgoingShipments th:nth-child(7),
+#recentOutgoingShipments td:nth-child(7) { width: 19%; } /* Action */
+
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">

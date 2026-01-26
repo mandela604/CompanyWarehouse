@@ -797,7 +797,7 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
     const shipment = await Shipment.findOneAndUpdate(
       {
         id: req.params.id,
-        status: 'In Transit'                    // Prevent approving twice
+        status: 'In Transit'                  
       },
       {
         $set: {
@@ -807,8 +807,8 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
       },
       {
         session,
-        new: true,                              // Return the updated document
-        lean: false                             // Keep it as full Mongoose doc
+        new: true,                             
+        lean: false                            
       }
     );
 
