@@ -821,7 +821,12 @@
 
 <!-- ==================== SHIPMENT BREAKDOWN REPORT ==================== -->
 <section id="shipmentReportSection" class="section">
-  <h2 style="margin-top:0">Shipment Breakdown Report</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2 style="margin:0">Shipment Breakdown Report</h2>
+    <button class="btn secondary" onclick="navigateTo('products')">
+      ← Back to Products / Inventory
+    </button>
+  </div>
 
   <!-- Filters (same style as sales/product report) -->
   <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
@@ -3243,6 +3248,7 @@ if (e.target.classList.contains('view-details')) {
 let isRenderingProducts = false;
 
 // REPLACE your entire current nav click handler with this one:
+/*
 document.querySelectorAll('.nav a').forEach(a => {
   a.addEventListener('click', async e => {
     e.preventDefault();
@@ -3312,6 +3318,93 @@ document.querySelectorAll('.nav a').forEach(a => {
     }
   });
 });
+
+*/
+
+// ─── SIDEBAR NAVIGATION ────────────────────────────────────────────────
+// Only run this ONCE when the page loads
+if (!window.sidebarListenersAttached) {
+  document.querySelectorAll('.nav a').forEach(a => {
+    a.addEventListener('click', async e => {
+      e.preventDefault();
+      const route = a.dataset.route;
+
+      // Remove old active states
+      $all('.nav a').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+
+      // Hide all sections
+      $all('.section').forEach(s => {
+        s.classList.remove('active');
+        s.style.display = 'none';
+      });
+
+      // Show target section
+      const target = document.querySelector(`#${route}Section`);
+      if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+      } else {
+        console.error(`Section #${route}Section not found`);
+        showToast(`Page "${route}" not found`, 'error');
+        return;
+      }
+
+      // Special route initializations
+      if (route === 'overview') {
+        refreshAll();
+      }
+      else if (route === 'warehouses') {
+        renderWarehouses();
+      }
+      else if (route === 'outlets') {
+        renderOutlets();
+      }
+      else if (route === 'products') {
+        if (isRenderingProducts) return;
+        isRenderingProducts = true;
+        currentPage = 1;
+        $('#productTable tbody').innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+        try {
+          await renderProducts();
+        } finally {
+          isRenderingProducts = false;
+        }
+      }
+      else if (route === 'accounts') {
+        renderAccounts();
+      }
+      else if (route === 'sales') {
+        loadSalesFilters();
+        renderSales();
+      }
+      else if (route === 'salesReport') {
+        if (!reportPicker) initReportDatePicker();
+        loadReportFilters();
+        renderSalesReport();
+      }
+      else if (route === 'productReport') {
+        initProductDatePicker();
+        loadProductFilters();
+        renderProductReport();
+      }
+      else if (route === 'shipmentReport') {
+        if (!shipmentPicker) initShipmentDatePicker();
+        loadShipmentFilters();
+        renderShipmentReport();
+      }
+      else if (route === 'settings') {
+        renderSettings();
+      }
+    });
+  });
+
+  // Mark as attached so it doesn't run again
+  window.sidebarListenersAttached = true;
+}
+
+
+
 
   /*  $('#exportBtn').addEventListener('click',()=>{
       const rows=DB.products.map(p=>`${p.sku},"${p.name}",${p.qty},${warehouseName(p.warehouseId)},${p.unitPrice}`).join('\n');
