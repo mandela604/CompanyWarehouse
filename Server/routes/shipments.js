@@ -26,10 +26,20 @@ router.get('/shipments/breakdown', async (req, res) => {
   toType: 'Warehouse'
 };
 
-if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
-if (req.query.endDate) {
-  if (!filter.date) filter.date = {};
-  filter.date.$lte = new Date(req.query.endDate);
+if (req.query.startDate || req.query.endDate) {
+  filter.date = {};
+
+  if (req.query.startDate) {
+    const start = new Date(req.query.startDate);
+    start.setHours(0, 0, 0, 0);          // midnight
+    filter.date.$gte = start;
+  }
+
+  if (req.query.endDate) {
+    const end = new Date(req.query.endDate);
+    end.setHours(23, 59, 59, 999);       // end of day
+    filter.date.$lte = end;
+  }
 }
 if (req.query.warehouseId) filter['to.id'] = req.query.warehouseId;
 if (req.query.status) filter.status = req.query.status;
@@ -87,12 +97,20 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Build filter query
-    const filter = {};
-    if (req.query.startDate) filter.date = { $gte: new Date(req.query.startDate) };
-    if (req.query.endDate) {
-      if (!filter.date) filter.date = {};
-      filter.date.$lte = new Date(req.query.endDate);
-    }
+   if (req.query.startDate || req.query.endDate) {
+        filter.date = {};
+
+        if (req.query.startDate) {
+          filter.date.$gte = new Date(req.query.startDate);
+          filter.date.$gte.setHours(0, 0, 0, 0);           // ← midnight start
+        }
+
+        if (req.query.endDate) {
+          const end = new Date(req.query.endDate);
+          end.setHours(23, 59, 59, 999);                   // ← end of day
+          filter.date.$lte = end;
+        }
+      }
     if (req.query.status) filter.status = req.query.status;
 
     // Type filter: incoming/outgoing/all
