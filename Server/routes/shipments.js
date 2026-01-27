@@ -97,20 +97,31 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Build filter query
-   if (req.query.startDate || req.query.endDate) {
-        filter.date = {};
+   // Safe date filter - prevents crashes
+if (req.query.startDate || req.query.endDate) {
+  filter.date = {};
 
-        if (req.query.startDate) {
-          filter.date.$gte = new Date(req.query.startDate);
-          filter.date.$gte.setHours(0, 0, 0, 0);           // ← midnight start
-        }
+  if (req.query.startDate && req.query.startDate.trim()) {
+    const start = new Date(req.query.startDate.trim());
+    if (!isNaN(start.getTime())) {           // Only if valid date
+      start.setHours(0, 0, 0, 0);
+      filter.date.$gte = start;
+    }
+  }
 
-        if (req.query.endDate) {
-          const end = new Date(req.query.endDate);
-          end.setHours(23, 59, 59, 999);                   // ← end of day
-          filter.date.$lte = end;
-        }
-      }
+  if (req.query.endDate && req.query.endDate.trim()) {
+    const end = new Date(req.query.endDate.trim());
+    if (!isNaN(end.getTime())) {             // Only if valid date
+      end.setHours(23, 59, 59, 999);
+      filter.date.$lte = end;
+    }
+  }
+
+  // If no valid dates were added, remove empty filter.date
+  if (Object.keys(filter.date).length === 0) {
+    delete filter.date;
+  }
+}
     if (req.query.status) filter.status = req.query.status;
 
     // Type filter: incoming/outgoing/all
