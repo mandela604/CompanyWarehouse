@@ -96,6 +96,8 @@ router.get('/warehouse/shipments/breakdown', async (req, res) => {
     const limit = parseInt(req.query.limit) || 15;
     const skip = (page - 1) * limit;
 
+    const filter = {};
+    
     // Build filter query
 if (req.query.startDate || req.query.endDate) {
   filter.date = {};
