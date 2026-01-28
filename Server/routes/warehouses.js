@@ -414,35 +414,51 @@ if (endDate && endDate !== 'null') {
 
 router.get('/warehouse/product-history', async (req, res) => {
   try {
-    const { warehouseId, productId } = req.query;
-    if (!warehouseId || !productId) return res.status(400).json({ message: 'Missing parameters' });
+    const { warehouseId, productId, page = 1, limit = 10 } = req.query;
 
-    const shipments = await Shipment.find({
-      $or: [
-        { toType: 'Warehouse', 'to.id': warehouseId },
-        { fromType: 'Warehouse', 'from.id': warehouseId }
-      ],
+    if (!warehouseId || !productId) {
+      return res.status(400).json({ message: 'Missing parameters' });
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // ONLY incoming to this warehouse (from Company or anywhere else)
+    const query = {
+      toType: 'Warehouse',
+      'to.id': warehouseId,
       'products.productId': productId
-    })
-    .sort({ date: -1 })
-    .lean();
+    };
+
+    const shipments = await Shipment.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const totalCount = await Shipment.countDocuments(query);
 
     const history = shipments.map(s => {
       const prod = s.products.find(p => p.productId === productId);
       let qty = prod?.qty || 0;
-      if ((s.status === 'cancelled' || s.status === 'Rejected') && s.fromType === 'Warehouse') {
-        qty = -qty;
-      }
+      // No need to negate qty here — incoming is always positive
       return {
         date: s.date,
-        fromName: s.from?.name || (s.fromType === 'Company' ? 'Company' : '—'),
-        qty: Math.abs(qty),
+        fromName: 'Company',  // hardcoded as agreed — always from Company
+        qty: qty,             // positive incoming
         status: s.status,
         shipmentId: s.id
       };
     });
 
-    res.json(history);
+    res.json({
+      history,
+      totalCount,
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalCount / limitNum)
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

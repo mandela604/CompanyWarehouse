@@ -480,6 +480,7 @@
       </thead>
       <tbody></tbody>
     </table>
+    <div class="pagination" id="historyPagination"></div>
   </div>
 </section>
 
@@ -599,6 +600,11 @@
 
 
   <script>
+
+let historyPage = 1;
+const HISTORY_PER_PAGE = 10;  // same as inventory
+let totalHistoryPages = 1;
+
 
 function updatePeriodDisplay(periodId, dateDisplayId) {
   const periodEl = document.getElementById(periodId);
@@ -1176,43 +1182,21 @@ $('#inventoryTable').addEventListener('click', e => {
 
 
 
-// Handle View History clicks → switch to full section
+// Handle View History clicks → 
 $('#inventoryTable').addEventListener('click', async (e) => {
   const btn = e.target.closest('.view-history-btn');
   if (!btn) return;
 
-  console.log('View button clicked – productId:', btn.dataset.productId); // ← must appear!
-
   const productId = btn.dataset.productId;
   const productName = btn.dataset.productName;
 
-  // Force show the section
   navigateTo('productHistorySection');
-  const section = $('#productHistorySection');
-  if (section) {
-    section.classList.add('active');
-    console.log('Activated productHistorySection');
-  } else {
-    console.error('productHistorySection NOT FOUND in DOM!');
-  }
-
-  // Update title
-  const titleEl = $('#productHistoryTitle');
-  if (titleEl) {
-    titleEl.textContent = `Shipment History: ${productName} (ID: ${productId})`;
-  }
+  $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
 
   const tbody = $('#productHistoryTable tbody');
-  if (!tbody) {
-    console.error('productHistoryTable tbody NOT FOUND!');
-    showToast('Table element missing – check HTML ID', 'error');
-    return;
-  }
-
   tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading history...</td></tr>';
 
   try {
-    console.log('Fetching history for:', { warehouseId: myWarehouse.id, productId });
     const res = await fetch(`/api/warehouse/product-history?warehouseId=${myWarehouse.id}&productId=${productId}`);
     
     if (!res.ok) {
@@ -1221,37 +1205,37 @@ $('#inventoryTable').addEventListener('click', async (e) => {
     }
 
     const history = await res.json();
-    console.log('History data received:', history); // ← THIS will show if data came back
 
     tbody.innerHTML = ''; // clear loading
 
     if (!Array.isArray(history) || history.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No shipment history found for this product</td></tr>';
-      console.log('No history – empty array');
-      return;
+    } else {
+      history.forEach(h => {
+        const qtySign = (h.status === 'Received') ? '+' : '-';
+        const qtyColor = (h.status === 'Received') ? 'green' : 'red';
+        tbody.innerHTML += `
+          <tr>
+            <td>${niceDate(h.date)}</td>
+            <td>Company</td>
+            <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
+            <td><span class="pill">${h.status}</span></td>
+            <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
+          </tr>
+        `;
+      });
     }
 
-    history.forEach(h => {
-      const qtySign = (h.status === 'Received') ? '+' : '-';
-      const qtyColor = (h.status === 'Received') ? 'green' : 'red';
-      tbody.innerHTML += `
-        <tr>
-          <td>${niceDate(h.date)}</td>
-          <td>${h.fromName || '—'}</td>
-          <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
-          <td><span class="pill">${h.status}</span></td>
-          <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
-        </tr>
-      `;
-    });
-    console.log('Rows appended:', history.length);
+    // PAGINATION — using your existing function exactly as it is
+    totalHistoryPages = Math.ceil(history.length / HISTORY_PER_PAGE);
+    const pagination = $('#historyPagination');
+    if (pagination) renderInventoryPagination();
+
   } catch (err) {
-    console.error('History fetch failed:', err);
     tbody.innerHTML = `<tr><td colspan="5" class="error">Failed to load: ${err.message}</td></tr>`;
     showToast('Error loading history: ' + err.message, 'error');
   }
 });
-
 // Helper: pagination controls under the inventory table if not exists
 function createInventoryPagination() {
   const pagination = document.createElement('div');
@@ -1335,6 +1319,75 @@ function renderInventoryPagination() {
     renderInventory();
   };
   pagination.appendChild(nextBtn);
+}
+
+
+function renderHistoryPagination() {
+  const pagination = $('#historyPagination');
+  if (!pagination) return;
+  pagination.innerHTML = '';
+
+  // Prev
+  const prev = document.createElement('button');
+  prev.className = 'btn secondary';
+  prev.textContent = '← Prev';
+  prev.disabled = historyPage === 1;
+  prev.onclick = () => {
+    historyPage--;
+    renderProductHistory(productId, historyPage);  // ← calls your history loader
+  };
+  pagination.appendChild(prev);
+
+  // Smart page range
+  const start = Math.max(1, historyPage - 2);
+  const end = Math.min(totalHistoryPages, historyPage + 2);
+
+  if (start > 1) {
+    const first = document.createElement('button');
+    first.className = 'btn secondary';
+    first.textContent = '1';
+    first.onclick = () => { historyPage = 1; renderProductHistory(productId, 1); };
+    pagination.appendChild(first);
+    if (start > 2) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+  }
+
+  for (let i = start; i <= end; i++) {
+    const btn = document.createElement('button');
+    btn.className = i === historyPage ? 'btn' : 'btn secondary';
+    btn.textContent = i;
+    btn.onclick = () => { historyPage = i; renderProductHistory(productId, i); };
+    pagination.appendChild(btn);
+  }
+
+  if (end < totalHistoryPages) {
+    if (end < totalHistoryPages - 1) {
+      const dots = document.createElement('span');
+      dots.textContent = '...';
+      dots.style.padding = '0 8px';
+      pagination.appendChild(dots);
+    }
+    const last = document.createElement('button');
+    last.className = 'btn secondary';
+    last.textContent = totalHistoryPages;
+    last.onclick = () => { historyPage = totalHistoryPages; renderProductHistory(productId, totalHistoryPages); };
+    pagination.appendChild(last);
+  }
+
+  // Next
+  const next = document.createElement('button');
+  next.className = 'btn secondary';
+  next.textContent = 'Next →';
+  next.disabled = historyPage === totalHistoryPages;
+  next.onclick = () => {
+    historyPage++;
+    renderProductHistory(productId, historyPage);
+  };
+  pagination.appendChild(next);
 }
 
 
