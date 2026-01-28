@@ -170,22 +170,29 @@ router.get('/warehouse/my', ensureAuth, async (req, res) => {
     }
 
     let data;
-    if (user.role === 'manager') {
-      data = await warehouseService.getMyWarehouseData(user.id);
-    } else if (user.role === 'admin') {
-      if (!warehouseId) return res.status(400).json({ message: 'warehouseId required for admin' });
+
+    // Both roles behave the same when warehouseId is provided
+    if (warehouseId) {
       data = await warehouseService.getWarehouseById(warehouseId);
+    } 
+    // No warehouseId provided → fallback only for managers (admins require it)
+    else if (user.role === 'manager') {
+      data = await warehouseService.getMyWarehouseData(user.id); // your original default
+    } else if (user.role === 'admin') {
+      return res.status(400).json({ message: 'warehouseId required for admin' });
     }
 
-    if (!data) return res.status(404).json({ message: 'Warehouse not found' });
+    if (!data) {
+      return res.status(404).json({ message: 'Warehouse not found' });
+    }
 
     res.json(data);
+
   } catch (err) {
-    console.error(err);
+    console.error('GET /warehouse/my error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 
 // ✅ UPDATE WAREHOUSE (Admin or assigned Manager)
