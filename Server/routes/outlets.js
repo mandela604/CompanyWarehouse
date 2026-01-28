@@ -767,5 +767,54 @@ const limitNumber = Number(limit) || 20;
 }); */
 
 
+router.get('/product-history', async (req, res) => {
+  try {
+    const { outletId, productId, page = 1, limit = 10 } = req.query;
+
+    if (!outletId || !productId) {
+      return res.status(400).json({ message: 'Missing outletId or productId' });
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Only incoming shipments TO this outlet for this product
+    const query = {
+      toType: 'Outlet',
+      'to.id': outletId,
+      'products.productId': productId
+    };
+
+    const shipments = await Shipment.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const totalCount = await Shipment.countDocuments(query);
+
+    const history = shipments.map(s => {
+      const prod = s.products.find(p => p.productId === productId);
+      return {
+        date: s.date,
+        fromName: s.from?.name || 'Warehouse', // or 'Company' if needed
+        qty: prod?.qty || 0,
+        status: s.status,
+        shipmentId: s.id
+      };
+    });
+
+    res.json({
+      history,
+      totalCount
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 module.exports = router;

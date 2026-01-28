@@ -275,7 +275,7 @@
       <section id="inventorySection" class="section">
         <h2>My Inventory</h2>
         <div class="card">
-          <table id="fullInventoryTable"><thead><tr><th>Product</th><th>SKU</th><th>In Stock</th><th>Price</th><th>Value</th></tr></thead><tbody></tbody></table>
+          <table id="fullInventoryTable"><thead><tr><th>Product</th><th>SKU</th><th>In Stock</th><th>Price</th><th>Value</th><th>History</th></tr></thead><tbody></tbody></table>
           <div class="pagination" id="inventoryPagination"></div>
         </div>
       </section>
@@ -410,6 +410,38 @@
     <div class="pagination" id="outletShipmentPagination"></div>
   </div>
 </section>
+
+
+<!-- PRODUCT SHIPMENT HISTORY (for Outlet Rep) -->
+<section id="productHistorySection" class="section">
+  <h2 id="productHistoryTitle">Shipment History</h2>
+  <button class="btn secondary" onclick="navigateTo('inventory')" style="margin-bottom:16px;">
+    ← Back to Inventory
+  </button>
+  <button class="btn" id="printHistoryBtn" style="margin-bottom:16px; background:#0b5ed7; color:white;">
+    Print History
+  </button>
+  <div class="card">
+    <table id="productHistoryTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>From</th>
+          <th>Qty</th>
+          <th>Status</th>
+          <th>Shipment ID</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="historyPagination"></div>
+  </div>
+</section>
+
+
+
+
+
 
     </main>
   </div>
@@ -894,6 +926,12 @@ async function renderOutletInventory(page = 1) {
         <td>${p.qty}</td>
         <td>${formatNGN(p.price)}</td>
         <td>${formatNGN(p.qty * p.price)}</td>
+        <button class="btn secondary view-history-btn"
+                  style="font-size:11px;padding:4px 8px;"
+                  data-product-id="${p.productId}"
+                  data-product-name="${p.productName || 'Unknown'}">
+            View
+          </button>
       </tr>
     `).join('');
 
@@ -908,6 +946,102 @@ async function renderOutletInventory(page = 1) {
 }
 
 
+// Handle "View History" clicks in Outlet Inventory
+$('#fullInventoryTable').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.view-history-btn');
+  if (!btn) return;
+
+  const productId = btn.dataset.productId;
+  const productName = btn.dataset.productName;
+
+  navigateTo('productHistorySection');
+  $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
+
+  const tbody = $('#productHistoryTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading history...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({
+      outletId: OUTLET_ID,
+      productId,
+      page: 1,           // start at page 1
+      limit: ITEMS_PER_PAGE
+    });
+
+   const res = await fetch(`/api/product-history?${q}`);
+    if (!res.ok) throw new Error(await res.text());
+
+    const { history, totalCount } = await res.json();
+
+    tbody.innerHTML = '';
+
+    if (!history?.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No shipment history for this product</td></tr>';
+    } else {
+      history.forEach(h => {
+        const qtySign = (h.status === 'Received') ? '+' : '-';
+        const qtyColor = (h.status === 'Received') ? 'green' : 'red';
+        tbody.innerHTML += `
+          <tr>
+            <td>${niceDate(h.date)}</td>
+            <td>${h.fromName || 'Warehouse'}</td>
+            <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
+            <td><span class="pill">${h.status}</span></td>
+            <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Pagination
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+    renderPag($('#historyPagination'), totalCount, 1, (newPage) => {
+      // Reload with new page (reuse same productId)
+      loadProductHistory(productId, newPage);
+    });
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="error">Failed: ${err.message}</td></tr>`;
+    showToast('Error loading history', 'error');
+  }
+});
+
+// Helper: Load history for specific page
+async function loadProductHistory(productId, page = 1) {
+  const tbody = $('#productHistoryTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({
+      outletId: OUTLET_ID,
+      productId,
+      page,
+      limit: ITEMS_PER_PAGE
+    });
+
+   const res = await fetch(`/api/product-history?${q}`);
+    if (!res.ok) throw new Error(await res.text());
+
+    const { history } = await res.json();
+
+    tbody.innerHTML = history.map(h => {
+      const qtySign = (h.status === 'Received') ? '+' : '-';
+      const qtyColor = (h.status === 'Received') ? 'green' : 'red';
+      return `
+        <tr>
+          <td>${niceDate(h.date)}</td>
+          <td>${h.fromName || 'Warehouse'}</td>
+          <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
+          <td><span class="pill">${h.status}</span></td>
+          <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="error">Failed</td></tr>`;
+  }
+}
 
 async function loadSales(page = 1) {
   curSales = page;
@@ -2350,6 +2484,39 @@ function loadOutletShipmentFilters() {
   // Load warehouses once when filters init
   populateOutletShipmentWarehouseFilter();
 }
+
+
+// Print History Button
+$('#printHistoryBtn').addEventListener('click', () => {
+  const title = $('#productHistoryTitle').textContent;
+  const tableHTML = $('#productHistoryTable').outerHTML;
+
+  const printContent = `
+    <div style="padding:40px; font-family:system-ui;">
+      <h2 style="text-align:center; color:#0b5ed7;">${title}</h2>
+      <p style="text-align:center; color:#555;">Printed ${new Date().toLocaleString('en-GB')}</p>
+      <style>
+        table { width:100%; border-collapse:collapse; margin:20px 0; }
+        th, td { border:1px solid #ddd; padding:10px; text-align:left; }
+        th { background:#f0f7ff; font-weight:600; }
+      </style>
+      ${tableHTML}
+    </div>
+  `;
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>Product Shipment History</title></head>
+    <body onload="window.print(); setTimeout(()=>window.close(),800)">
+      ${printContent}
+    </body>
+    </html>
+  `);
+  win.document.close();
+});
+
 
   </script>
 </body>
