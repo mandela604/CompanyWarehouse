@@ -768,7 +768,9 @@ async function loadManagerData() {
     // ... error handling
   }
 }
-    function navigateTo(route) {
+  
+
+function navigateTo(route) {
   $all('.section').forEach(s => s.classList.remove('active'));
   const section = $(`#${route}Section`);
   if (section) section.classList.add('active');
@@ -2658,6 +2660,32 @@ document.addEventListener('click', function(e) {
     }
   }
 });
+
+
+// Force-fix visibility for history section (run after every navigation)
+const originalNavigateTo = navigateTo;
+navigateTo = function(route) {
+  originalNavigateTo(route);
+
+  // Force history section visible
+  if (route === 'productHistorySection') {
+    const section = document.getElementById('productHistorySection');
+    if (section) {
+      section.style.display = 'block !important';
+      section.style.visibility = 'visible !important';
+      section.style.opacity = '1 !important';
+      section.classList.add('active');
+      console.log('FORCED visibility on #productHistorySection');
+      
+      // Also force its children visible
+      const table = section.querySelector('.table');
+      if (table) table.style.display = 'block !important';
+      const pagination = section.querySelector('#historyPagination');
+      if (pagination) pagination.style.display = 'flex !important';
+    }
+  }
+};
+
 
   </script>
 </body>
