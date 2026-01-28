@@ -1178,7 +1178,7 @@ $('#inventoryTable').addEventListener('click', e => {
 
 // Handle View History clicks → switch to full section
 $('#inventoryTable').addEventListener('click', async (e) => {
-  const btn = e.target.closest('.view-product-history');
+  const btn = e.target.closest('.view-history-btn');
   if (!btn) return;
 
   const productId = btn.dataset.productId;
