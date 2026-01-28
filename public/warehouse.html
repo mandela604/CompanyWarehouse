@@ -1181,27 +1181,53 @@ $('#inventoryTable').addEventListener('click', async (e) => {
   const btn = e.target.closest('.view-history-btn');
   if (!btn) return;
 
+  console.log('View button clicked – productId:', btn.dataset.productId); // ← must appear!
+
   const productId = btn.dataset.productId;
   const productName = btn.dataset.productName;
 
-  // Switch to history section
+  // Force show the section
   navigateTo('productHistorySection');
+  const section = $('#productHistorySection');
+  if (section) {
+    section.classList.add('active');
+    console.log('Activated productHistorySection');
+  } else {
+    console.error('productHistorySection NOT FOUND in DOM!');
+  }
 
   // Update title
-  $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
+  const titleEl = $('#productHistoryTitle');
+  if (titleEl) {
+    titleEl.textContent = `Shipment History: ${productName} (ID: ${productId})`;
+  }
 
   const tbody = $('#productHistoryTable tbody');
-  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+  if (!tbody) {
+    console.error('productHistoryTable tbody NOT FOUND!');
+    showToast('Table element missing – check HTML ID', 'error');
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading history...</td></tr>';
 
   try {
+    console.log('Fetching history for:', { warehouseId: myWarehouse.id, productId });
     const res = await fetch(`/api/warehouse/product-history?warehouseId=${myWarehouse.id}&productId=${productId}`);
-    if (!res.ok) throw new Error(await res.text());
+    
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Backend error ${res.status}: ${errText}`);
+    }
 
     const history = await res.json();
+    console.log('History data received:', history); // ← THIS will show if data came back
 
-    tbody.innerHTML = '';
-    if (!history.length) {
+    tbody.innerHTML = ''; // clear loading
+
+    if (!Array.isArray(history) || history.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No shipment history found for this product</td></tr>';
+      console.log('No history – empty array');
       return;
     }
 
@@ -1214,16 +1240,17 @@ $('#inventoryTable').addEventListener('click', async (e) => {
           <td>${h.fromName || '—'}</td>
           <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
           <td><span class="pill">${h.status}</span></td>
-          <td style="font-family:monospace;">${h.shipmentId.slice(0,8)}...</td>
+          <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
         </tr>
       `;
     });
+    console.log('Rows appended:', history.length);
   } catch (err) {
+    console.error('History fetch failed:', err);
     tbody.innerHTML = `<tr><td colspan="5" class="error">Failed to load: ${err.message}</td></tr>`;
-    showToast('Error loading history', 'error');
+    showToast('Error loading history: ' + err.message, 'error');
   }
 });
-
 
 // Helper: pagination controls under the inventory table if not exists
 function createInventoryPagination() {
