@@ -1181,6 +1181,7 @@ $('#inventoryTable').addEventListener('click', e => {
 });
 
 
+let currentHistoryProductId = null;
 
 // Handle View History clicks → 
 // Handle View History clicks
@@ -1198,6 +1199,9 @@ $('#inventoryTable').addEventListener('click', async (e) => {
     showToast('Product ID missing', 'error');
     return;
   }
+
+  // Store globally for pagination reloads
+  currentHistoryProductId = productId;
 
   navigateTo('productHistorySection');
   $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
@@ -1257,6 +1261,61 @@ $('#inventoryTable').addEventListener('click', async (e) => {
     showToast('Error loading history: ' + err.message, 'error');
   }
 });
+
+
+async function renderProductHistory(productId, page = 1) {
+  if (!productId) {
+    console.error('No productId for history reload');
+    return;
+  }
+
+  historyPage = page;
+  const tbody = $('#productHistoryTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading page ' + page + '...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({
+      warehouseId: myWarehouse.id,
+      productId,
+      page,
+      limit: HISTORY_PER_PAGE
+    });
+
+    const res = await fetch(`/api/warehouse/product-history?${q}`);
+    if (!res.ok) throw new Error(await res.text());
+
+    const data = await res.json();
+    let history = Array.isArray(data) ? data : (data.history || []);
+
+    tbody.innerHTML = '';
+
+    if (!history.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No more history on this page</td></tr>';
+    } else {
+      history.forEach(h => {
+        const qtySign = (h.status === 'Received') ? '+' : '-';
+        const qtyColor = (h.status === 'Received') ? 'green' : 'red';
+        tbody.innerHTML += `
+          <tr>
+            <td>${niceDate(h.date)}</td>
+            <td>Company</td>
+            <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
+            <td><span class="pill">${h.status}</span></td>
+            <td style="font-family:monospace;">${h.shipmentId?.slice(0,8) || '—'}...</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Re-render pagination
+    const pagination = $('#historyPagination');
+    if (pagination) renderHistoryPagination();
+
+  } catch (err) {
+    console.error('History page load failed:', err);
+    tbody.innerHTML = `<tr><td colspan="5" class="error">Failed: ${err.message}</td></tr>`;
+  }
+}
 
 // Helper: pagination controls under the inventory table if not exists
 function createInventoryPagination() {
@@ -1356,19 +1415,18 @@ function renderHistoryPagination() {
   prev.disabled = historyPage === 1;
   prev.onclick = () => {
     historyPage--;
-    renderProductHistory(productId, historyPage);  // ← calls your history loader
+    renderProductHistory(currentHistoryProductId, historyPage);  // ← FIXED
   };
   pagination.appendChild(prev);
 
   // Smart page range
   const start = Math.max(1, historyPage - 2);
   const end = Math.min(totalHistoryPages, historyPage + 2);
-
   if (start > 1) {
     const first = document.createElement('button');
     first.className = 'btn secondary';
     first.textContent = '1';
-    first.onclick = () => { historyPage = 1; renderProductHistory(productId, 1); };
+    first.onclick = () => { historyPage = 1; renderProductHistory(currentHistoryProductId, 1); };
     pagination.appendChild(first);
     if (start > 2) {
       const dots = document.createElement('span');
@@ -1377,15 +1435,13 @@ function renderHistoryPagination() {
       pagination.appendChild(dots);
     }
   }
-
   for (let i = start; i <= end; i++) {
     const btn = document.createElement('button');
     btn.className = i === historyPage ? 'btn' : 'btn secondary';
     btn.textContent = i;
-    btn.onclick = () => { historyPage = i; renderProductHistory(productId, i); };
+    btn.onclick = () => { historyPage = i; renderProductHistory(currentHistoryProductId, i); };
     pagination.appendChild(btn);
   }
-
   if (end < totalHistoryPages) {
     if (end < totalHistoryPages - 1) {
       const dots = document.createElement('span');
@@ -1396,7 +1452,7 @@ function renderHistoryPagination() {
     const last = document.createElement('button');
     last.className = 'btn secondary';
     last.textContent = totalHistoryPages;
-    last.onclick = () => { historyPage = totalHistoryPages; renderProductHistory(productId, totalHistoryPages); };
+    last.onclick = () => { historyPage = totalHistoryPages; renderProductHistory(currentHistoryProductId, totalHistoryPages); };
     pagination.appendChild(last);
   }
 
@@ -1407,11 +1463,10 @@ function renderHistoryPagination() {
   next.disabled = historyPage === totalHistoryPages;
   next.onclick = () => {
     historyPage++;
-    renderProductHistory(productId, historyPage);
+    renderProductHistory(currentHistoryProductId, historyPage);
   };
   pagination.appendChild(next);
 }
-
 
 // ─── WAREHOUSE SHIPMENT REPORT VARIABLES ────────────────────────────────────────
 let warehouseShipmentCurPage = 1;
