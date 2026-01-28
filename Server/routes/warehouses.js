@@ -58,7 +58,7 @@ router.post('/select-warehouse', ensureAuth, async (req, res) => {
 
     // Security: make sure this manager actually has access to this warehouse
     const warehouse = await Warehouse.findOne({
-      _id: warehouseId,
+      id: warehouseId,
       $or: [
         { managerIds: userId },
         { managerId: userId }
