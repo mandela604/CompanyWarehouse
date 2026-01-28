@@ -1183,12 +1183,21 @@ $('#inventoryTable').addEventListener('click', e => {
 
 
 // Handle View History clicks → 
+// Handle View History clicks
 $('#inventoryTable').addEventListener('click', async (e) => {
   const btn = e.target.closest('.view-history-btn');
   if (!btn) return;
 
   const productId = btn.dataset.productId;
   const productName = btn.dataset.productName;
+
+  console.log('View clicked — productId:', productId, 'name:', productName);
+
+  if (!productId) {
+    console.error('No productId found on button');
+    showToast('Product ID missing', 'error');
+    return;
+  }
 
   navigateTo('productHistorySection');
   $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
@@ -1198,17 +1207,21 @@ $('#inventoryTable').addEventListener('click', async (e) => {
 
   try {
     const res = await fetch(`/api/warehouse/product-history?warehouseId=${myWarehouse.id}&productId=${productId}`);
-    
+
     if (!res.ok) {
       const errText = await res.text();
       throw new Error(`Backend error ${res.status}: ${errText}`);
     }
 
-    const history = await res.json();
+    const data = await res.json();
+    console.log('Raw history response:', data);
 
-    tbody.innerHTML = ''; // clear loading
+    let history = Array.isArray(data) ? data : (data.history || []);
+    let totalCount = Array.isArray(data) ? data.length : (data.totalCount || history.length);
 
-    if (!Array.isArray(history) || history.length === 0) {
+    tbody.innerHTML = '';
+
+    if (!history.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No shipment history found for this product</td></tr>';
     } else {
       history.forEach(h => {
@@ -1226,16 +1239,25 @@ $('#inventoryTable').addEventListener('click', async (e) => {
       });
     }
 
-    // PAGINATION — using your existing function exactly as it is
-    totalHistoryPages = Math.ceil(history.length / HISTORY_PER_PAGE);
+    // Pagination — safe even if totalCount is wrong
+    totalHistoryPages = Math.ceil(totalCount / HISTORY_PER_PAGE) || 1;
+    console.log('Calculated totalHistoryPages:', totalHistoryPages);
+
     const pagination = $('#historyPagination');
-    if (pagination) renderInventoryPagination();
+    if (pagination) {
+      renderInventoryPagination(); // your existing function
+      console.log('Pagination rendered');
+    } else {
+      console.warn('No #historyPagination element found');
+    }
 
   } catch (err) {
+    console.error('History load failed:', err);
     tbody.innerHTML = `<tr><td colspan="5" class="error">Failed to load: ${err.message}</td></tr>`;
     showToast('Error loading history: ' + err.message, 'error');
   }
 });
+
 // Helper: pagination controls under the inventory table if not exists
 function createInventoryPagination() {
   const pagination = document.createElement('div');
