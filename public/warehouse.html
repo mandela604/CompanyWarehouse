@@ -446,11 +446,43 @@
         <h2>Warehouse Inventory</h2>
         <div class="table">
           <table id="inventoryTable">
-            <thead><tr><th>SKU</th><th>Name</th><th>In Stock</th><th>Unit Price</th></tr></thead>
-            <tbody></tbody>
+            <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Name</th>
+              <th>In Stock</th>
+              <th>Unit Price</th>
+              <th>History</th>   
+            </tr>
+          </thead>   
+          <tbody></tbody>
           </table>
         </div>
       </section>
+
+
+      <!-- PRODUCT SHIPMENT HISTORY SECTION -->
+<section id="productHistorySection" class="section">
+  <h2 id="productHistoryTitle">Shipment History</h2>
+  <button class="btn secondary" onclick="navigateTo('inventory')" style="margin-bottom:16px;">
+    ← Back to Inventory
+  </button>
+  <div class="table">
+    <table id="productHistoryTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>From</th>
+          <th>Qty</th>
+          <th>Status</th>
+          <th>Shipment ID</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
 
       <!-- SALES & REPORTS -->
       <section id="salesSection" class="section">
@@ -1115,11 +1147,12 @@ async function  renderInventory() {
   <td><strong>${p.qty}</strong></td>
   <td>${formatNGN(p.unitPrice)}</td>
   <td>
-    <button class="btn secondary ship-inventory-btn" 
-            style="font-size:11px;padding:4px 8px"
-            data-id="${p.id || p.productId}">
-      Ship →
-    </button>
+    <button class="btn secondary view-history-btn"
+              style="font-size:11px;padding:4px 8px"
+              data-product-id="${p.id || p.productId}"
+              data-product-name="${p.productName || p.name || 'Unknown'}">
+        View
+      </button>
   </td>
 `;
       tbody.appendChild(tr);
@@ -1139,6 +1172,56 @@ $('#inventoryTable').addEventListener('click', e => {
   const btn = e.target.closest('.ship-inventory-btn');
   if (!btn) return;
   quickShipToOutlet(btn.dataset.id);
+});
+
+
+
+// Handle View History clicks → switch to full section
+$('#inventoryTable').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.view-product-history');
+  if (!btn) return;
+
+  const productId = btn.dataset.productId;
+  const productName = btn.dataset.productName;
+
+  // Switch to history section
+  navigateTo('productHistorySection');
+
+  // Update title
+  $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
+
+  const tbody = $('#productHistoryTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+  try {
+    const res = await fetch(`/api/warehouse/product-history?warehouseId=${myWarehouse.id}&productId=${productId}`);
+    if (!res.ok) throw new Error(await res.text());
+
+    const history = await res.json();
+
+    tbody.innerHTML = '';
+    if (!history.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No shipment history found for this product</td></tr>';
+      return;
+    }
+
+    history.forEach(h => {
+      const qtySign = (h.status === 'Received') ? '+' : '-';
+      const qtyColor = (h.status === 'Received') ? 'green' : 'red';
+      tbody.innerHTML += `
+        <tr>
+          <td>${niceDate(h.date)}</td>
+          <td>${h.fromName || '—'}</td>
+          <td style="color:${qtyColor};font-weight:600;">${qtySign}${h.qty}</td>
+          <td><span class="pill">${h.status}</span></td>
+          <td style="font-family:monospace;">${h.shipmentId.slice(0,8)}...</td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="error">Failed to load: ${err.message}</td></tr>`;
+    showToast('Error loading history', 'error');
+  }
 });
 
 

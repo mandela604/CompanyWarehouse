@@ -410,4 +410,43 @@ if (endDate && endDate !== 'null') {
 });
 
 
+
+router.get('/warehouse/product-history', async (req, res) => {
+  try {
+    const { warehouseId, productId } = req.query;
+    if (!warehouseId || !productId) return res.status(400).json({ message: 'Missing parameters' });
+
+    const shipments = await Shipment.find({
+      $or: [
+        { toType: 'Warehouse', 'to.id': warehouseId },
+        { fromType: 'Warehouse', 'from.id': warehouseId }
+      ],
+      'products.productId': productId
+    })
+    .sort({ date: -1 })
+    .lean();
+
+    const history = shipments.map(s => {
+      const prod = s.products.find(p => p.productId === productId);
+      let qty = prod?.qty || 0;
+      if ((s.status === 'cancelled' || s.status === 'Rejected') && s.fromType === 'Warehouse') {
+        qty = -qty;
+      }
+      return {
+        date: s.date,
+        fromName: s.from?.name || (s.fromType === 'Company' ? 'Company' : '—'),
+        qty: Math.abs(qty),
+        status: s.status,
+        shipmentId: s.id
+      };
+    });
+
+    res.json(history);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;
