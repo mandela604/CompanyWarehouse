@@ -824,7 +824,7 @@ if (route === 'warehouseShipmentReport') {
 
     const params = new URLSearchParams(window.location.search);
     const warehouseId = params.get('warehouseId');
-    const res = await fetch(`/api/manager/overview?warehouseId=${warehouseId}`);
+   const res = await fetch(`/api/manager/overview?warehouseId=${myWarehouse.id}`);
      if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();   
 

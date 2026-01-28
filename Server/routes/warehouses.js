@@ -266,6 +266,39 @@ router.get('/warehouses/status/:status', ensureAdmin, async (req, res) => {
 router.get('/manager/overview', ensureAuth, async (req, res) => {
   try {
     const user = req.session.user;
+    const { warehouseId } = req.query;
+    let data;
+
+    if (user.role === 'manager') {
+      // Prefer query param if provided, else fallback to default
+      const targetId = warehouseId || req.session.currentWarehouseId;
+      if (targetId) {
+        // Verify access
+        const warehouse = await Warehouse.findOne({ id: targetId, $or: [{ managerIds: user.id }, { managerId: user.id }] });
+        if (!warehouse) return res.status(403).json({ message: 'Access denied' });
+        data = await warehouseService.getManagerOverview({ warehouseId: targetId });
+      } else {
+        data = await warehouseService.getManagerOverview({ managerId: user.id });
+      }
+    } else if (user.role === 'admin') {
+      if (!warehouseId) return res.status(400).json({ message: 'warehouseId required for admin' });
+      data = await warehouseService.getManagerOverview({ warehouseId });
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+/*
+router.get('/manager/overview', ensureAuth, async (req, res) => {
+  try {
+    const user = req.session.user;
     let data;
 
     if (user.role === 'manager') {
@@ -287,7 +320,7 @@ router.get('/manager/overview', ensureAuth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
+*/
 
 
 
