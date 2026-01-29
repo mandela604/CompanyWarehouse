@@ -206,6 +206,212 @@
 
 
 
+/* ────────────────────────────────────────────────────────────────
+   MOBILE RESPONSIVE IMPROVEMENTS
+─────────────────────────────────────────────────────────────────── */
+
+/* Tablets & small laptops — overview cards 2 per row */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+    gap: 14px;
+  }
+}
+
+/* Phones & small screens — overview cards stack to 1 per row */
+@media (max-width: 768px) {
+  .app {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr; /* 1 card per row on phones */
+    gap: 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .card h3 {
+    font-size: 12px;
+  }
+
+  .card .value {
+    font-size: 20px;
+  }
+
+  /* Tables — make them scrollable horizontally if needed, better readability */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
+  }
+
+  th, td {
+    padding: 10px 8px;
+    font-size: 13px;
+    min-width: 100px; /* prevent columns from collapsing too much */
+  }
+
+  /* Fix product column breathing room in tables */
+  #shipmentsTable th:nth-child(3),
+  #shipmentsTable td:nth-child(3),
+  #fullSalesTable th:nth-child(3),
+  #fullSalesTable td:nth-child(3),
+  #fullInventoryTable th:nth-child(1),
+  #fullInventoryTable td:nth-child(1) {
+    min-width: 140px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pagination button {
+    padding: 8px 10px;
+    font-size: 13px;
+    min-width: 40px;
+  }
+
+  .btn {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-top: 12px;
+  }
+}
+
+/* Very small phones (≤480px) — tighter spacing */
+@media (max-width: 480px) {
+  .app {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .card h3 {
+    font-size: 11px;
+  }
+
+  .card .value {
+    font-size: 18px;
+  }
+
+  th, td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+
+  .btn {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Sidebar hamburger & nav items smaller */
+  .hamburger {
+    padding: 10px;
+    font-size: 1.4rem;
+  }
+
+  .nav a {
+    padding: 8px;
+    font-size: 14px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   RECORD SALE MODAL — Fully mobile friendly
+─────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .modal-backdrop .modal {
+    width: 95%;
+    max-width: none;
+    margin: 10px;
+    padding: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Stack form rows vertically */
+  .form-row {
+    margin: 16px 0;
+  }
+
+  /* Full-width inputs & buttons */
+  #productSelect,
+  #qtyInput,
+  .btn {
+    width: 100%;
+    font-size: 15px;
+    padding: 12px;
+  }
+
+  /* Make add item button full width on small screens */
+  #addItemBtn {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  /* Table inside modal — scrollable if many items */
+  #modalBackdrop table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  #modalBackdrop th,
+  #modalBackdrop td {
+    padding: 10px 8px;
+    font-size: 14px;
+    min-width: 90px;
+  }
+
+  /* Grand total bigger & centered on mobile */
+  #grandTotal {
+    font-size: 1.6rem;
+    display: block;
+    text-align: center;
+    margin: 16px 0;
+  }
+
+  /* Buttons stack vertically */
+  .modal > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal > div:last-child button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  #modalBackdrop .modal {
+    padding: 12px;
+  }
+
+  #modalBackdrop h3 {
+    font-size: 1.3rem;
+  }
+
+  #modalBackdrop table th,
+  #modalBackdrop table td {
+    font-size: 13px;
+    padding: 8px 6px;
+  }
+}
+
   </style>
 
 
