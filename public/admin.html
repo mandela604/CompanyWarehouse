@@ -3970,9 +3970,10 @@ async function deleteProduct(id) {
     showToast('Delete failed: ' + err.message, 'error');
   }
 }
-
+/*
 async function editUser(id) {
   try {
+    // Fetch user from backend
     const res = await fetch(`/api/accounts/${id}`);
     if (!res.ok) throw new Error('Failed to fetch user');
     const user = await res.json();
@@ -3990,15 +3991,9 @@ async function editUser(id) {
         </select>
       </div>
 
+      <!-- Password field with toggle -->
       <div class="form-row" style="position:relative;">
-        <input 
-          id="editPassword" 
-          type="password" 
-          name="new-password"
-          autocomplete="off"  <!-- stronger than new-password -->
-          placeholder="New Password (leave blank to keep current)" 
-          style="padding-right:40px;"
-        />
+        <input id="editPassword" type="password" placeholder="New Password (leave blank to keep current)" style="padding-right:40px;" />
         <button type="button" id="togglePassword" style="
           position:absolute;
           right:8px;
@@ -4018,39 +4013,27 @@ async function editUser(id) {
       </div>
     `);
 
-    // Bulletproof clear (run multiple times + on focus)
-    function forceClearPassword() {
-      const pwd = document.getElementById('editPassword');
-      if (pwd) {
-        pwd.value = '';
-        pwd.setAttribute('autocomplete', 'off');
-        pwd.focus();
-        pwd.blur();
-      }
-    }
+    setTimeout(() => {
+  const pwd = document.getElementById('editPassword');
+  if (pwd) pwd.value = '';  // force clear
+}, 0);
 
-    forceClearPassword();
-    setTimeout(forceClearPassword, 50);
-    setTimeout(forceClearPassword, 200);
-    setTimeout(forceClearPassword, 500);
-
-    document.getElementById('editPassword')?.addEventListener('focus', forceClearPassword);
-
-    // Toggle visibility
+    // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
     document.getElementById('togglePassword').addEventListener('click', function() {
       const pwdField = document.getElementById('editPassword');
       if (pwdField.type === 'password') {
         pwdField.type = 'text';
-        this.textContent = '🙈';
+        this.textContent = '🙈'; // eye closed
       } else {
         pwdField.type = 'password';
-        this.textContent = '👁';
+        this.textContent = '👁';  // eye open
       }
     });
 
-    // Save button (unchanged)
+    // === Save button ===
     $('#saveEdit').onclick = async () => {
       $('#saveEdit').disabled = true;
+
       const updates = {
         name: $('#editName').value.trim(),
         email: $('#editEmail').value.trim(),
@@ -4082,6 +4065,103 @@ async function editUser(id) {
       }
 
       if (newPassword) {
+      showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
+    } else {
+      showToast('User details updated', 'success');
+    }
+      closeModal();
+      renderAccounts();
+    };
+
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+*/
+
+async function editUser(id) {
+  try {
+    const res = await fetch(`/api/accounts/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch user');
+    const user = await res.json();
+
+    // Unique ID every time → browser treats it as NEW field → no autofill
+    const uniquePwdId = 'editPassword_' + Date.now();
+
+    showModal(`
+      <h4>Edit User</h4>
+      <div class="form-row"><input id="editName" value="${user.name}" placeholder="Full name" /></div>
+      <div class="form-row"><input id="editEmail" type="email" value="${user.email}" placeholder="Email" /></div>
+      <div class="form-row"><input id="editPhone" value="${user.phone || ''}" placeholder="Phone" /></div>
+
+      <div class="form-row">
+        <select id="editRole">
+          <option value="manager" ${user.role==='manager'?'selected':''}>manager</option>
+          <option value="rep" ${user.role==='rep'?'selected':''}>Sales rep</option>
+        </select>
+      </div>
+
+      <div class="form-row" style="position:relative;">
+        <input 
+          id="${uniquePwdId}" 
+          type="password" 
+          autocomplete="new-password"
+          placeholder="New Password (leave blank to keep current)" 
+          style="padding-right:40px;"
+        />
+        <button type="button" class="togglePasswordBtn" style="...">👁</button>
+      </div>
+
+      <div style="text-align:right; margin-top:16px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="saveEdit">Save</button>
+      </div>
+    `);
+
+    // Use the dynamic ID for toggle and value clear
+    const pwdField = document.getElementById(uniquePwdId);
+    const toggleBtn = document.querySelector('.togglePasswordBtn');
+
+    // Force clear (extra safety)
+    if (pwdField) pwdField.value = '';
+
+    // Toggle listener
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function() {
+        if (pwdField.type === 'password') {
+          pwdField.type = 'text';
+          this.textContent = '🙈';
+        } else {
+          pwdField.type = 'password';
+          this.textContent = '👁';
+        }
+      });
+    }
+
+    // Save logic — use dynamic ID
+    $('#saveEdit').onclick = async () => {
+      $('#saveEdit').disabled = true;
+
+      const updates = {
+        name: $('#editName').value.trim(),
+        email: $('#editEmail').value.trim(),
+        role: $('#editRole').value,
+        phone: $('#editPhone').value.trim()
+      };
+
+      const newPassword = document.getElementById(uniquePwdId)?.value?.trim() || '';
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          showToast('Password must be at least 6 characters', 'error');
+          $('#saveEdit').disabled = false;
+          return;
+        }
+        updates.password = newPassword;
+      }
+
+      // ... rest of your fetch/save logic unchanged ...
+
+      if (newPassword) {
         showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
       } else {
         showToast('User details updated', 'success');
@@ -4094,6 +4174,8 @@ async function editUser(id) {
     showToast('Error: ' + err.message, 'error');
   }
 }
+
+
 function confirmDeleteUser(id) {
   const confirmHTML = `
     <div class="modal" style="max-width:400px;text-align:center;">
