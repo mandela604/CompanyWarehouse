@@ -4139,36 +4139,48 @@ async function editUser(id) {
     }
 
     // Save logic — use dynamic ID
-    $('#saveEdit').onclick = async () => {
-      $('#saveEdit').disabled = true;
+   $('#saveEdit').onclick = async () => {
+  $('#saveEdit').disabled = true;
 
-      const updates = {
-        name: $('#editName').value.trim(),
-        email: $('#editEmail').value.trim(),
-        role: $('#editRole').value,
-        phone: $('#editPhone').value.trim()
-      };
+  const updates = {
+    name: $('#editName').value.trim(),
+    email: $('#editEmail').value.trim(),
+    role: $('#editRole').value,
+    phone: $('#editPhone').value.trim()
+  };
 
-      const newPassword = document.getElementById(uniquePwdId)?.value?.trim() || '';
-      if (newPassword) {
-        if (newPassword.length < 6) {
-          showToast('Password must be at least 6 characters', 'error');
-          $('#saveEdit').disabled = false;
-          return;
-        }
-        updates.password = newPassword;
-      }
+  const newPassword = document.getElementById(uniquePwdId)?.value?.trim() || '';
+  if (newPassword) {
+    if (newPassword.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      $('#saveEdit').disabled = false;
+      return;
+    }
+    updates.password = newPassword;
+  }
 
-      // ... rest of your fetch/save logic unchanged ...
+  try {
+    const res = await fetch(`/api/accounts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
 
-      if (newPassword) {
-        showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
-      } else {
-        showToast('User details updated', 'success');
-      }
-      closeModal();
-      renderAccounts();
-    };
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Failed to update');
+    }
+
+    showToast(newPassword ? 'Password changed successfully' : 'User updated', 'success');
+    closeModal();
+    renderAccounts();
+  } catch (err) {
+    showToast('Update failed: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    $('#saveEdit').disabled = false;
+  }
+};
 
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
