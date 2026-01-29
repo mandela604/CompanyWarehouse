@@ -747,7 +747,10 @@ function showToast(message, type = 'info', duration = 3000) {
       document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
       $(`#${r}Section`).classList.add('active');
       document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));
-      document.querySelector(`.nav a[data-route="${r}"]`).classList.add('active');
+      const navLink = document.querySelector(`.nav a[data-route="${r}"]`);
+      if (navLink) {
+        navLink.classList.add('active');
+      }
       if(r==='inventory') renderOutletInventory();
       if(r==='sales') loadSales();
       if(r==='shipments') renderShipments();
