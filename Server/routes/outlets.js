@@ -12,6 +12,7 @@ const Sale = require('../models/Sale');
 const Product = require('../models/Product'); 
 const Warehouse = require('../models/Warehouse');
 const Account = require('../models/Account');
+const Shipment = require('../models/Shipment');
 
 const router = express.Router();
 
