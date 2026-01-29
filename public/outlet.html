@@ -401,6 +401,111 @@
   }
 }
 
+/* ────────────────────────────────────────────────────────────────
+   RECORD SALE MODAL — FORCE FIT ON MOBILE
+─────────────────────────────────────────────────────────────────── */
+
+.modal-backdrop .modal {
+  width: 90% !important;          /* override inline */
+  max-width: 95vw !important;     /* never wider than screen */
+  min-width: 320px !important;    /* safe minimum */
+  margin: 10px auto !important;
+  padding: 16px 12px !important;
+  max-height: 92vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  .modal-backdrop .modal {
+    width: 94% !important;
+    padding: 14px 10px !important;
+    margin: 8px auto !important;
+  }
+
+  /* Stack & full-width everything inside */
+  .form-row {
+    margin: 16px 0 !important;
+  }
+
+  #productSelect,
+  #qtyInput,
+  #addItemBtn,
+  .btn {
+    width: 100% !important;
+    font-size: 15px !important;
+    padding: 12px 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  #addItemBtn {
+    margin-top: 12px !important;
+  }
+
+  /* Modal table scrolls horizontally if needed */
+  #modalBackdrop table {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: block !important;
+    overflow-x: auto !important;
+  }
+
+  #modalBackdrop th,
+  #modalBackdrop td {
+    padding: 10px 8px !important;
+    font-size: 14px !important;
+    min-width: 80px !important;
+  }
+
+  #grandTotal {
+    font-size: 1.8rem !important;
+    text-align: center !important;
+    margin: 20px 0 !important;
+    display: block !important;
+  }
+
+  /* Stack Cancel/Complete buttons vertically */
+  .modal > div:last-child {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    margin-top: 20px !important;
+  }
+
+  .modal > div:last-child button {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 15px !important;
+  }
+
+  .modal h3 {
+    font-size: 1.4rem !important;
+    margin-bottom: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-backdrop .modal {
+    width: 96% !important;
+    padding: 12px 8px !important;
+    margin: 6px auto !important;
+  }
+
+  .modal h3 {
+    font-size: 1.3rem !important;
+  }
+
+  #grandTotal {
+    font-size: 1.6rem !important;
+  }
+
+  #modalBackdrop th,
+  #modalBackdrop td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+  }
+}
+
   </style>
 
 
