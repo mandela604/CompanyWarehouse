@@ -956,7 +956,7 @@ $('#fullInventoryTable').addEventListener('click', async (e) => {
   const productId = btn.dataset.productId;
   const productName = btn.dataset.productName;
 
-  navigateTo('productHistorySection');
+  navigateTo('productHistory');
   $('#productHistoryTitle').textContent = `Shipment History: ${productName} (ID: ${productId})`;
 
   const tbody = $('#productHistoryTable tbody');
