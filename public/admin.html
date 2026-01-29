@@ -3973,7 +3973,6 @@ async function deleteProduct(id) {
 
 async function editUser(id) {
   try {
-    // Fetch user from backend
     const res = await fetch(`/api/accounts/${id}`);
     if (!res.ok) throw new Error('Failed to fetch user');
     const user = await res.json();
@@ -3991,29 +3990,27 @@ async function editUser(id) {
         </select>
       </div>
 
-      <!-- Password field with toggle -->
-     <!-- Password field with toggle -->
-<div class="form-row" style="position:relative;">
-  <input 
-    id="editPassword" 
-    type="password" 
-    name="new-password"                           <!-- important -->
-    autocomplete="new-password"                   <!-- tells browser: don't remember -->
-    placeholder="New Password (leave blank to keep current)" 
-    style="padding-right:40px;"
-  />
-  <button type="button" id="togglePassword" style="
-    position:absolute;
-    right:8px;
-    top:50%;
-    transform:translateY(-50%);
-    background:none;
-    border:none;
-    font-size:18px;
-    cursor:pointer;
-    color:var(--muted);
-  ">👁</button>
-</div>
+      <div class="form-row" style="position:relative;">
+        <input 
+          id="editPassword" 
+          type="password" 
+          name="new-password"
+          autocomplete="off"  <!-- stronger than new-password -->
+          placeholder="New Password (leave blank to keep current)" 
+          style="padding-right:40px;"
+        />
+        <button type="button" id="togglePassword" style="
+          position:absolute;
+          right:8px;
+          top:50%;
+          transform:translateY(-50%);
+          background:none;
+          border:none;
+          font-size:18px;
+          cursor:pointer;
+          color:var(--muted);
+        ">👁</button>
+      </div>
 
       <div style="text-align:right; margin-top:16px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
@@ -4021,27 +4018,39 @@ async function editUser(id) {
       </div>
     `);
 
-    setTimeout(() => {
-  const pwd = document.getElementById('editPassword');
-  if (pwd) pwd.value = '';  // force clear
-}, 0);
+    // Bulletproof clear (run multiple times + on focus)
+    function forceClearPassword() {
+      const pwd = document.getElementById('editPassword');
+      if (pwd) {
+        pwd.value = '';
+        pwd.setAttribute('autocomplete', 'off');
+        pwd.focus();
+        pwd.blur();
+      }
+    }
 
-    // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
+    forceClearPassword();
+    setTimeout(forceClearPassword, 50);
+    setTimeout(forceClearPassword, 200);
+    setTimeout(forceClearPassword, 500);
+
+    document.getElementById('editPassword')?.addEventListener('focus', forceClearPassword);
+
+    // Toggle visibility
     document.getElementById('togglePassword').addEventListener('click', function() {
       const pwdField = document.getElementById('editPassword');
       if (pwdField.type === 'password') {
         pwdField.type = 'text';
-        this.textContent = '🙈'; // eye closed
+        this.textContent = '🙈';
       } else {
         pwdField.type = 'password';
-        this.textContent = '👁';  // eye open
+        this.textContent = '👁';
       }
     });
 
-    // === Save button ===
+    // Save button (unchanged)
     $('#saveEdit').onclick = async () => {
       $('#saveEdit').disabled = true;
-
       const updates = {
         name: $('#editName').value.trim(),
         email: $('#editEmail').value.trim(),
@@ -4073,10 +4082,10 @@ async function editUser(id) {
       }
 
       if (newPassword) {
-      showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
-    } else {
-      showToast('User details updated', 'success');
-    }
+        showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
+      } else {
+        showToast('User details updated', 'success');
+      }
       closeModal();
       renderAccounts();
     };
@@ -4085,7 +4094,6 @@ async function editUser(id) {
     showToast('Error: ' + err.message, 'error');
   }
 }
-
 function confirmDeleteUser(id) {
   const confirmHTML = `
     <div class="modal" style="max-width:400px;text-align:center;">
