@@ -3992,20 +3992,28 @@ async function editUser(id) {
       </div>
 
       <!-- Password field with toggle -->
-      <div class="form-row" style="position:relative;">
-        <input id="editPassword" type="password" placeholder="New Password (leave blank to keep current)" style="padding-right:40px;" />
-        <button type="button" id="togglePassword" style="
-          position:absolute;
-          right:8px;
-          top:50%;
-          transform:translateY(-50%);
-          background:none;
-          border:none;
-          font-size:18px;
-          cursor:pointer;
-          color:var(--muted);
-        ">👁</button>
-      </div>
+     <!-- Password field with toggle -->
+<div class="form-row" style="position:relative;">
+  <input 
+    id="editPassword" 
+    type="password" 
+    name="new-password"                           <!-- important -->
+    autocomplete="new-password"                   <!-- tells browser: don't remember -->
+    placeholder="New Password (leave blank to keep current)" 
+    style="padding-right:40px;"
+  />
+  <button type="button" id="togglePassword" style="
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    font-size:18px;
+    cursor:pointer;
+    color:var(--muted);
+  ">👁</button>
+</div>
 
       <div style="text-align:right; margin-top:16px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
