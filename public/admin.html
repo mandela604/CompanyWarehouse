@@ -4013,6 +4013,11 @@ async function editUser(id) {
       </div>
     `);
 
+    setTimeout(() => {
+  const pwd = document.getElementById('editPassword');
+  if (pwd) pwd.value = '';  // force clear
+}, 0);
+
     // === TOGGLE PASSWORD VISIBILITY (pure JS, no library) ===
     document.getElementById('togglePassword').addEventListener('click', function() {
       const pwdField = document.getElementById('editPassword');
@@ -4059,7 +4064,11 @@ async function editUser(id) {
         return;
       }
 
-      showToast('User updated successfully', 'success');
+      if (newPassword) {
+      showToast(`Password changed successfully for ${user.name || 'user'}`, 'success');
+    } else {
+      showToast('User details updated', 'success');
+    }
       closeModal();
       renderAccounts();
     };
