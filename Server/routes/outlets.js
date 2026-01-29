@@ -779,7 +779,6 @@ router.get('/product-history', async (req, res) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Only incoming shipments TO this outlet for this product
     const query = {
       toType: 'Outlet',
       'to.id': outletId,
@@ -794,20 +793,25 @@ router.get('/product-history', async (req, res) => {
 
     const totalCount = await Shipment.countDocuments(query);
 
+    console.log('Outlet history query:', query);
+    console.log('Found shipments count:', shipments.length);
+    if (shipments.length > 0) {
+      console.log('First shipment:', shipments[0]);
+    }
+
     const history = shipments.map(s => {
-      const prod = s.products.find(p => p.productId === productId);
+      // Safeguard: ensure products is an array
+      const products = Array.isArray(s.products) ? s.products : [];
+      const prod = products.find(p => p?.productId === productId);
+
       return {
-        date: s.date,
-        fromName: s.from?.name || 'Warehouse', // or 'Company' if needed
+        date: s.date || new Date(),
+        fromName: s.from?.name || 'Warehouse',
         qty: prod?.qty || 0,
-        status: s.status,
-        shipmentId: s.id
+        status: s.status || 'Unknown',
+        shipmentId: s.id || '—'  // your custom uuidv4 id
       };
     });
-
-    console.log('Outlet history query:', query);
-console.log('Found shipments count:', shipments.length);
-console.log('First shipment (if any):', shipments[0]);
 
     res.json({
       history,
@@ -815,8 +819,11 @@ console.log('First shipment (if any):', shipments[0]);
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('PRODUCT-HISTORY ERROR:', err.stack || err);
+    res.status(500).json({ 
+      message: 'Server error while fetching product history',
+      error: err.message 
+    });
   }
 });
 
