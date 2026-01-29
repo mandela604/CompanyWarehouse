@@ -926,12 +926,14 @@ async function renderOutletInventory(page = 1) {
         <td>${p.qty}</td>
         <td>${formatNGN(p.price)}</td>
         <td>${formatNGN(p.qty * p.price)}</td>
-        <button class="btn secondary view-history-btn"
+        <td> 
+          <button class="btn secondary view-history-btn"
                   style="font-size:11px;padding:4px 8px;"
                   data-product-id="${p.productId}"
                   data-product-name="${p.productName || 'Unknown'}">
             View
           </button>
+        </td>
       </tr>
     `).join('');
 

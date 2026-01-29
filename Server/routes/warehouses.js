@@ -339,35 +339,41 @@ router.get('/warehouse/inventory', ensureAuth, async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Find warehouse for this manager (admins can specify warehouseId later if needed)
-    let warehouse;
-    const query = {};
+    let warehouseId = req.query.warehouseId;
 
-    if (user.role === 'manager') {
-      warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
-      if (!warehouse) return res.status(404).json({ message: 'No warehouse assigned' });
-    }
+if (user.role === 'manager') {
+  if (!warehouseId) {
+    // Single warehouse fallback
+    const defaultWh = await Warehouse.findOne({
+      $or: [{ managerIds: user.id }, { managerId: user.id }]
+    }).lean();
+    if (!defaultWh) return res.status(404).json({ message: 'No warehouse assigned' });
+    warehouseId = defaultWh.id;
+  }
 
-    // After checking role
-    if (req.query.warehouseId) {
-      query.warehouseId = req.query.warehouseId;
-    }
+  // Verify manager actually manages this warehouse
+  const allowed = await Warehouse.findOne({
+    id: warehouseId,
+    $or: [{ managerIds: user.id }, { managerId: user.id }]
+  });
+  if (!allowed) return res.status(403).json({ message: 'Access denied' });
+}
 
-    if (user.role === 'manager') query.warehouseId = warehouse.id;
+// Now use warehouseId for the query (admins already required it)
+const total = await WarehouseInventory.countDocuments({ warehouseId });
+const products = await WarehouseInventory.find({ warehouseId })
+  .sort({ productName: 1 })
+  .skip(skip)
+  .limit(limit)
+  .lean();
 
-    const total = await WarehouseInventory.countDocuments(query);
-    const products = await WarehouseInventory.find(query)
-      .sort({ productName: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    res.json({
-      warehouseId: warehouse?.id || null,
-      products,
-      page,
-      totalPages: Math.ceil(total / limit),
-      totalCount: total
-    });
+res.json({
+  warehouseId,
+  products,
+  page,
+  totalPages: Math.ceil(total / limit),
+  totalCount: total
+});
 
   } catch (err) {
     console.error(err);

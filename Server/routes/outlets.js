@@ -805,6 +805,10 @@ router.get('/product-history', async (req, res) => {
       };
     });
 
+    console.log('Outlet history query:', query);
+console.log('Found shipments count:', shipments.length);
+console.log('First shipment (if any):', shipments[0]);
+
     res.json({
       history,
       totalCount
