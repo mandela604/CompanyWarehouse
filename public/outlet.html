@@ -447,6 +447,17 @@
   }
 }
 
+
+@media (max-width: 768px) {
+  #salesReportSection > div:first-child {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  #salesReportSection > div:first-child h2 {
+    margin-right: auto;
+  }
+}
   </style>
 
 
@@ -476,10 +487,14 @@
         <a href="#" data-route="shipments">Incoming Shipments</a>
         <a href="#" data-route="salesReport">Sales Breakdown Report</a>
         <a href="#" data-route="outletShipmentReport">Incoming Shipment Breakdown</a>
-        <div class="user-info"></div>
+        <div class="user-info" style="display : none; "></div>
          <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
+      <!-- Inside <aside class="sidebar"> ... </div> (after nav links) -->
       <button class="btn" id="recordSaleBtn">+ Record Sale</button>
+      <button class="btn" id="recordLayawayBtn" style="margin-top:12px; background:#8b5cf6; color:white;">
+        + Record Layaway / Partial
+      </button>
     </aside>
 
     <main>
@@ -565,7 +580,13 @@
 
       <!-- SALES BREAKDOWN REPORT (Outlet Rep) -->
 <section id="salesReportSection" class="section">
-  <h2 style="margin-top:0">Sales Breakdown Report</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 20px 0;">
+  <h2 style="margin: 0;">Sales Breakdown Report</h2>
+  <button class="btn" onclick="navigateTo('layawaySection')" 
+          style="background: #8b5cf6; color: white; padding: 10px 20px; font-size: 14px;">
+    View Pending Layaway →
+  </button>
+</div>
 
   <!-- Filters (same style as warehouse/manager) -->
   <div style="margin:24px 0 32px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:white; padding:20px; border-radius:12px; box-shadow:var(--shadow);">
@@ -681,6 +702,55 @@
 
 
 
+
+<!-- ==================== LAYAWAY / PENDING ORDERS SECTION ==================== -->
+<section id="layawaySection" class="section">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2>Pending Layaway / Orders</h2>
+    <div>
+      <button class="btn" id="printLayawayBtn" style="background:var(--blue); color:white;">
+        Print This Page
+      </button>
+    </div>
+  </div>
+
+  <!-- Optional quick stats -->
+  <div class="grid" style="margin-bottom:24px;">
+    <div class="card">
+      <h3>Pending Orders</h3>
+      <div class="value" id="layawayPendingCount">0</div>
+    </div>
+    <div class="card">
+      <h3>Total Outstanding</h3>
+      <div class="value" style="color:var(--red);" id="layawayTotalBalance">₦0</div>
+    </div>
+    <div class="card">
+      <h3>Full Paid – Awaiting Pickup</h3>
+      <div class="value" style="color:var(--green);" id="layawayHeldCount">0</div>
+    </div>
+  </div>
+
+  <!-- Main table – same style as your other tables -->
+  <div class="card">
+    <table id="layawayTable">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination" id="layawayPagination"></div>
+  </div>
+</section>
 
 
 
@@ -1006,6 +1076,10 @@ function showToast(message, type = 'info', duration = 3000) {
         loadOutletShipmentFilters();
         renderOutletShipmentReport();
         }
+        if (r === 'layaway') {
+    $('#layawaySection').classList.add('active');
+    renderLayawayOrders(); 
+  }
       }
     document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();navigateTo(a.dataset.route)}));
     $('#hambBtn').onclick=()=>$('#sidebar').classList.toggle('open');
@@ -2762,6 +2836,223 @@ $('#printHistoryBtn').addEventListener('click', () => {
   `);
   win.document.close();
 });
+
+
+// Record Layaway button click handler
+$('#recordLayawayBtn').onclick = async () => {
+  try {
+    // Reuse the same inventory fetch as Record Sale (shows company products in outlet)
+    let url = '/api/outlet/inventory';
+    if (OUTLET_ID) url += `?outletId=${OUTLET_ID}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to load products');
+    
+    const data = await res.json();
+    const products = data.products || [];
+
+    // Filter only in-stock items (same as your sale modal)
+    const options = products
+      .filter(p => p.qty > 0)
+      .map(p => `
+        <option
+          value="${p.productId}"
+          data-qty="${p.qty}"
+          data-price="${p.unitPrice || p.price || 0}"
+        >
+          ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || p.price || 0).toLocaleString()}
+        </option>
+      `)
+      .join('');
+
+    // Create a NEW modal specifically for layaway (copy of sale modal but customized)
+    showModal(`
+      <h3>Record Layaway / Partial Payment</h3>
+      <div id="layawaySuccess" class="success" style="display:none;">Layaway recorded!</div>
+      
+      <table style="width:100%;margin:16px 0;">
+        <thead>
+          <tr style="background:#f8fafc;">
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="layawayItems"></tbody>
+      </table>
+
+      <div class="form-row">
+        <select id="layawayProductSelect" style="width:100%;padding:10px;">
+          <option value="">Select product...</option>
+          ${options || '<option>No stock available</option>'}
+        </select>
+      </div>
+
+      <div class="form-row" style="display:flex;gap:10px;align-items:end;">
+        <div style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="layawayQtyInput" min="1" value="1" style="width:100%;">
+        </div>
+        <button class="btn secondary" id="addLayawayItemBtn" style="height:42px;">+ Add Item</button>
+      </div>
+
+      <!-- Customer name (you wanted this) -->
+      <div class="form-row">
+        <label>Customer Name (optional)</label>
+        <input type="text" id="layawayCustomerName" placeholder="e.g. Chinedu Okeke" />
+      </div>
+
+      <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
+        Grand Total: <span id="layawayGrandTotal">₦0</span>
+      </div>
+
+      <div class="form-row">
+        <label>Amount Paid Now (₦)</label>
+        <input type="number" id="layawayPaidNow" min="0" value="0" step="1000" style="width:100%;" />
+      </div>
+
+      <div style="text-align:right;margin-top:20px;">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" id="confirmLayaway" disabled>Record Layaway</button>
+      </div>
+    `);
+
+    // Now attach logic inside the modal (similar to your sale cart)
+    let layawayCart = [];
+
+    function renderLayawayCart() {
+      const tbody = $('#layawayItems');
+      let grandTotal = 0;
+      if (layawayCart.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
+        $('#confirmLayaway').disabled = true;
+        $('#layawayGrandTotal').textContent = '0';
+        return;
+      }
+
+      tbody.innerHTML = layawayCart.map((item, i) => {
+        const total = item.qty * item.price;
+        grandTotal += total;
+        return `
+          <tr>
+            <td style="padding:8px;"><strong>${item.name}</strong></td>
+            <td><input type="number" min="1" max="${item.max}" value="${item.qty}"
+                       onchange="updateLayawayQty(${i}, this.value)" style="width:70px;padding:6px;"></td>
+            <td>₦${item.price.toLocaleString()}</td>
+            <td style="text-align:right;font-weight:600;">₦${total.toLocaleString()}</td>
+            <td><button onclick="removeLayawayItem(${i})" style="color:var(--dark-red);">×</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      $('#layawayGrandTotal').textContent = grandTotal.toLocaleString();
+      $('#confirmLayaway').disabled = false;
+    }
+
+    window.updateLayawayQty = (index, newQty) => {
+      newQty = parseInt(newQty) || 1;
+      if (newQty > layawayCart[index].max) newQty = layawayCart[index].max;
+      layawayCart[index].qty = newQty;
+      renderLayawayCart();
+    };
+
+    window.removeLayawayItem = (index) => {
+      layawayCart.splice(index, 1);
+      renderLayawayCart();
+    };
+
+    $('#addLayawayItemBtn').onclick = () => {
+      const sel = $('#layawayProductSelect');
+      const qty = parseInt($('#layawayQtyInput').value) || 1;
+      if (!sel.value) return showToast('Select a product', 'error');
+      const opt = sel.selectedOptions[0];
+      const price = parseFloat(opt.dataset.price) || 0;
+      const max = parseInt(opt.dataset.qty);
+      const name = opt.textContent.split(' (')[0];
+
+      if (qty > max) return showToast(`Only ${max} available`, 'error');
+
+      const existing = layawayCart.findIndex(x => x.productId === sel.value);
+      if (existing !== -1) {
+        layawayCart[existing].qty += qty;
+        if (layawayCart[existing].qty > max) layawayCart[existing].qty = max;
+      } else {
+        layawayCart.push({
+          productId: sel.value,
+          name,
+          price,
+          qty,
+          max
+        });
+      }
+
+      $('#layawayQtyInput').value = '1';
+      sel.value = '';
+      renderLayawayCart();
+    };
+
+    $('#confirmLayaway').onclick = async () => {
+      if (layawayCart.length === 0) return;
+      $('#confirmLayaway').disabled = true;
+      $('#confirmLayaway').textContent = 'Processing...';
+
+      // Replace the try block inside $('#confirmLayaway').onclick
+try {
+  const customerName = $('#layawayCustomerName').value.trim() || 'Walk-in';
+  const paidNow = parseFloat($('#layawayPaidNow').value) || 0;
+  const total = layawayCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+  const balance = total - paidNow;
+
+  if (paidNow > total) throw new Error("Paid amount can't exceed total");
+
+  const items = layawayCart.map(item => ({
+    productId: item.productId,
+    qtyRequested: item.qty,
+    unitPrice: item.price
+  }));
+
+  const res = await fetch('/api/layaway', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      outletId: OUTLET_ID,
+      customerName,
+      items,
+      paidNow,
+      total,
+      balance
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to save layaway');
+
+  showToast('Layaway recorded successfully!', 'success');
+  $('#layawaySuccess').style.display = 'block';
+
+  setTimeout(() => {
+    closeModal();
+     renderLayawayOrders();
+  }, 1200);
+
+} catch (err) {
+  showToast(err.message || 'Failed to record layaway', 'error');
+} finally {
+        $('#confirmLayaway').disabled = false;
+        $('#confirmLayaway').textContent = 'Record Layaway';
+      }
+    };
+
+    // Initial render
+    renderLayawayCart();
+
+  } catch (err) {
+    showToast('Failed to load products for layaway', 'error');
+    console.error(err);
+  }
+};
 
 
   </script>
