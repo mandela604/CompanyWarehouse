@@ -78,6 +78,8 @@ app.use('/api', salesRoutes);
 app.use('/api', settingsRoutes);
 app.use('/api', warehouseRoutes);
 app.use('/', dashboardRoute);
+app.use('/api', require('./routes/layaway'));
+
 
 // 404 fallback
 app.use((req, res) => res.status(404).send('Page not found'));

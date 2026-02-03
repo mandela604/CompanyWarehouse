@@ -3055,6 +3055,97 @@ try {
 };
 
 
+async function renderLayawayOrders(page = 1) {
+  const tbody = $('#layawayTable tbody');
+  const pendingCountEl = $('#layawayPendingCount');
+  const totalBalanceEl = $('#layawayTotalBalance');
+  const heldCountEl = $('#layawayHeldCount');
+
+  tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+
+  try {
+    const q = new URLSearchParams({
+      page,
+      limit: ITEMS_PER_PAGE,
+      outletId: OUTLET_ID
+    });
+
+    const res = await fetch(`/api/layaway?${q}`);
+    if (!res.ok) throw new Error('Failed to load layaway orders');
+
+    const { orders, totalCount, stats } = await res.json(); // assume backend returns these
+
+    // Update stats cards
+    pendingCountEl.textContent = stats.pending || 0;
+    totalBalanceEl.textContent = formatNGN(stats.totalBalance || 0);
+    heldCountEl.textContent = stats.awaitingPickup || 0;
+
+    if (!orders?.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">No pending layaway orders</td></tr>';
+    } else {
+      tbody.innerHTML = orders.map(order => {
+        const statusClass = {
+          pending_payment: 'background:#fef3c7;color:#92400e;',
+          full_paid_pending_pickup: 'background:#d1fae5;color:#065f46;',
+          completed: 'background:#dbeafe;color:#1e40af;'
+        }[order.status] || '';
+
+        return `
+          <tr>
+            <td>${order.orderId}</td>
+            <td>${order.customerName || '—'}</td>
+            <td>${niceDate(order.createdAt)}</td>
+            <td>${order.items.map(i => `${i.productName} ×${i.qtyRequested}`).join('<br>')}</td>
+            <td>${formatNGN(order.totalAmount)}</td>
+            <td>${formatNGN(order.paidAmount)}</td>
+            <td style="color:${order.balance > 0 ? 'var(--dark-red)' : 'var(--blue)'}">
+              ${formatNGN(order.balance)}
+            </td>
+            <td><span class="pill" style="${statusClass}">${order.status.replace(/_/g, ' ')}</span></td>
+            <td>
+              ${order.status !== 'completed' ? `
+                <button class="btn receive-btn" style="font-size:11px;padding:6px 12px;"
+                        onclick="completeLayaway('${order.id}')">
+                  Mark Complete
+                </button>
+              ` : '<small>Completed</small>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    renderPag($('#layawayPagination'), totalCount, page, renderLayawayOrders);
+
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" class="error">Failed to load layaway orders</td></tr>';
+    console.error(err);
+    showToast('Error loading layaway list', 'error');
+  }
+}
+
+// Placeholder for complete action (call this when rep clicks "Mark Complete")
+async function completeLayaway(orderId) {
+  if (!confirm('Mark this layaway as fully collected? Stock will be deducted.')) return;
+
+  try {
+    const res = await fetch(`/api/layaway/${orderId}/complete`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID })
+    });
+
+    if (!res.ok) throw new Error('Failed to complete');
+
+    showToast('Layaway completed — stock deducted', 'success');
+    renderLayawayOrders(); 
+    renderOutletOverview(); 
+    renderOutletInventory(); 
+  } catch (err) {
+    showToast(err.message || 'Failed', 'error');
+  }
+}
+
   </script>
 </body>
 </html>
