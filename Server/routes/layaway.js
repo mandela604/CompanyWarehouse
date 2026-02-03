@@ -10,7 +10,6 @@ const Company = require('../models/Company');
 
 const router = express.Router();
 
-// ─── 1. POST /api/layaway ────────────────────────────────────────────────
 // Create new layaway order (partial or full payment)
 router.post('/layaway', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
