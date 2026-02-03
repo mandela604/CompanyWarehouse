@@ -158,4 +158,92 @@ router.get('/layaway', ensureAuth, async (req, res) => {
   }
 });
 
+
+// ─── 3. PUT /api/layaway/:id/edit ────────────────────────────────────────
+// Edit layaway (update items, customer, payments, etc.)
+router.put('/layaway/:id', ensureAuth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const { customerName, items, paidNow, total, balance } = req.body;
+
+    const layaway = await Layaway.findOne({ id }).session(session);
+    if (!layaway) throw new Error('Layaway not found');
+
+    // Only allow edit if not completed
+    if (layaway.status === 'completed') {
+      throw new Error('Completed layaway cannot be edited');
+    }
+
+    // Optional: validate new items/stock (same as create)
+    if (items) {
+      for (const item of items) {
+        const inv = await OutletInventory.findOne({
+          outletId: layaway.outletId,
+          productId: item.productId
+        }).session(session);
+        if (!inv || inv.qty < item.qtyRequested) {
+          throw new Error(`Insufficient stock for ${item.productName}`);
+        }
+      }
+    }
+
+    // Update fields (only what's sent)
+    if (customerName) layaway.customerName = customerName.trim();
+    if (items) layaway.items = items;
+    if (paidNow !== undefined) layaway.paidAmount = paidNow;
+    if (total !== undefined) layaway.totalAmount = total;
+    if (balance !== undefined) layaway.balance = balance;
+
+    // Update status automatically
+    layaway.status = layaway.balance === 0 ? 'full_paid_pending_pickup' : 'pending_payment';
+
+    layaway.updatedAt = new Date();
+    await layaway.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Layaway updated', layaway });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ message: err.message || 'Failed to update layaway' });
+  }
+});
+
+// ─── 4. DELETE /api/layaway/:id ──────────────────────────────────────────
+// Cancel/Delete layaway (only if not completed)
+router.delete('/layaway/:id', ensureAuth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const layaway = await Layaway.findOne({ id: req.params.id }).session(session);
+    if (!layaway) throw new Error('Layaway not found');
+
+    if (layaway.status === 'completed') {
+      throw new Error('Completed layaway cannot be cancelled');
+    }
+
+    // Optional: if you want to restore any reserved stock logic later, do it here
+
+    await Layaway.deleteOne({ id: layaway.id }, { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({ message: 'Layaway cancelled/deleted successfully' });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ message: err.message || 'Failed to cancel layaway' });
+  }
+});
+
+
 module.exports = router;
