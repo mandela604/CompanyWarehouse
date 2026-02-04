@@ -3193,13 +3193,12 @@ $('#recordLayawayBtn').onclick = async () => {
         <input type="number" id="layawayPaidNow" min="0" value="0" step="1000" style="width:100%;" />
       </div>
       <div style="text-align:right;margin-top:20px;">
-        <button class="btn secondary" onclick="closeDynamicModal()">Cancel</button>
+        <button class="btn secondary" onclick="closeLayawayModal()">Cancel</button>
         <button class="btn" id="confirmLayaway" disabled>Record Layaway</button>
       </div>
     `;
 
-    showDynamicModal(modalHTML);
-
+    openLayawayModal(modalHTML);
     let layawayCart = [];
 
     function renderLayawayCart() {
