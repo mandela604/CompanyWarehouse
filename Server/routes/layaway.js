@@ -184,7 +184,7 @@ router.get('/layaway/:id', ensureAuth, async (req, res) => {
 // ────────────────────────────────────────────────────────────────
 // PUT /api/layaway/:id/update - Update items + add payment
 // ────────────────────────────────────────────────────────────────
-router.put('/:id/update', ensureAuth, async (req, res) => {
+router.put('/layaway/:id/update', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
