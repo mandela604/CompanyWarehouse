@@ -2868,17 +2868,17 @@ $('#recordLayawayBtn').onclick = async () => {
 
     // ─── SAME AS SALES MODAL ────────────────────────────────────────
     const options = products
-      .filter(p => p.qty > 0)
-      .map(p => `
-        <option
-          value="${p.productId}"
-          data-qty="${p.qty}"
-          data-price="${p.unitPrice}"
-        >
-          ${p.productName} (${p.qty} left)
-        </option>
-      `)
-      .join('');
+  .filter(p => Number(p.qty) > 0)
+  .map(p => `
+    <option
+      value="${p.productId}"
+      data-qty="${p.qty}"
+      data-price="${p.unitPrice || p.price || 0}"
+    >
+      ${p.productName || 'Product'} (${p.qty} left)
+    </option>
+  `)
+  .join('') || '<option disabled>No stock available</option>';
 
     // Show modal — structure almost identical to sales
     showModal(`
