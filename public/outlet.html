@@ -2839,6 +2839,7 @@ $('#printHistoryBtn').addEventListener('click', () => {
 
 
 // Record Layaway button click handler
+// Record Layaway button click handler
 $('#recordLayawayBtn').onclick = async () => {
   try {
     let outletId = OUTLET_ID;
@@ -2850,40 +2851,60 @@ $('#recordLayawayBtn').onclick = async () => {
 
     const url = `/api/outlet/inventory?outletId=${encodeURIComponent(outletId)}`;
     console.log('Layaway fetching inventory from:', url);
+
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Inventory failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`Inventory failed: ${res.status}`);
+    }
+
     const data = await res.json();
     console.log('Layaway inventory response:', data);
 
     const products = data.products || [];
-    if (products.length === 0) showToast('No products in stock', 'warning');
 
+    if (products.length === 0) {
+      showToast('No products in stock for layaway', 'warning');
+    }
+
+    // ─── SAME AS SALES MODAL ────────────────────────────────────────
     const options = products
       .filter(p => p.qty > 0)
       .map(p => `
-        <option value="${p.productId}" data-qty="${p.qty}" data-price="${p.unitPrice || p.price || 0}">
-          ${p.productName} (${p.qty} left) — ₦${(p.unitPrice || p.price || 0).toLocaleString()}
+        <option
+          value="${p.productId}"
+          data-qty="${p.qty}"
+          data-price="${p.unitPrice}"
+        >
+          ${p.productName} (${p.qty} left)
         </option>
-      `).join('');
+      `)
+      .join('');
 
+    // Show modal — structure almost identical to sales
     showModal(`
       <h3>Record Layaway / Partial Payment</h3>
       <div id="layawaySuccess" class="success" style="display:none;">Layaway recorded!</div>
+      
       <table style="width:100%;margin:16px 0;">
-        <thead><tr style="background:#f8fafc;">
-          <th style="text-align:left;padding:10px;">Product</th>
-          <th style="width:100px;">Qty</th>
-          <th style="width:120px;">Price</th>
-          <th style="width:100px;">Total</th>
-          <th style="width:40px;"></th>
-        </tr></thead>
+        <thead>
+          <tr style="background:#f8fafc;">
+            <th style="text-align:left;padding:10px;">Product</th>
+            <th style="width:100px;">Qty</th>
+            <th style="width:120px;">Price</th>
+            <th style="width:100px;">Total</th>
+            <th style="width:40px;"></th>
+          </tr>
+        </thead>
         <tbody id="layawayItems"></tbody>
       </table>
+
       <div class="form-row">
         <select id="layawayProductSelect" style="width:100%;padding:10px;">
-          <option value="">Select product...</option>${options}
+          <option value="">Select product...</option>
+          ${options || '<option>No stock available</option>'}
         </select>
       </div>
+
       <div class="form-row" style="display:flex;gap:10px;align-items:end;">
         <div style="flex:1;">
           <label>Quantity</label>
@@ -2891,35 +2912,41 @@ $('#recordLayawayBtn').onclick = async () => {
         </div>
         <button class="btn secondary" id="addLayawayItemBtn" style="height:42px;">+ Add Item</button>
       </div>
+
       <div class="form-row">
         <label>Customer Name (optional)</label>
         <input type="text" id="layawayCustomerName" placeholder="e.g. Chinedu Okeke" />
       </div>
+
       <div style="margin-top:16px;text-align:right;font-size:18px;font-weight:600;">
         Grand Total: <span id="layawayGrandTotal">₦0</span>
       </div>
+
       <div class="form-row">
         <label>Amount Paid Now (₦)</label>
         <input type="number" id="layawayPaidNow" min="0" value="0" step="1000" style="width:100%;" />
       </div>
+
       <div style="text-align:right;margin-top:20px;">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" id="confirmLayaway" disabled>Record Layaway</button>
       </div>
     `);
 
-    // ─── VERY IMPORTANT ORDER FIX ────────────────────────────────
-    let layawayCart = [];  // ← declare FIRST
+    // Cart & rendering logic (same pattern as sales)
+    let layawayCart = [];
 
     function renderLayawayCart() {
       const tbody = $('#layawayItems');
       let grandTotal = 0;
+
       if (layawayCart.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">No items added</td></tr>';
         $('#confirmLayaway').disabled = true;
         $('#layawayGrandTotal').textContent = '0';
         return;
       }
+
       tbody.innerHTML = layawayCart.map((item, i) => {
         const total = item.qty * item.price;
         grandTotal += total;
@@ -2934,6 +2961,7 @@ $('#recordLayawayBtn').onclick = async () => {
           </tr>
         `;
       }).join('');
+
       $('#layawayGrandTotal').textContent = grandTotal.toLocaleString();
       $('#confirmLayaway').disabled = false;
     }
@@ -2952,46 +2980,57 @@ $('#recordLayawayBtn').onclick = async () => {
 
     $('#addLayawayItemBtn').onclick = () => {
       const sel = $('#layawayProductSelect');
-      const qty = parseInt($('#layawayQtyInput').value) || 1;
       if (!sel.value) return showToast('Select a product', 'error');
+
+      const qty = parseInt($('#layawayQtyInput').value) || 1;
       const opt = sel.selectedOptions[0];
       const price = parseFloat(opt.dataset.price) || 0;
-      const max = parseInt(opt.dataset.qty);
-      const name = opt.textContent.split(' (')[0];
-      if (qty > max) return showToast(`Only ${max} available`, 'error');
-      const existing = layawayCart.findIndex(x => x.productId === sel.value);
-      if (existing !== -1) {
-        layawayCart[existing].qty += qty;
-        if (layawayCart[existing].qty > max) layawayCart[existing].qty = max;
+      const maxQty = parseInt(opt.dataset.qty) || 9999;
+      const name = opt.textContent.split(' (')[0].trim();
+
+      if (qty > maxQty) {
+        return showToast(`Only ${maxQty} available`, 'error');
+      }
+
+      const existingIndex = layawayCart.findIndex(x => x.productId === sel.value);
+      if (existingIndex !== -1) {
+        layawayCart[existingIndex].qty += qty;
+        if (layawayCart[existingIndex].qty > maxQty) layawayCart[existingIndex].qty = maxQty;
       } else {
         layawayCart.push({
           productId: sel.value,
           name,
           price,
           qty,
-          max
+          max: maxQty
         });
       }
+
       $('#layawayQtyInput').value = '1';
       sel.value = '';
       renderLayawayCart();
     };
 
+    // Confirm layaway (your existing logic)
     $('#confirmLayaway').onclick = async () => {
       if (layawayCart.length === 0) return;
       $('#confirmLayaway').disabled = true;
       $('#confirmLayaway').textContent = 'Processing...';
+
       try {
         const customerName = $('#layawayCustomerName').value.trim() || 'Walk-in';
         const paidNow = parseFloat($('#layawayPaidNow').value) || 0;
         const total = layawayCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
         const balance = total - paidNow;
+
         if (paidNow > total) throw new Error("Paid amount can't exceed total");
+
         const items = layawayCart.map(item => ({
           productId: item.productId,
           qtyRequested: item.qty,
           unitPrice: item.price
         }));
+
         const res = await fetch('/api/layaway', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3004,14 +3043,18 @@ $('#recordLayawayBtn').onclick = async () => {
             balance
           })
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to save layaway');
+
         showToast('Layaway recorded successfully!', 'success');
         $('#layawaySuccess').style.display = 'block';
+
         setTimeout(() => {
           closeModal();
           renderLayawayOrders();
         }, 1200);
+
       } catch (err) {
         showToast(err.message || 'Failed to record layaway', 'error');
       } finally {
@@ -3020,14 +3063,16 @@ $('#recordLayawayBtn').onclick = async () => {
       }
     };
 
-    // Now safe to call — layawayCart already exists
+    // Initial render (empty cart)
     renderLayawayCart();
 
   } catch (err) {
-    console.error(err);
-    showToast('Failed to open layaway modal: ' + err.message, 'error');
+    console.error('Layaway modal error:', err);
+    showToast('Failed to load layaway modal: ' + err.message, 'error');
   }
 };
+
+
 
 async function renderLayawayOrders(page = 1) {
   const tbody = $('#layawayTable tbody');
