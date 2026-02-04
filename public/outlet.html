@@ -735,7 +735,7 @@
     <table id="layawayTable">
       <thead>
         <tr>
-          <th>Order ID</th>
+       <!--   <th>Order ID</th> -->
           <th>Customer</th>
           <th>Date</th>
           <th>Items</th>
@@ -3351,7 +3351,7 @@ async function renderLayawayOrders(page = 1) {
 
         return `
           <tr>
-            <td>${order.orderId}</td>
+           <!-- <td>${order.orderId}</td> -->
             <td>${order.customerName || '—'}</td>
             <td>${niceDate(order.createdAt)}</td>
             <td>${order.items.map(i => `${i.productName} ×${i.qtyRequested}`).join('<br>')}</td>

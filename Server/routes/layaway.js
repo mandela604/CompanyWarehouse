@@ -156,6 +156,31 @@ router.get('/layaway', ensureAuth, async (req, res) => {
   }
 });
 
+
+router.get('/layaway/:id', ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;               // "LAY-920cb34e"
+    const { outletId } = req.query;
+
+    if (!outletId) {
+      return res.status(400).json({ message: 'outletId is required' });
+    }
+
+    const layaway = await Layaway.findOne({ 
+      id: id,                                // your custom string ID
+      outletId: outletId 
+    });
+
+    if (!layaway) {
+      return res.status(404).json({ message: 'Layaway order not found' });
+    }
+
+    res.json(layaway);
+  } catch (err) {
+    console.error('Error fetching single layaway:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 // ────────────────────────────────────────────────────────────────
 // PUT /api/layaway/:id/update - Update items + add payment
 // ────────────────────────────────────────────────────────────────
