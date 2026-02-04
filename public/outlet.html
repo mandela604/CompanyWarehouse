@@ -3649,12 +3649,13 @@ async function openLayawayManagementModal(orderId) {
     };
 
     // 8. Save changes (sends to backend)
-    document.getElementById('saveLayawayChanges').onclick = async () => {
+document.getElementById('saveLayawayChanges').onclick = async () => {
   const btn = document.getElementById('saveLayawayChanges');
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
-  const paymentToday = parseFloat(document.getElementById('paymentToday').value) || 0;
+  const paymentToday = parseFloat(document.getElementById('paymentToday')?.value) || 0;
+
   if (paymentToday < 0) {
     showToast('Payment amount cannot be negative', 'error');
     btn.disabled = false;
@@ -3679,19 +3680,20 @@ async function openLayawayManagementModal(orderId) {
       })
     });
 
-    let data;
+    let data = {};
     try {
-      data = await res.json(); // always try to parse — even on error
-    } catch {
-      data = {};
+      data = await res.json();  // Try to parse even on error
+    } catch (jsonErr) {
+      console.warn('Response was not JSON:', jsonErr);
     }
 
     if (!res.ok) {
-      // Show the REAL backend error message
-      throw new Error(data.message || `Update failed (HTTP ${res.status})`);
+      // Use backend's error message if available
+      const errorMsg = data.message || `Update failed (HTTP ${res.status})`;
+      throw new Error(errorMsg);
     }
 
-    // Only if success
+    // Only run on success
     showToast('Layaway updated successfully!', 'success');
     closeLayawayModal();
     renderLayawayOrders();
@@ -3704,7 +3706,8 @@ async function openLayawayManagementModal(orderId) {
     btn.textContent = 'Save Changes';
   }
 };
-    // 9. Mark as fully collected (only shown when balance ≤ 0)
+
+// 9. Mark as fully collected (only shown when balance ≤ 0)
     const markBtn = document.getElementById('markFullyCollected');
     if (markBtn) {
       markBtn.onclick = async () => {
