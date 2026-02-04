@@ -1076,7 +1076,7 @@ function showToast(message, type = 'info', duration = 3000) {
         loadOutletShipmentFilters();
         renderOutletShipmentReport();
         }
-        if (r === 'layaway') {
+        if (r === 'layawaySection') {
     $('#layawaySection').classList.add('active');
     renderLayawayOrders(); 
   }
@@ -2840,18 +2840,33 @@ $('#printHistoryBtn').addEventListener('click', () => {
 
 // Record Layaway button click handler
 $('#recordLayawayBtn').onclick = async () => {
-  try {
-    // Reuse the same inventory fetch as Record Sale (shows company products in outlet)
-    let url = '/api/outlet/inventory';
-    if (OUTLET_ID) url += `?outletId=${OUTLET_ID}`;
-    
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to load products');
-    
-    const data = await res.json();
-    const products = data.products || [];
 
-    // Filter only in-stock items (same as your sale modal)
+   try {
+   
+    let outletId = OUTLET_ID;
+    if (!outletId) {
+      const me = await fetch('/api/auth/me').then(r => r.json());
+      outletId = me.currentOutletId;
+      if (!outletId) throw new Error('No outlet selected');
+    }
+
+    const url = `/api/outlet/inventory?outletId=${encodeURIComponent(outletId)}`;
+    console.log('Layaway fetching inventory from:', url); // ← debug
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Inventory failed: ${res.status} - ${err}`);
+    }
+
+    const data = await res.json();
+    console.log('Layaway inventory response:', data); // ← very important debug
+
+    const products = data.products || [];
+    if (products.length === 0) {
+      showToast('No products in stock for this outlet', 'warning');
+    }
+
     const options = products
       .filter(p => p.qty > 0)
       .map(p => `
