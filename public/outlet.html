@@ -3295,7 +3295,7 @@ $('#recordLayawayBtn').onclick = async () => {
         showToast('Layaway recorded successfully!', 'success');
         document.getElementById('layawaySuccess').style.display = 'block';
         setTimeout(() => {
-          closeDynamicModal();
+          closeLayawayModal();
           renderLayawayOrders();
         }, 1200);
       } catch (err) {
