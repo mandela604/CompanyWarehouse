@@ -3361,14 +3361,18 @@ async function renderLayawayOrders(page = 1) {
               ${formatNGN(order.balance)}
             </td>
             <td><span class="pill" style="${statusClass}">${order.status.replace(/_/g, ' ')}</span></td>
-            <td>
-              ${order.status !== 'completed' ? `
-                <button class="btn receive-btn" style="font-size:11px;padding:6px 12px;"
-                        onclick="completeLayaway('${order.id}')">
-                  Mark Complete
-                </button>
-              ` : '<small>Completed</small>'}
-            </td>
+<td>
+  <button class="btn secondary" style="font-size:11px;padding:6px 12px;"
+          onclick="openLayawayManagementModal('${order.id}')">
+    View / Manage
+  </button>
+  ${order.status !== 'completed' && order.status !== 'full_paid_pending_pickup' ? `
+    <button class="btn" style="background:#dc3545;color:white;font-size:11px;padding:6px 12px;margin-left:6px;"
+            onclick="confirmCancelLayaway('${order.id}', '${order.orderId}', '${order.customerName || 'Walk-in'}')">
+      Cancel
+    </button>
+  ` : ''}
+</td>
           </tr>
         `;
       }).join('');
@@ -3405,6 +3409,402 @@ async function completeLayaway(orderId) {
   }
 }
 
-  </script>
+
+// Production-ready: Manage existing layaway order
+async function openLayawayManagementModal(orderId) {
+  try {
+    // Show loading state immediately
+    openLayawayModal(`
+      <div style="text-align:center; padding:40px 0;">
+        <h3>Loading Layaway Order...</h3>
+        <p style="color:#666;">Please wait...</p>
+      </div>
+    `);
+
+    // 1. Fetch the existing layaway order details
+    const orderRes = await fetch(`/api/layaway/${orderId}?outletId=${OUTLET_ID}`);
+    if (!orderRes.ok) {
+      throw new Error(`Failed to load layaway order: ${orderRes.status}`);
+    }
+    const order = await orderRes.json();
+
+    // 2. Fetch current outlet inventory (critical for stock checks)
+    const invRes = await fetch(`/api/outlet/inventory?outletId=${OUTLET_ID}`);
+    if (!invRes.ok) {
+      throw new Error(`Failed to load inventory: ${invRes.status}`);
+    }
+    const inventoryData = await invRes.json();
+
+    // 3. Create fast lookup: productId → current real stock
+    const currentStock = {};
+    inventoryData.products.forEach(p => {
+      currentStock[p.productId] = Number(p.qty) || 0;
+    });
+
+    // 4. Build editable cart with REAL maximum quantities
+    const managementCart = order.items.map(item => {
+      const productId = item.productId;
+      const alreadyReserved = Number(item.qtyRequested) || 0;
+      const availableNow = currentStock[productId] || 0;
+
+      // Real max this layaway can reach = already reserved + remaining stock
+      const realMax = alreadyReserved + availableNow;
+
+      return {
+        productId,
+        name: item.productName || 'Unknown Product',
+        price: Number(item.unitPrice) || 0,
+        qty: alreadyReserved,
+        max: realMax,
+        originalQty: alreadyReserved
+      };
+    });
+
+    // 5. Build the full modal HTML
+    const modalHTML = `
+      <h3>Manage Layaway #${order.orderId || '—'}</h3>
+
+      <div style="margin:16px 0; padding:16px; background:#f8fafc; border-radius:8px; font-size:14px;">
+        <div><strong>Customer:</strong> ${order.customerName || 'Walk-in'}</div>
+        <div><strong>Created:</strong> ${niceDate(order.createdAt)}</div>
+        <div><strong>Current Total:</strong> ${formatNGN(order.totalAmount || 0)}</div>
+        <div><strong>Paid so far:</strong> ${formatNGN(order.paidAmount || 0)}</div>
+        <div>
+          <strong>Balance:</strong> 
+          <span style="color:${order.balance > 0 ? 'var(--dark-red)' : 'var(--green)'}">
+            ${formatNGN(order.balance || 0)}
+          </span>
+        </div>
+      </div>
+
+      <h4>Items in Layaway</h4>
+      <table style="width:100%; margin:12px 0; border-collapse:collapse;">
+        <thead style="background:#f1f5f9;">
+          <tr>
+            <th style="text-align:left; padding:10px;">Product</th>
+            <th style="width:100px; padding:10px;">Qty</th>
+            <th style="width:120px; padding:10px;">Unit Price</th>
+            <th style="width:100px; padding:10px; text-align:right;">Line Total</th>
+            <th style="width:40px; padding:10px;"></th>
+          </tr>
+        </thead>
+        <tbody id="managementItems"></tbody>
+      </table>
+
+      <div style="text-align:right; font-size:18px; font-weight:600; margin:12px 0;">
+        Updated Total: <span id="managementGrandTotal">₦0</span>
+      </div>
+
+      <!-- Add new product -->
+      <div class="form-row" style="display:flex; gap:12px; align-items:end; margin:20px 0;">
+        <div style="flex:1;">
+          <label>Add Product</label>
+          <select id="addProductSelect" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;"></select>
+        </div>
+        <div style="width:100px;">
+          <label>Qty</label>
+          <input type="number" id="addQtyInput" min="1" value="1" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+        </div>
+        <button class="btn secondary" id="addManagementItemBtn" style="height:42px; padding:0 16px;">+ Add</button>
+      </div>
+
+      <!-- Payment input -->
+      <div class="form-row" style="margin:20px 0;">
+        <label>Amount Paying Today (₦)</label>
+        <input type="number" id="paymentToday" min="0" value="0" step="1000" 
+               style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;" />
+      </div>
+
+      <!-- Payment history -->
+      ${order.payments?.length > 0 ? `
+        <h4 style="margin:24px 0 8px;">Payment History</h4>
+        <ul style="margin:0; padding-left:20px; font-size:14px; color:#444;">
+          ${order.payments.map(p => `
+            <li>${niceDate(p.date)} — ${formatNGN(p.amount)}</li>
+          `).join('')}
+        </ul>
+      ` : '<p style="color:#666; font-style:italic;">No previous payments recorded.</p>'}
+
+      <!-- Action buttons -->
+      <div style="text-align:right; margin-top:28px; display:flex; gap:12px; justify-content:flex-end;">
+        <button class="btn secondary" onclick="closeLayawayModal()">Cancel</button>
+        <button class="btn" id="saveLayawayChanges" style="background:var(--blue); color:white;">
+          Save Changes
+        </button>
+        ${order.balance <= 0 ? `
+          <button class="btn" id="markFullyCollected" style="background:#10b981; color:white;">
+            Mark as Fully Collected
+          </button>
+        ` : ''}
+      </div>
+    `;
+
+    // Replace loading screen with real content
+    document.getElementById('modal').innerHTML = modalHTML;
+
+    // 6. Populate "Add Product" dropdown (using the same inventory we already fetched)
+    const productOptions = inventoryData.products
+      .filter(p => Number(p.qty) > 0)
+      .map(p => `
+        <option value="${p.productId}" 
+                data-price="${Number(p.unitPrice || p.price || 0)}" 
+                data-qty="${Number(p.qty || 0)}">
+          ${p.productName || 'Unnamed'} (${p.qty} left) - ₦${Number(p.unitPrice || p.price || 0).toLocaleString()}
+        </option>
+      `).join('');
+
+    document.getElementById('addProductSelect').innerHTML = 
+      '<option value="">Select product to add...</option>' + productOptions;
+
+    // 7. Render current cart & live total
+    function renderManagementCart() {
+      const tbody = document.getElementById('managementItems');
+      let grandTotal = 0;
+
+      tbody.innerHTML = managementCart.map((item, index) => {
+        const lineTotal = item.qty * item.price;
+        grandTotal += lineTotal;
+
+        return `
+          <tr>
+            <td style="padding:10px;"><strong>${item.name}</strong></td>
+            <td style="padding:10px;">
+              <input type="number" min="0" value="${item.qty}" 
+                     onchange="window.updateManagementQty(${index}, this.value)" 
+                     style="width:80px; padding:6px; border:1px solid #ddd; border-radius:4px;">
+            </td>
+            <td style="padding:10px;">₦${item.price.toLocaleString()}</td>
+            <td style="padding:10px; text-align:right;">₦${lineTotal.toLocaleString()}</td>
+            <td style="padding:10px;">
+              <button onclick="window.removeManagementItem(${index})" 
+                      style="color:var(--dark-red); background:none; border:none; font-size:18px; cursor:pointer;">×</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update live grand total
+      document.getElementById('managementGrandTotal').textContent = `₦${grandTotal.toLocaleString()}`;
+    }
+
+    // Quantity change handler (safe)
+    window.updateManagementQty = (index, val) => {
+      let qty = parseInt(val) || 0;
+      if (qty < 0) qty = 0;
+      if (qty > managementCart[index].max) {
+        qty = managementCart[index].max;
+        showToast(`Cannot exceed available stock (${managementCart[index].max})`, 'warning');
+      }
+      managementCart[index].qty = qty;
+      renderManagementCart();
+    };
+
+    // Remove item handler
+    window.removeManagementItem = (index) => {
+      if (confirm(`Remove ${managementCart[index].name} from this layaway?`)) {
+        managementCart.splice(index, 1);
+        renderManagementCart();
+      }
+    };
+
+    // Add new item handler (stock-safe)
+    document.getElementById('addManagementItemBtn').onclick = () => {
+      const sel = document.getElementById('addProductSelect');
+      if (!sel.value) return showToast('Please select a product', 'error');
+
+      const qtyInput = document.getElementById('addQtyInput');
+      const qty = parseInt(qtyInput.value) || 1;
+      if (qty < 1) return showToast('Quantity must be at least 1', 'error');
+
+      const opt = sel.selectedOptions[0];
+      const price = parseFloat(opt.dataset.price) || 0;
+      const available = parseInt(opt.dataset.qty) || 0;
+      const name = opt.textContent.split(' (')[0].trim();
+
+      if (qty > available) {
+        return showToast(`Only ${available} available in stock`, 'error');
+      }
+
+      const existingIndex = managementCart.findIndex(x => x.productId === sel.value);
+      if (existingIndex !== -1) {
+        const newQty = managementCart[existingIndex].qty + qty;
+        if (newQty > managementCart[existingIndex].max) {
+          return showToast(`Cannot exceed available stock limit`, 'error');
+        }
+        managementCart[existingIndex].qty = newQty;
+      } else {
+        managementCart.push({
+          productId: sel.value,
+          name,
+          price,
+          qty,
+          max: available,
+          originalQty: 0
+        });
+      }
+
+      qtyInput.value = '1';
+      sel.value = '';
+      renderManagementCart();
+    };
+
+    // 8. Save changes (sends to backend)
+    document.getElementById('saveLayawayChanges').onclick = async () => {
+      const btn = document.getElementById('saveLayawayChanges');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const paymentToday = parseFloat(document.getElementById('paymentToday').value) || 0;
+      if (paymentToday < 0) {
+        showToast('Payment amount cannot be negative', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+        return;
+      }
+
+      const updatedItems = managementCart.map(item => ({
+        productId: item.productId,
+        qtyRequested: item.qty,
+        unitPrice: item.price
+      }));
+
+      try {
+        const res = await fetch(`/api/layaway/${orderId}/update`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            outletId: OUTLET_ID,
+            items: updatedItems,
+            additionalPayment: paymentToday
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Update failed (${res.status})`);
+        }
+
+        showToast('Layaway updated successfully!', 'success');
+        closeLayawayModal();
+        renderLayawayOrders(); // refresh table
+      } catch (err) {
+        console.error('Save layaway error:', err);
+        showToast(err.message || 'Failed to save changes — please try again', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    };
+
+    // 9. Mark as fully collected (only shown when balance ≤ 0)
+    const markBtn = document.getElementById('markFullyCollected');
+    if (markBtn) {
+      markBtn.onclick = async () => {
+        if (!confirm('Mark this layaway as fully collected? This will deduct stock.')) return;
+
+        markBtn.disabled = true;
+        markBtn.textContent = 'Processing...';
+
+        try {
+          const res = await fetch(`/api/layaway/${orderId}/complete`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outletId: OUTLET_ID })
+          });
+
+          if (!res.ok) throw new Error('Failed to mark as collected');
+
+          showToast('Layaway marked as fully collected — stock deducted', 'success');
+          closeLayawayModal();
+          renderLayawayOrders();
+        } catch (err) {
+          showToast(err.message || 'Failed to complete layaway', 'error');
+        } finally {
+          markBtn.disabled = false;
+          markBtn.textContent = 'Mark as Fully Collected';
+        }
+      };
+    }
+
+    // Initial render of cart
+    renderManagementCart();
+
+  } catch (err) {
+    console.error('Failed to open layaway management modal:', err);
+    showToast('Could not load layaway details. Please try again.', 'error');
+    closeLayawayModal();
+  }
+}
+
+
+// Add this function near confirmDeleteSale()
+function confirmCancelLayaway(orderId, orderNumber, customerName) {
+  // Safety check
+  if (!orderId) {
+    showToast('Invalid layaway ID', 'error');
+    return;
+  }
+
+  const confirmHTML = `
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h3 style="color:#dc3545;margin:0 0 16px;">Cancel Layaway?</h3>
+      <p>Are you sure you want to <strong>cancel</strong> this layaway order?</p>
+      <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
+        <strong>Order ID:</strong> ${orderNumber}<br>
+        <strong>Customer:</strong> ${customerName}<br>
+        <strong>Action:</strong> This cannot be undone
+      </div>
+      <p style="color:#dc3545;font-size:13px;"><strong>Stock will NOT be affected (since not collected yet).</strong></p>
+      <div style="margin-top:20px;">
+        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;"
+                onclick="cancelLayaway('${orderId}'); closeConfirmModal()">
+          Yes, Cancel Layaway
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Reuse the same backdrop creation logic as sales delete
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = confirmHTML;
+  backdrop.style.display = 'flex';
+  backdrop.onclick = (e) => {
+    if (e.target === backdrop) backdrop.remove();
+  };
+  document.body.appendChild(backdrop);
+
+  // Close helper (same as sales)
+  window.closeConfirmModal = () => {
+    if (backdrop && backdrop.parentNode) {
+      backdrop.remove();
+    }
+    delete window.closeConfirmModal;
+  };
+}
+
+async function cancelLayaway(orderId) {
+  try {
+    const res = await fetch(`/api/layaway/${orderId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Cancel failed');
+    }
+
+    showToast('Layaway cancelled successfully', 'success');
+    renderLayawayOrders();           
+    renderOutletOverview();          
+  } catch (err) {
+    showToast(err.message || 'Failed to cancel layaway', 'error');
+  }
+}
+
+</script>
 </body>
 </html>

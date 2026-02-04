@@ -2,15 +2,17 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const { ensureAuth } = require('../middlewares/auth');
-const Layaway = require('../models/Layaway'); 
+const Layaway = require('../models/Layaway');
+const Sale = require('../models/Sale');           // ← assuming you have a Sale model
 const OutletInventory = require('../models/OutletInventory');
 const Outlet = require('../models/Outlet');
 const Product = require('../models/Product');
-const Company = require('../models/Company');
 
 const router = express.Router();
 
-// Create new layaway order (partial or full payment)
+// ────────────────────────────────────────────────────────────────
+// POST /api/layaway - Create new layaway (already good, minor safety)
+// ────────────────────────────────────────────────────────────────
 router.post('/layaway', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -18,129 +20,126 @@ router.post('/layaway', ensureAuth, async (req, res) => {
   try {
     const { outletId, customerName, items, paidNow, total, balance } = req.body;
 
-    if (!outletId || !items?.length || total <= 0 || paidNow < 0) {
+    if (!outletId || !Array.isArray(items) || items.length === 0 || total <= 0 || paidNow < 0) {
       throw new Error('Invalid layaway data');
     }
 
     if (paidNow > total) {
-      throw new Error("Paid amount can't exceed total");
+      throw new Error("Paid amount cannot exceed total");
     }
 
-    // Validate outlet exists and user has access
+    // Verify outlet & user access
     const outlet = await Outlet.findOne({ id: outletId }).session(session);
     if (!outlet) throw new Error('Outlet not found');
 
-    const user = req.session.user;
-    const isAssigned = 
+    const user = req.user; // from ensureAuth
+    const hasAccess = 
       outlet.repId === user.id ||
-      (Array.isArray(outlet.repIds) && outlet.repIds.includes(user.id));
+      (outlet.repIds || []).includes(user.id) ||
+      user.role === 'admin';
 
-    if (!isAssigned && user.role !== 'admin') {
-      throw new Error('You do not have access to this outlet');
-    }
+    if (!hasAccess) throw new Error('Unauthorized for this outlet');
 
-    // Validate all products exist and stock is sufficient (but DO NOT deduct yet)
+    // Validate stock (do NOT deduct yet — layaway is pending)
     for (const item of items) {
       const product = await Product.findOne({ id: item.productId }).session(session);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
+      if (!product) throw new Error(`Product not found: ${item.productId}`);
 
-      const inv = await OutletInventory.findOne({
+      const inventory = await OutletInventory.findOne({
         outletId,
         productId: item.productId
       }).session(session);
 
-      if (!inv || inv.qty < item.qtyRequested) {
-        throw new Error(`Insufficient stock for ${product.name}`);
+      if (!inventory || inventory.qty < item.qtyRequested) {
+        throw new Error(`Insufficient stock for ${product.name} (only ${inventory?.qty || 0} left)`);
       }
 
-      // Attach full product info for display later
+      // Enrich item for display
       item.productName = product.name;
-      item.sku = product.sku;
+      item.sku = product.sku || '';
     }
 
-    // Create layaway order
     const layaway = new Layaway({
-      id: `LAY-${uuidv4().slice(0, 8)}`,
+      id: `LAY-${uuidv4().slice(0, 8).toUpperCase()}`,
       outletId,
       repId: user.id,
       repName: user.name,
-      customerName: customerName || 'Walk-in',
+      customerName: customerName?.trim() || 'Walk-in',
       items,
       totalAmount: total,
       paidAmount: paidNow,
       balance,
-      status: balance === 0 ? 'full_paid_pending_pickup' : 'pending_payment',
+      status: balance <= 0 ? 'full_paid_pending_pickup' : 'pending_payment',
       createdAt: new Date(),
-      payments: [{ amount: paidNow, date: new Date(), recordedBy: user.id }]
+      payments: [{
+        amount: paidNow,
+        date: new Date(),
+        recordedBy: user.id,
+        recordedByName: user.name
+      }]
     });
 
     await layaway.save({ session });
 
     await session.commitTransaction();
-    session.endSession();
-
     res.status(201).json({
-      message: 'Layaway recorded successfully',
+      success: true,
+      message: 'Layaway created successfully',
       layaway
     });
 
   } catch (err) {
     await session.abortTransaction();
+    console.error('Layaway create error:', err);
+    res.status(400).json({ success: false, message: err.message || 'Failed to create layaway' });
+  } finally {
     session.endSession();
-    console.error('Layaway creation error:', err);
-    res.status(400).json({ message: err.message || 'Failed to record layaway' });
   }
 });
 
-// ─── 2. GET /api/layaway ─────────────────────────────────────────────────
-// List layaway orders for an outlet (paginated + stats)
+// ────────────────────────────────────────────────────────────────
+// GET /api/layaway - List + stats (already good)
+// ────────────────────────────────────────────────────────────────
 router.get('/layaway', ensureAuth, async (req, res) => {
   try {
     let { page = 1, limit = 10, outletId } = req.query;
-    page = Number(page);
-    limit = Number(limit);
+    page = parseInt(page);
+    limit = parseInt(limit);
 
     if (!outletId) {
-      const user = req.session.user;
+      const user = req.user;
       if (user.role === 'rep') {
         const outlet = await Outlet.findOne({
           $or: [{ repId: user.id }, { repIds: user.id }]
         }).lean();
-        if (!outlet) return res.status(404).json({ message: 'No outlet assigned' });
+        if (!outlet) return res.status(403).json({ message: 'No outlet assigned' });
         outletId = outlet.id;
       } else {
-        return res.status(400).json({ message: 'outletId required' });
+        return res.status(400).json({ message: 'outletId required for non-rep users' });
       }
     }
 
     const skip = (page - 1) * limit;
-
     const filter = { outletId };
 
-    const [orders, totalCount] = await Promise.all([
+    const [orders, totalCount, statsResult] = await Promise.all([
       Layaway.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Layaway.countDocuments(filter)
-    ]);
-
-    // Stats for cards
-    const stats = await Layaway.aggregate([
-      { $match: { outletId } },
-      {
-        $group: {
-          _id: null,
-          pending: {
-            $sum: { $cond: [{ $eq: ['$status', 'pending_payment'] }, 1, 0] }
-          },
-          awaitingPickup: {
-            $sum: { $cond: [{ $eq: ['$status', 'full_paid_pending_pickup'] }, 1, 0] }
-          },
-          totalBalance: { $sum: '$balance' }
+      Layaway.countDocuments(filter),
+      Layaway.aggregate([
+        { $match: { outletId } },
+        {
+          $group: {
+            _id: null,
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending_payment'] }, 1, 0] } },
+            awaitingPickup: { $sum: { $cond: [{ $eq: ['$status', 'full_paid_pending_pickup'] }, 1, 0] } },
+            totalBalance: { $sum: '$balance' }
+          }
         }
-      }
+      ])
     ]);
 
     res.json({
@@ -148,7 +147,7 @@ router.get('/layaway', ensureAuth, async (req, res) => {
       totalCount,
       page,
       totalPages: Math.ceil(totalCount / limit),
-      stats: stats[0] || { pending: 0, awaitingPickup: 0, totalBalance: 0 }
+      stats: statsResult[0] || { pending: 0, awaitingPickup: 0, totalBalance: 0 }
     });
 
   } catch (err) {
@@ -157,65 +156,206 @@ router.get('/layaway', ensureAuth, async (req, res) => {
   }
 });
 
-
-// ─── 3. PUT /api/layaway/:id/edit ────────────────────────────────────────
-// Edit layaway (update items, customer, payments, etc.)
-router.put('/layaway/:id', ensureAuth, async (req, res) => {
+// ────────────────────────────────────────────────────────────────
+// PUT /api/layaway/:id/update - Update items + add payment
+// ────────────────────────────────────────────────────────────────
+router.put('/:id/update', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { id } = req.params;
-    const { customerName, items, paidNow, total, balance } = req.body;
+    const { outletId, items, additionalPayment = 0 } = req.body;
 
-    const layaway = await Layaway.findOne({ id }).session(session);
-    if (!layaway) throw new Error('Layaway not found');
-
-    // Only allow edit if not completed
-    if (layaway.status === 'completed') {
-      throw new Error('Completed layaway cannot be edited');
+    if (!outletId || additionalPayment < 0) {
+      throw new Error('Invalid update data');
     }
 
-    // Optional: validate new items/stock (same as create)
-    if (items) {
+    const layaway = await Layaway.findOne({ id, outletId }).session(session);
+    if (!layaway) throw new Error('Layaway order not found');
+
+    if (layaway.status === 'completed') {
+      throw new Error('Cannot update a completed layaway');
+    }
+
+    // If items are being updated → validate stock
+    if (items && Array.isArray(items)) {
       for (const item of items) {
         const inv = await OutletInventory.findOne({
-          outletId: layaway.outletId,
+          outletId,
           productId: item.productId
         }).session(session);
+
         if (!inv || inv.qty < item.qtyRequested) {
-          throw new Error(`Insufficient stock for ${item.productName}`);
+          throw new Error(`Insufficient stock for product ${item.productId}`);
         }
       }
+      layaway.items = items;
     }
 
-    // Update fields (only what's sent)
-    if (customerName) layaway.customerName = customerName.trim();
-    if (items) layaway.items = items;
-    if (paidNow !== undefined) layaway.paidAmount = paidNow;
-    if (total !== undefined) layaway.totalAmount = total;
-    if (balance !== undefined) layaway.balance = balance;
+    // Update payment
+    if (additionalPayment > 0) {
+      layaway.paidAmount += additionalPayment;
+      layaway.balance = layaway.totalAmount - layaway.paidAmount;
+      layaway.payments.push({
+        amount: additionalPayment,
+        date: new Date(),
+        recordedBy: req.user.id,
+        recordedByName: req.user.name
+      });
+    }
 
-    // Update status automatically
-    layaway.status = layaway.balance === 0 ? 'full_paid_pending_pickup' : 'pending_payment';
-
+    // Auto-update status
+    layaway.status = layaway.balance <= 0 ? 'full_paid_pending_pickup' : 'pending_payment';
     layaway.updatedAt = new Date();
+
     await layaway.save({ session });
 
     await session.commitTransaction();
-    session.endSession();
 
-    res.json({ message: 'Layaway updated', layaway });
+    res.json({
+      success: true,
+      message: 'Layaway updated',
+      layaway
+    });
 
   } catch (err) {
     await session.abortTransaction();
+    console.error('Layaway update error:', err);
+    res.status(400).json({ success: false, message: err.message || 'Failed to update layaway' });
+  } finally {
     session.endSession();
-    res.status(400).json({ message: err.message || 'Failed to update layaway' });
   }
 });
 
-// ─── 4. DELETE /api/layaway/:id ──────────────────────────────────────────
-// Cancel/Delete layaway (only if not completed)
+// ────────────────────────────────────────────────────────────────
+// PUT /api/layaway/:id/complete - FINALIZE: Turn layaway into real sale
+// ────────────────────────────────────────────────────────────────
+
+router.put('/:id/complete', ensureAuth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const { outletId } = req.body;
+
+    if (!outletId) throw new Error('outletId is required');
+
+    // Load layaway
+    const layaway = await Layaway.findOne({ id, outletId }).session(session);
+    if (!layaway) throw new Error('Layaway not found');
+
+    // Must be fully paid
+    if (layaway.balance > 0) {
+      throw new Error(`Cannot complete — balance still ₦${layaway.balance}`);
+    }
+
+    if (layaway.status === 'completed') {
+      throw new Error('Layaway already completed');
+    }
+
+    // Prepare items in same format bulk sales expects
+    const items = layaway.items.map(item => ({
+      productId: item.productId,
+      qtySold: item.qtyRequested,
+      unitPrice: item.unitPrice
+    }));
+
+    if (!items?.length) throw new Error('No items in layaway');
+
+    let totalSaleAmount = 0;
+
+    // ──── EVERYTHING BELOW IS COPY-PASTED FROM YOUR /sales/bulk ROUTE ────
+
+    const transactionId = uuidv4();  // One ID for the entire sale
+    let totalQty = 0;
+
+    for (const item of items) {
+      const { productId, qtySold, unitPrice } = item;
+
+      if (unitPrice == null || typeof unitPrice !== 'number' || unitPrice < 0) {
+        throw new Error(`Missing or invalid unitPrice for product ${productId}`);
+      }
+
+      const inventory = await OutletInventory.findOne({ outletId, productId }).session(session);
+      if (!inventory || inventory.qty < qtySold) {
+        throw new Error(`Insufficient stock for product ${productId}`);
+      }
+
+      const lineTotal = qtySold * unitPrice;
+      totalSaleAmount += lineTotal;
+      totalQty += qtySold;
+
+      await OutletService.updateInventory(session, inventory.outletId, inventory.productId, qtySold, lineTotal);
+      await OutletService.incrementOutlet(session, outletId, qtySold, lineTotal);
+
+      const outlet = await Outlet.findOne({ id: outletId }).session(session);
+      if (!outlet) throw new Error(`Outlet not found: ${outletId}`);
+
+      const warehouseId = outlet.warehouseId;
+
+      // Warehouse revenue
+      await Warehouse.updateOne(
+        { id: warehouseId },
+        { $inc: { totalRevenue: lineTotal } },
+        { session }
+      );
+
+      await companyService.incrementRevenue(session, lineTotal, qtySold);
+
+      await Company.updateOne(
+        {},
+        { $inc: { totalStock: -qtySold } }
+      ).session(session);
+
+      const sale = new Sale({
+        id: uuidv4(),
+        outletId,
+        productId,
+        qtySold,
+        unitPrice: unitPrice,
+        totalAmount: lineTotal,
+        soldBy: req.session.user.id,
+        transactionId,
+        itemCount: items.length,
+        customerName: layaway.customerName || 'Layaway Customer',
+        source: 'layaway',
+        sourceId: layaway.id,
+        createdAt: new Date()
+      });
+      await sale.save({ session });
+    }
+
+    // ──── END OF COPY-PASTE FROM BULK SALES ────
+
+    // Mark layaway complete
+    layaway.status = 'completed';
+    layaway.completedAt = new Date();
+    layaway.saleTransactionId = transactionId;
+    await layaway.save({ session });
+
+    await session.commitTransaction();
+
+    res.json({
+      message: 'Layaway fully collected and recorded as sale',
+      transactionId,
+      totalAmount: totalSaleAmount,
+      totalQty,
+      itemCount: items.length
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    console.log("LAYAWAY COMPLETE ERROR →", err);
+    res.status(400).json({ message: err.message || 'Failed to complete layaway' });
+  } finally {
+    session.endSession();
+  }
+});
+
+
+
 router.delete('/layaway/:id', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
