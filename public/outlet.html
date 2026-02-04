@@ -582,7 +582,7 @@
 <section id="salesReportSection" class="section">
   <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 20px 0;">
   <h2 style="margin: 0;">Sales Breakdown Report</h2>
-  <button class="btn" onclick="navigateTo('layawaySection')" 
+  <button class="btn" onclick="navigateTo('layaway')" 
           style="background: #8b5cf6; color: white; padding: 10px 20px; font-size: 14px;">
     View Pending Layaway →
   </button>
@@ -1076,7 +1076,7 @@ function showToast(message, type = 'info', duration = 3000) {
         loadOutletShipmentFilters();
         renderOutletShipmentReport();
         }
-        if (r === 'layawaySection') {
+        if (r === 'layaway') {
     $('#layawaySection').classList.add('active');
     renderLayawayOrders(); 
   }
@@ -2934,7 +2934,7 @@ $('#recordLayawayBtn').onclick = async () => {
       </div>
     `);
 
-    // Now attach logic inside the modal (similar to your sale cart)
+    renderLayawayCart();
     let layawayCart = [];
 
     function renderLayawayCart() {
