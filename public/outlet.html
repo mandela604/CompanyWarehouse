@@ -3650,52 +3650,60 @@ async function openLayawayManagementModal(orderId) {
 
     // 8. Save changes (sends to backend)
     document.getElementById('saveLayawayChanges').onclick = async () => {
-      const btn = document.getElementById('saveLayawayChanges');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
+  const btn = document.getElementById('saveLayawayChanges');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
 
-      const paymentToday = parseFloat(document.getElementById('paymentToday').value) || 0;
-      if (paymentToday < 0) {
-        showToast('Payment amount cannot be negative', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-        return;
-      }
+  const paymentToday = parseFloat(document.getElementById('paymentToday').value) || 0;
+  if (paymentToday < 0) {
+    showToast('Payment amount cannot be negative', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+    return;
+  }
 
-      const updatedItems = managementCart.map(item => ({
-        productId: item.productId,
-        qtyRequested: item.qty,
-        unitPrice: item.price
-      }));
+  const updatedItems = managementCart.map(item => ({
+    productId: item.productId,
+    qtyRequested: item.qty,
+    unitPrice: item.price
+  }));
 
-      try {
-        const res = await fetch(`/api/layaway/${orderId}/update`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            outletId: OUTLET_ID,
-            items: updatedItems,
-            additionalPayment: paymentToday
-          })
-        });
+  try {
+    const res = await fetch(`/api/layaway/${orderId}/update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        outletId: OUTLET_ID,
+        items: updatedItems,
+        additionalPayment: paymentToday
+      })
+    });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || `Update failed (${res.status})`);
-        }
+    let data;
+    try {
+      data = await res.json(); // always try to parse — even on error
+    } catch {
+      data = {};
+    }
 
-        showToast('Layaway updated successfully!', 'success');
-        closeLayawayModal();
-        renderLayawayOrders(); // refresh table
-      } catch (err) {
-        console.error('Save layaway error:', err);
-        showToast(err.message || 'Failed to save changes — please try again', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-      }
-    };
+    if (!res.ok) {
+      // Show the REAL backend error message
+      throw new Error(data.message || `Update failed (HTTP ${res.status})`);
+    }
 
+    // Only if success
+    showToast('Layaway updated successfully!', 'success');
+    closeLayawayModal();
+    renderLayawayOrders();
+
+  } catch (err) {
+    console.error('Save layaway error:', err);
+    showToast(err.message || 'Failed to save changes — please try again', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+};
     // 9. Mark as fully collected (only shown when balance ≤ 0)
     const markBtn = document.getElementById('markFullyCollected');
     if (markBtn) {
