@@ -486,15 +486,14 @@
         <a href="#" data-route="sales">Sales History</a>
         <a href="#" data-route="shipments">Incoming Shipments</a>
         <a href="#" data-route="salesReport">Sales Breakdown Report</a>
-        <a href="#" data-route="outletShipmentReport">Incoming Shipment </a>
+        <a href="#" data-route="outletShipmentReport">Incoming Breakdown </a>
         <div class="user-info" style="display : none; "></div>
-         <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
+       <!--  <button class="btn secondary logout-btn" onclick="logout()">Logout</button> -->
       </div>
-      <!-- Inside <aside class="sidebar"> ... </div> (after nav links) -->
-      <!-- Replace the two buttons with this -->
-<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px;">
+    <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
   <button class="btn" id="recordSaleBtn">+ Record Sale</button>
-  <button class="btn" id="recordLayawayBtn" style="background:#8b5cf6; color:white;">
+  <button class="btn" id="recordLayawayBtn" style="background: #8b5cf6; color: white;">
     + Record Layaway / Partial
   </button>
 </div>
