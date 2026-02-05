@@ -1986,6 +1986,7 @@ function closeModal() {
 // THIS MAKES THE PRINT BUTTON WORK
 document.getElementById('printOutletSalesBtn')?.addEventListener('click', printOutletSales);
 
+/*
 (async () => {
   if (params.get('select')) return; // selector mode active
 
@@ -2016,6 +2017,44 @@ document.getElementById('printOutletSalesBtn')?.addEventListener('click', printO
   }
 
   // ✅ Load all data now that OUTLET_ID is correct
+  await loadOutletInfo();
+  renderOutletOverview();
+  renderOutletInventory();
+  loadSales();
+  renderShipments();
+})();
+*/
+
+(async () => {
+  if (params.get('select')) return;
+
+  // 1. Try URL first
+  OUTLET_ID = urlParams.get('outletId');
+
+  // 2. If not in URL, get from server
+  if (!OUTLET_ID) {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const user = await res.json();
+        OUTLET_ID = user.currentOutletId;
+      }
+    } catch (err) {
+      console.error('Failed to load current outlet:', err);
+    }
+  }
+
+  console.log('FINAL OUTLET_ID after load:', OUTLET_ID); // ← must not be undefined
+
+  if (!OUTLET_ID) {
+    document.body.innerHTML = `
+      <div style="text-align:center;padding:80px;">
+        <h3>No outlet selected</h3>
+        <p>Please <a href="/login.html">log in again</a> or select an outlet.</p>
+      </div>`;
+    return;
+  }
+
   await loadOutletInfo();
   renderOutletOverview();
   renderOutletInventory();
@@ -3716,6 +3755,12 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
     if (markBtn) {
       markBtn.onclick = async () => {
         if (!confirm('Mark this layaway as fully collected? This will deduct stock.')) return;
+
+        console.log('=== DEBUG: About to complete layaway ===');
+  console.log('orderId:', orderId);
+  console.log('OUTLET_ID value right now:', OUTLET_ID);
+  console.log('Body that will be sent:', JSON.stringify({ outletId: OUTLET_ID }));
+
 
         markBtn.disabled = true;
         markBtn.textContent = 'Processing...';
