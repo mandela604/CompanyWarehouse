@@ -491,10 +491,13 @@
          <button class="btn secondary logout-btn" onclick="logout()">Logout</button>
       </div>
       <!-- Inside <aside class="sidebar"> ... </div> (after nav links) -->
-      <button class="btn" id="recordSaleBtn">+ Record Sale</button>
-      <button class="btn" id="recordLayawayBtn" style="margin-top:12px; background:#8b5cf6; color:white;">
-        + Record Layaway / Partial
-      </button>
+      <!-- Replace the two buttons with this -->
+<div style="display: flex; flex-direction: column; gap: 8px">
+  <button class="btn" id="recordSaleBtn">+ Record Sale</button>
+  <button class="btn" id="recordLayawayBtn" style="background:#8b5cf6; color:white;">
+    + Record Layaway / Partial
+  </button>
+</div>
     </aside>
 
     <main>
