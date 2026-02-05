@@ -3333,6 +3333,7 @@ async function renderLayawayOrders(page = 1) {
     if (!res.ok) throw new Error('Failed to load layaway orders');
 
     const { orders, totalCount, stats } = await res.json(); // assume backend returns these
+console.log('Raw layaway orders from backend:', orders);
 
     // Update stats cards
     pendingCountEl.textContent = stats.pending || 0;
