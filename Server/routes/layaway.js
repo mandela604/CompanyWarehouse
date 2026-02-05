@@ -7,6 +7,7 @@ const Sale = require('../models/Sale');           // ← assuming you have a Sal
 const OutletInventory = require('../models/OutletInventory');
 const Outlet = require('../models/Outlet');
 const Product = require('../models/Product');
+const OutletService = require('../services/outletService');
 
 const router = express.Router();
 
@@ -275,28 +276,12 @@ router.put('/layaway/:id/complete', ensureAuth, async (req, res) => {
     const { id } = req.params;
     const { outletId } = req.body;
 
-   if (!outletId) {
-      console.log('ERROR: outletId missing in body');
-      throw new Error('outletId is required');
-    }
+    if (!outletId) throw new Error('outletId is required');
 
     // Load layaway
-    console.log(`Looking for layaway: id=${id}, outletId=${outletId}`);
     const layaway = await Layaway.findOne({ id, outletId }).session(session);
-    if (!layaway) {
-      console.log(`ERROR: Layaway not found for id=${id} and outletId=${outletId}`);
-      throw new Error('Layaway not found');
-    }
+    if (!layaway) throw new Error('Layaway not found');
 
-    console.log('Layaway found:', {
-      id: layaway.id,
-      status: layaway.status,
-      balance: layaway.balance,
-      itemsCount: layaway.items?.length,
-      paidAmount: layaway.paidAmount,
-      totalAmount: layaway.totalAmount
-    });
-    
     // Must be fully paid
     if (layaway.balance > 0) {
       throw new Error(`Cannot complete — balance still ₦${layaway.balance}`);
