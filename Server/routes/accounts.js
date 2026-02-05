@@ -110,12 +110,6 @@ router.post('/login', async (req, res) => {
     const user = await accountService.findByEmail(email);
     if (!user) return res.status(404).json({ message: 'Account not found.' });
 
-    console.log('LOGIN DEBUG:');
-  console.log('  Email:', email);
-  console.log('  Input password:', password);
-  console.log('  Stored hash:', user.password);
-
-  
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials.' });
 

@@ -225,8 +225,8 @@ router.put('/layaway/:id/update', ensureAuth, async (req, res) => {
       layaway.payments.push({
         amount: additionalPayment,
         date: new Date(),
-        recordedBy: req.user.id,
-        recordedByName: req.user.name
+        recordedBy: req.session.user.id,
+        recordedByName: req.session.user.name
       });
     }
 
@@ -352,7 +352,7 @@ router.put('/:id/complete', ensureAuth, async (req, res) => {
       await sale.save({ session });
     }
 
-    // ──── END OF COPY-PASTE FROM BULK SALES ────
+  
 
     // Mark layaway complete
     layaway.status = 'completed';
