@@ -32,7 +32,7 @@ router.post('/layaway', ensureAuth, async (req, res) => {
     const outlet = await Outlet.findOne({ id: outletId }).session(session);
     if (!outlet) throw new Error('Outlet not found');
 
-    const user = req.user; // from ensureAuth
+    const user = req.session.user; 
     const hasAccess = 
       outlet.repId === user.id ||
       (outlet.repIds || []).includes(user.id) ||
