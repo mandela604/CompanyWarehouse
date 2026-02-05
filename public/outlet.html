@@ -2381,32 +2381,27 @@ async function deleteSale(realTransactionId) {
 }
 
 // Confirm before marking layaway as fully collected
-function confirmCompleteLayaway(orderId) {
-  // Safety check
+function confirmCompleteLayaway(orderId, customerName = 'Walk-in', totalAmount = 0, balance = 0) {
   if (!orderId) {
     showToast('Invalid layaway ID', 'error');
     return;
   }
 
-  // We'll get the layaway data from the DOM or pass it — here we assume it's available in the modal
-  // For simplicity, we'll use what's already visible in the modal
-  const customerName = document.querySelector('#modal .modal > div strong')?.textContent.trim() || 'Customer';
-  const balanceText = document.querySelector('#modal strong[style*="var(--green)"]')?.textContent.trim() || '₦0';
-  const totalText = document.querySelector('#modal strong')?.textContent.trim() || '₦0'; // rough fallback
-
   const confirmHTML = `
-    <div class="modal" style="max-width:400px;text-align:center;">
-      <h3 style="color:#10b981;margin:0 0 16px;">Mark as Fully Collected?</h3>
-      <p>You're about to <strong>complete this layaway</strong> — stock will be deducted and recorded as a sale.</p>
-      <div style="background:#f0fdf4;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
-        <strong>Customer:</strong> ${customerName}<br>
-        <strong>Total:</strong> ${totalText}<br>
-        <strong>Balance:</strong> ${balanceText}
+    <div class="modal" style="max-width:420px;text-align:center;">
+      <h3 style="color:#10b981;margin:0 0 16px;">Complete Layaway?</h3>
+      <p>This will <strong>finalize the layaway</strong>, deduct stock, and record it as a completed sale.</p>
+      <div style="background:#f0fdf4;padding:16px;border-radius:10px;margin:16px 0;font-size:14px;border:1px solid #86efac;">
+        <div><strong>Customer:</strong> ${customerName}</div>
+        <div><strong>Total Amount:</strong> ${formatNGN(totalAmount)}</div>
+        <div><strong>Remaining Balance:</strong> ${formatNGN(balance)}</div>
       </div>
-      <p style="color:#065f46;font-size:13px;"><strong>This action is safe and cannot be undone after stock is deducted.</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#10b981;color:white;margin-left:8px;"
+      <p style="color:#065f46;font-size:13px;margin:0 0 20px;">
+        <strong>This action cannot be undone after stock is deducted.</strong>
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn secondary" onclick="closeConfirmModal()" style="min-width:100px;">Cancel</button>
+        <button class="btn" style="background:#10b981;color:white;min-width:180px;"
                 onclick="completeLayaway('${orderId}'); closeConfirmModal()">
           Yes, Complete Layaway
         </button>
@@ -2424,13 +2419,10 @@ function confirmCompleteLayaway(orderId) {
   document.body.appendChild(backdrop);
 
   window.closeConfirmModal = () => {
-    if (backdrop && backdrop.parentNode) {
-      backdrop.remove();
-    }
+    if (backdrop && backdrop.parentNode) backdrop.remove();
     delete window.closeConfirmModal;
   };
 }
-
 
 // ─── OUTLET SALES REPORT VARIABLES ────────────────────────────────────────
 let outletSalesCurPage = 1;
@@ -3803,9 +3795,14 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
 
 // 9. Mark as fully collected (only shown when balance ≤ 0)
     const markBtn = document.getElementById('markFullyCollected');
-   if (markBtn) {
+ if (markBtn) {
   markBtn.onclick = () => {
-    confirmCompleteLayaway(orderId);
+    confirmCompleteLayaway(
+      orderId,
+      order.customerName || 'Walk-in',     
+      order.totalAmount || 0,             
+      order.balance || 0                   
+    );
   };
 }
     // Initial render of cart
