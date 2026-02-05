@@ -8,6 +8,11 @@ const OutletInventory = require('../models/OutletInventory');
 const Outlet = require('../models/Outlet');
 const Product = require('../models/Product');
 const OutletService = require('../services/outletService');
+const InventoryService = require('../services/inventoryService');
+const Warehouse = require('../models/Warehouse');
+const companyService = require('../services/companyService');
+const Company = require('../models/Company'); 
+const Account = require('../models/Account');
 
 const router = express.Router();
 
