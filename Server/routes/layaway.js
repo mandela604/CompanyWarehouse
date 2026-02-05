@@ -267,7 +267,7 @@ if (items && Array.isArray(items)) {
 // PUT /api/layaway/:id/complete - FINALIZE: Turn layaway into real sale
 // ────────────────────────────────────────────────────────────────
 
-router.put('/:id/complete', ensureAuth, async (req, res) => {
+router.put('/layaway/:id/complete', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
