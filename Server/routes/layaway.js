@@ -204,19 +204,29 @@ router.put('/layaway/:id/update', ensureAuth, async (req, res) => {
     }
 
     // If items are being updated → validate stock
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        const inv = await OutletInventory.findOne({
-          outletId,
-          productId: item.productId
-        }).session(session);
+    // Inside PUT /layaway/:id/update, inside the if (items && Array.isArray(items)) block
+if (items && Array.isArray(items)) {
+  for (const item of items) {
+    const inv = await OutletInventory.findOne({
+      outletId,
+      productId: item.productId
+    }).session(session);
 
-        if (!inv || inv.qty < item.qtyRequested) {
-          throw new Error(`Insufficient stock for product ${item.productId}`);
-        }
-      }
-      layaway.items = items;
+    if (!inv || inv.qty < item.qtyRequested) {
+      throw new Error(`Insufficient stock for product ${item.productId}`);
     }
+
+    // ─── IMPORTANT: Re-enrich product name ───
+    const product = await Product.findOne({ id: item.productId }).session(session);
+    if (product) {
+      item.productName = product.name || 'Unknown Product';
+      item.sku = product.sku || '';
+    } else {
+      item.productName = 'Product not found'; 
+    }
+  }
+  layaway.items = items;
+}
 
     // Update payment
     if (additionalPayment > 0) {
