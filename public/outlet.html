@@ -3453,7 +3453,7 @@ console.log('Raw layaway orders from backend:', orders);
   </button>
   ${order.status !== 'completed' && order.status !== 'full_paid_pending_pickup' ? `
     <button class="btn" style="background:#dc3545;color:white;font-size:11px;padding:6px 12px;margin-left:6px;"
-            onclick="confirmCancelLayaway('${order.id}', '${order.orderId}', '${order.customerName || 'Walk-in'}')">
+            onclick="confirmCancelLayaway('${order.id}', '${order.customerName || 'Walk-in'}')">
       Cancel
     </button>
   ` : ''}
@@ -3817,26 +3817,27 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
 
 
 // Add this function near confirmDeleteSale()
-function confirmCancelLayaway(orderId, orderNumber, customerName) {
-  // Safety check
+function confirmCancelLayaway(orderId, customerName) {
   if (!orderId) {
     showToast('Invalid layaway ID', 'error');
     return;
   }
 
   const confirmHTML = `
-    <div class="modal" style="max-width:400px;text-align:center;">
+    <div class="modal" style="max-width:420px;text-align:center;">
       <h3 style="color:#dc3545;margin:0 0 16px;">Cancel Layaway?</h3>
-      <p>Are you sure you want to <strong>cancel</strong> this layaway order?</p>
-      <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin:16px 0;font-size:14px;">
-        <strong>Order ID:</strong> ${orderNumber}<br>
-        <strong>Customer:</strong> ${customerName}<br>
-        <strong>Action:</strong> This cannot be undone
+      <p>Are you sure you want to cancel this layaway order?</p>
+      <div style="background:#f8f9fa;padding:16px;border-radius:10px;margin:16px 0;font-size:14px;border:1px solid #fca5a5;">
+        <div><strong>Layaway ID:</strong> ${orderId}</div>
+        <div><strong>Customer:</strong> ${customerName || 'Walk-in'}</div>
+        <div><strong>Action:</strong> This cannot be undone</div>
       </div>
-      <p style="color:#dc3545;font-size:13px;"><strong>Stock will NOT be affected (since not collected yet).</strong></p>
-      <div style="margin-top:20px;">
-        <button class="btn secondary" onclick="closeConfirmModal()">Cancel</button>
-        <button class="btn" style="background:#dc3545;color:white;margin-left:8px;"
+      <p style="color:#dc3545;font-size:13px;margin:0 0 20px;">
+        <strong>Stock will NOT be affected (since not collected yet).</strong>
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn secondary" onclick="closeConfirmModal()" style="min-width:100px;">No</button>
+        <button class="btn" style="background:#dc3545;color:white;min-width:160px;"
                 onclick="cancelLayaway('${orderId}'); closeConfirmModal()">
           Yes, Cancel Layaway
         </button>
@@ -3844,7 +3845,6 @@ function confirmCancelLayaway(orderId, orderNumber, customerName) {
     </div>
   `;
 
-  // Reuse the same backdrop creation logic as sales delete
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = confirmHTML;
@@ -3854,15 +3854,11 @@ function confirmCancelLayaway(orderId, orderNumber, customerName) {
   };
   document.body.appendChild(backdrop);
 
-  // Close helper (same as sales)
   window.closeConfirmModal = () => {
-    if (backdrop && backdrop.parentNode) {
-      backdrop.remove();
-    }
+    if (backdrop && backdrop.parentNode) backdrop.remove();
     delete window.closeConfirmModal;
   };
 }
-
 async function cancelLayaway(orderId) {
   try {
     const res = await fetch(`/api/layaway/${orderId}`, {
