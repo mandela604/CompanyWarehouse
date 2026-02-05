@@ -3682,18 +3682,18 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
 
     let data = {};
     try {
-      data = await res.json();  // Try to parse even on error
-    } catch (jsonErr) {
-      console.warn('Response was not JSON:', jsonErr);
+      data = await res.json();  // Try to parse even on 400 error
+    } catch (e) {
+      console.warn('Response not JSON:', e);
     }
 
     if (!res.ok) {
-      // Use backend's error message if available
+      // Use the actual error message from backend
       const errorMsg = data.message || `Update failed (HTTP ${res.status})`;
       throw new Error(errorMsg);
     }
 
-    // Only run on success
+    // Success only
     showToast('Layaway updated successfully!', 'success');
     closeLayawayModal();
     renderLayawayOrders();
@@ -3706,6 +3706,7 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
     btn.textContent = 'Save Changes';
   }
 };
+
 
 // 9. Mark as fully collected (only shown when balance ≤ 0)
     const markBtn = document.getElementById('markFullyCollected');
