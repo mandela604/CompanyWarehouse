@@ -108,12 +108,21 @@ router.post('/layaway', ensureAuth, async (req, res) => {
 // ────────────────────────────────────────────────────────────────
 router.get('/layaway', ensureAuth, async (req, res) => {
   try {
-    let { page = 1, limit = 10, outletId } = req.query;
+    let { 
+      page = 1, 
+      limit = 10, 
+      outletId,
+      startDate,          // ← new
+      endDate,            // ← new
+      repId               // ← new
+    } = req.query;
+
     page = parseInt(page);
     limit = parseInt(limit);
 
+    // Outlet resolution (same as before)
     if (!outletId) {
-      const user = req.user;
+      const user = req.user || req.session.user;
       if (user.role === 'rep') {
         const outlet = await Outlet.findOne({
           $or: [{ repId: user.id }, { repIds: user.id }]
@@ -125,9 +134,29 @@ router.get('/layaway', ensureAuth, async (req, res) => {
       }
     }
 
-    const skip = (page - 1) * limit;
+    // Build filter object
     const filter = { outletId };
 
+    // Date range filter (createdAt)
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        // Include the full end date (up to 23:59:59)
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
+
+    // Rep filter
+    if (repId) {
+      filter.repId = repId;
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Fetch filtered orders + count + stats
     const [orders, totalCount, statsResult] = await Promise.all([
       Layaway.find(filter)
         .sort({ createdAt: -1 })
@@ -136,7 +165,7 @@ router.get('/layaway', ensureAuth, async (req, res) => {
         .lean(),
       Layaway.countDocuments(filter),
       Layaway.aggregate([
-        { $match: { outletId } },
+        { $match: filter }, // ← now uses the same filter (date + rep)
         {
           $group: {
             _id: null,
@@ -161,7 +190,6 @@ router.get('/layaway', ensureAuth, async (req, res) => {
     res.status(500).json({ message: 'Failed to load layaway orders' });
   }
 });
-
 
 router.get('/layaway/:id', ensureAuth, async (req, res) => {
   try {
