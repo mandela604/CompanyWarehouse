@@ -3552,8 +3552,17 @@ async function renderLayawayOrders(page = 1) {
             </td>
             <td><span class="pill" style="${statusClass}">${order.status.replace(/_/g, ' ')}</span></td>
             <td>
-              <!-- your existing action buttons -->
-            </td>
+  <button class="btn secondary" style="font-size:11px;padding:6px 12px;"
+          onclick="openLayawayManagementModal('${order.id}')">
+    View / Manage
+  </button>
+  ${order.status !== 'completed' && order.status !== 'full_paid_pending_pickup' ? `
+    <button class="btn" style="background:#dc3545;color:white;font-size:11px;padding:6px 12px;margin-left:6px;"
+            onclick="confirmCancelLayaway('${order.id}', '${order.customerName || 'Walk-in'}')">
+      Cancel
+    </button>
+  ` : ''}
+</td>
           </tr>
         `;
       }).join('');
