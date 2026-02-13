@@ -2843,7 +2843,8 @@ async function renderOutletShipmentReport(page = 1) {
       limit: OUTLET_SHIPMENT_PER_PAGE
     });
     if (outletShipmentFilter.warehouseId) {
-       q.set('warehouseId', outletShipmentFilter.warehouseId);}
+      q.set('warehouseId', outletShipmentFilter.warehouseId);
+    }
     if (outletShipmentFilter.start) q.set('startDate', outletShipmentFilter.start);
     if (outletShipmentFilter.end) q.set('endDate', outletShipmentFilter.end);
     if (outletShipmentFilter.status) q.set('status', outletShipmentFilter.status);
@@ -2852,42 +2853,38 @@ async function renderOutletShipmentReport(page = 1) {
     if (!res.ok) throw new Error(json.message || 'Failed');
     const shipments = json.data || [];
     const totalCount = json.totalCount || shipments.length;
-
-    // Client-side aggregation: one row per product (only incoming)
+    // CHANGE: Group by productName + fromName to avoid combining different sources
     const productMap = new Map();
     shipments.forEach(s => {
       const fromName = s.from?.name || 'Warehouse / Company';
       const status = s.status || '—';
       s.products?.forEach(p => {
         const name = p.name || p.productName || 'Unknown';
-        if (!productMap.has(name)) {
-          productMap.set(name, {
+        const key = `${name}|${fromName}`;  // NEW: Unique key per product + source
+        if (!productMap.has(key)) {
+          productMap.set(key, {
             totalQty: 0,
             totalValue: 0,
             from: fromName,
             status: status
           });
         }
-        const entry = productMap.get(name);
+        const entry = productMap.get(key);
         entry.totalQty += p.qty || 0;
         entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
-        if (entry.status !== status) entry.status = 'All status';
+        if (entry.status !== status) entry.status = 'Mixed';  // Updated from 'All status' for clarity
       });
     });
-
-    let aggregated = Array.from(productMap.entries()).map(([name, data]) => ({
-      productName: name,
+    let aggregated = Array.from(productMap.entries()).map(([key, data]) => ({
+      productName: key.split('|')[0],  // Extract productName from key
       from: data.from,
       totalQty: data.totalQty,
       totalValue: data.totalValue,
       status: data.status
     }));
-
     aggregated.sort((a, b) => b.totalQty - a.totalQty);
-
-      updatePeriodDisplay('outletShipmentCurrentPeriodDisplay', 'outletShipmentDateDisplay');
-      
-      if (!aggregated.length) {
+    updatePeriodDisplay('outletShipmentCurrentPeriodDisplay', 'outletShipmentDateDisplay');
+    if (!aggregated.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="muted">No incoming shipments in this period</td></tr>';
     } else {
       const grandQty = aggregated.reduce((sum, p) => sum + p.totalQty, 0);
@@ -2912,14 +2909,12 @@ async function renderOutletShipmentReport(page = 1) {
         </tr>
       `;
     }
-
     renderPag($('#outletShipmentPagination'), totalCount, outletShipmentCurPage, n => renderOutletShipmentReport(n));
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load</td></tr>';
     showToast('Error loading incoming shipment report', 'error');
   }
 }
-
 // ─── Print ────────────────────────────────────────────────────────────────
 document.getElementById('printOutletShipmentReportBtn')?.addEventListener('click', () => {
   const dateRange = $('#outletShipmentDateDisplay')?.textContent || 'All time';
