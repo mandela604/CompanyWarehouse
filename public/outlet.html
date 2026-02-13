@@ -2839,8 +2839,7 @@ async function renderOutletShipmentReport(page = 1) {
   try {
     const q = new URLSearchParams({
       outletId: OUTLET_ID,
-      page,
-      limit: OUTLET_SHIPMENT_PER_PAGE
+      limit: 500
     });
     if (outletShipmentFilter.warehouseId) {
       q.set('warehouseId', outletShipmentFilter.warehouseId);
@@ -2852,35 +2851,40 @@ async function renderOutletShipmentReport(page = 1) {
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed');
     const shipments = json.data || [];
-    const totalCount = json.totalCount || shipments.length;
-    // CHANGE: Group by productName + fromName to avoid combining different sources
-    const productMap = new Map();
+    const warehouseMap = new Map();
     shipments.forEach(s => {
       const fromName = s.from?.name || 'Warehouse / Company';
-      const status = s.status || '—';
+      const key = fromName;
+      if (!warehouseMap.has(key)) {
+        warehouseMap.set(key, {
+          totalQty: 0,
+          totalValue: 0,
+          statuses: new Set(),
+          products: new Map()
+        });
+      }
+      const entry = warehouseMap.get(key);
+      entry.statuses.add(s.status || '—');
       s.products?.forEach(p => {
         const name = p.name || p.productName || 'Unknown';
-        const key = `${name}|${fromName}`;  // NEW: Unique key per product + source
-        if (!productMap.has(key)) {
-          productMap.set(key, {
-            totalQty: 0,
-            totalValue: 0,
-            from: fromName,
-            status: status
-          });
+        if (!entry.products.has(name)) {
+          entry.products.set(name, {qty: 0, value: 0});
         }
-        const entry = productMap.get(key);
-        entry.totalQty += p.qty || 0;
-        entry.totalValue += (p.qty || 0) * (p.unitPrice || 0);
-        if (entry.status !== status) entry.status = 'Mixed';  // Updated from 'All status' for clarity
+        const prodEntry = entry.products.get(name);
+        const qty = p.qty || 0;
+        const value = qty * (p.unitPrice || 0);
+        prodEntry.qty += qty;
+        prodEntry.value += value;
+        entry.totalQty += qty;
+        entry.totalValue += value;
       });
     });
-    let aggregated = Array.from(productMap.entries()).map(([key, data]) => ({
-      productName: key.split('|')[0],  // Extract productName from key
-      from: data.from,
+    let aggregated = Array.from(warehouseMap.entries()).map(([from, data]) => ({
+      from,
+      productsStr: Array.from(data.products.entries()).map(([name, pd]) => `${name} ×${pd.qty}`).join(', '),
       totalQty: data.totalQty,
       totalValue: data.totalValue,
-      status: data.status
+      status: data.statuses.size > 1 ? 'Mixed' : [...data.statuses][0]
     }));
     aggregated.sort((a, b) => b.totalQty - a.totalQty);
     updatePeriodDisplay('outletShipmentCurrentPeriodDisplay', 'outletShipmentDateDisplay');
@@ -2892,7 +2896,7 @@ async function renderOutletShipmentReport(page = 1) {
       tbody.innerHTML = aggregated.map(p => `
         <tr>
           <td style="text-align:left;">${p.from}</td>
-          <td style="font-weight:600; text-align:left;">${p.productName}</td>
+          <td style="font-weight:600; text-align:left;">${p.productsStr || 'No products'}</td>
           <td style="text-align:center; font-weight:600;">${p.totalQty}×</td>
           <td style="text-align:right; font-weight:700; color:var(--blue);">
             ${formatNGN(p.totalValue)}
@@ -2909,12 +2913,13 @@ async function renderOutletShipmentReport(page = 1) {
         </tr>
       `;
     }
-    renderPag($('#outletShipmentPagination'), totalCount, outletShipmentCurPage, n => renderOutletShipmentReport(n));
+    renderPag($('#outletShipmentPagination'), aggregated.length, outletShipmentCurPage, n => renderOutletShipmentReport(n));
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="5" class="error">Failed to load</td></tr>';
     showToast('Error loading incoming shipment report', 'error');
   }
 }
+
 // ─── Print ────────────────────────────────────────────────────────────────
 document.getElementById('printOutletShipmentReportBtn')?.addEventListener('click', () => {
   const dateRange = $('#outletShipmentDateDisplay')?.textContent || 'All time';
@@ -4066,3 +4071,4 @@ document.getElementById('printLayawayBtn')?.addEventListener('click', () => {
 </script>
 </body>
 </html>
+
