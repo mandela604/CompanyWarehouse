@@ -505,18 +505,29 @@ router.get('/warehouse', ensureAuth, async (req, res) => {
     const skip = (page - 1) * limit;
 
 const user = req.session.user;
-let warehouse;
+let warehouseId = req.query.warehouseId;
 
-if (user.role === 'admin' && req.query.warehouseId) {
-  warehouse = await Warehouse.findOne({ id: req.query.warehouseId });
-} else {
-  warehouse = await Warehouse.findOne({ managerId: user.id });
+if (!warehouseId) {
+  // Fallback only if no warehouseId sent (should rarely happen now)
+  const wh = await Warehouse.findOne({ managerId: user.id });
+  if (!wh) return res.json([]);
+  warehouseId = wh.id;
 }
 
-if (!warehouse) return res.json([]);
+// Security check: ensure manager can access this warehouse
+const allowed = await Warehouse.findOne({
+  id: warehouseId,
+  $or: [
+    { managerId: user.id },
+    { managerIds: user.id }
+  ]
+});
+if (!allowed && user.role !== 'admin') {
+  return res.status(403).json({ message: 'Access denied to this warehouse' });
+}
 
-  const query = {
-  'to.id': warehouse.id,
+const query = {
+  'to.id': warehouseId,
   toType: 'Warehouse'
 };
 
