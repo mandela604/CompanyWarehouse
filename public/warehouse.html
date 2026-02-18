@@ -1509,7 +1509,7 @@ function initWarehouseShipmentDatePicker() {
 async function loadWarehouseShipmentFilters() {
   try {
     const [outRes] = await Promise.all([
-      fetch('/api/outlets')  // All outlets (warehouse can ship to any)
+      fetch(`/api/outlets/shipped-to/${myWarehouse.id}`)
     ]);
     const outlets = await outRes.json();
 

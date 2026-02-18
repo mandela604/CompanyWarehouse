@@ -91,6 +91,29 @@ router.post('/select-outlet', ensureAuth, (req, res) => {
 });
 
 
+router.get('/outlets/shipped-to/:warehouseId', ensureAuth, async (req, res) => {
+  try {
+    const warehouseId = req.params.warehouseId;
+
+    // Get unique outlet IDs this warehouse has shipped to
+    const outletIds = await Shipment.distinct('to.id', {
+      fromType: 'Warehouse',
+      'from.id': warehouseId,
+      toType: 'Outlet'
+    });
+
+    if (outletIds.length === 0) return res.json([]);
+
+    const outlets = await Outlet.find({ id: { $in: outletIds } })
+      .select('id name location')
+      .lean();
+
+    res.json(outlets);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // 🔹 GET ALL OUTLETS (for shipment destination)
 router.get('/outlets/select', ensureAuth, async (req, res) => {
   try {
