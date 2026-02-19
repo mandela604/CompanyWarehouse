@@ -559,83 +559,102 @@ const query = {
 
 
 router.get('/outlet-shipments', ensureAuth, async (req, res) => {
-  console.log('Outlet shipments route hit');
+  console.log('Outlet shipments route hit', {
+    query: req.query,
+    userRole: req.session.user?.role,
+    userId: req.session.user?.id
+  });
 
   try {
     const user = req.session.user;
-    let outletId;
+    let outletId = req.query.outletId?.trim();
 
-    // Resolve outletId based on role
-    if (user.role === 'rep') {
-  const outlet = await Outlet.findOne({
-    $or: [
-      { repId: user.id },
-      { repIds: user.id }
-    ]
-  }).lean();
-
-  if (!outlet) return res.status(404).json({ message: 'No outlet assigned' });
-  outletId = outlet.id;
-} else {
-      outletId = req.query.outletId?.trim();
-      if (!outletId) return res.status(400).json({ message: 'outletId required' });
+    // ─── REQUIRE outletId FROM FRONTEND FOR EVERYONE ───────────────────────
+    if (!outletId) {
+      return res.status(400).json({ 
+        message: 'outletId query parameter is required' 
+      });
     }
 
-    // Optional: validate outlet exists + manager access
+    // ─── VALIDATE THAT THE OUTLET ACTUALLY EXISTS ──────────────────────────
     const outlet = await Outlet.findOne({ id: outletId }).lean();
-    if (!outlet) return res.status(404).json({ message: 'Outlet not found' });
+    if (!outlet) {
+      return res.status(404).json({ message: 'Outlet not found' });
+    }
 
-    if (user.role === 'manager') {
-      const warehouse = await Warehouse.findOne({ managerId: user.id }).lean();
-       if (!warehouse) {
-    return res.status(403).json({ message: 'Invalid warehouse access' });
+    // ─── PERMISSION CHECK ──────────────────────────────────────────────────
+    if (user.role === 'rep') {
+      const isAssigned =
+        outlet.repId === user.id ||
+        (Array.isArray(outlet.repIds) && outlet.repIds.includes(user.id));
+
+      if (!isAssigned) {
+        return res.status(403).json({ 
+          message: 'You are not assigned to this outlet' 
+        });
+      }
+    } 
+    else if (user.role === 'manager') {
+      const warehouse = await Warehouse.findOne({ id: outlet.warehouseId }).lean();
+      if (!warehouse || warehouse.managerId !== user.id) {
+        return res.status(403).json({ 
+          message: 'Access denied — this outlet does not belong to your warehouse' 
+        });
       }
     }
+    // Admins can access any outlet — no check needed
 
-    // Pagination
+    // ─── PAGINATION ────────────────────────────────────────────────────────
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Fetch shipments for this outlet
-    const shipments = await Shipment.find({ 'to.id': outletId, toType: 'Outlet' })
+    // ─── FETCH ONLY SHIPMENTS FOR THIS SPECIFIC OUTLET ─────────────────────
+    const shipments = await Shipment.find({ 
+      'to.id': outletId, 
+      toType: 'Outlet' 
+    })
       .sort({ date: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-   const enriched = await Promise.all(
-  shipments.map(async (s) => {
-    const productIds = s.products.map(p => p.productId);
-    const products = await Product.find({ id: { $in: productIds } }).lean();
-
-    // Build enriched products array with name + price
-    const enrichedProducts = s.products.map(sp => {
-      const fullProduct = products.find(p => p.id === sp.productId);
-      return {
-        productName: fullProduct?.name || 'Unknown',
-        qty: sp.qty,
-        unitPrice: fullProduct?.unitPrice || 0
-      };
+    const totalCount = await Shipment.countDocuments({ 
+      'to.id': outletId, 
+      toType: 'Outlet' 
     });
 
-    const totalQty = enrichedProducts.reduce((sum, p) => sum + p.qty, 0);
-    const totalValue = enrichedProducts.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
+    // ─── ENRICH PRODUCTS WITH NAMES & PRICES ───────────────────────────────
+    const enriched = await Promise.all(
+      shipments.map(async (s) => {
+        const productIds = s.products.map(p => p.productId);
+        const products = await Product.find({ id: { $in: productIds } }).lean();
 
-    return {
-      id: s.id,
-      date: s.date.toISOString().slice(0, 10),
-      fromName: s.from?.name || 'Unknown',
-      products: enrichedProducts,        // ← THIS IS THE KEY: send full product details
-      totalQty,
-      totalValue,                        // ← optional: pre-calculate on backend
-      status: s.status
-    };
-  })
-);
+        const enrichedProducts = s.products.map(sp => {
+          const fullProduct = products.find(p => p.id === sp.productId);
+          return {
+            productName: fullProduct?.name || 'Unknown',
+            qty: sp.qty || 0,
+            unitPrice: fullProduct?.unitPrice || sp.unitPrice || 0
+          };
+        });
 
-    const totalCount = await Shipment.countDocuments({ 'to.id': outletId, toType: 'Outlet' });
+        const totalQty = enrichedProducts.reduce((sum, p) => sum + p.qty, 0);
+        const totalValue = enrichedProducts.reduce((sum, p) => sum + (p.qty * p.unitPrice), 0);
 
+        return {
+          id: s.id,
+          date: s.date ? new Date(s.date).toISOString().slice(0, 10) : '—',
+          fromName: s.from?.name || 'Warehouse / Company',
+          products: enrichedProducts,
+          totalQty,
+          totalValue,
+          status: s.status || '—'
+        };
+      })
+    );
+
+    // ─── SEND RESPONSE ─────────────────────────────────────────────────────
     res.json({
       page,
       limit,
@@ -644,8 +663,15 @@ router.get('/outlet-shipments', ensureAuth, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Shipments error:', err);
-    res.status(500).json({ message: 'Error loading shipments' });
+    console.error('Shipments route error:', {
+      message: err.message,
+      stack: err.stack,
+      query: req.query
+    });
+    res.status(500).json({ 
+      message: 'Error loading shipments', 
+      error: err.message 
+    });
   }
 });
 
