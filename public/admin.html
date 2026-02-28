@@ -3695,7 +3695,7 @@ async function editProduct(id) {
         const updateRes = await fetch(`/api/products/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, unitPrice: newPrice })
+          body: JSON.stringify({ name: newName, unitPrice: newPrice, qty: p.qty })
         });
 
         if (!updateRes.ok) {
