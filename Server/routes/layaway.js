@@ -424,32 +424,46 @@ router.put('/layaway/:id/complete', ensureAuth, async (req, res) => {
 });
 
 
-
+// DELETE /api/layaway/:id  →  NOW WORKS FOR BOTH PENDING AND FULL_PAID
 router.delete('/layaway/:id', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const layaway = await Layaway.findOne({ id: req.params.id }).session(session);
-    if (!layaway) throw new Error('Layaway not found');
+    const { id } = req.params;
+    const { outletId } = req.body;
 
+    if (!outletId) throw new Error('outletId is required');
+
+    const layaway = await Layaway.findOne({ id, outletId }).session(session);
+    if (!layaway) throw new Error('Layaway order not found');
+
+    // Only block COMPLETED layaways (sale already recorded)
     if (layaway.status === 'completed') {
-      throw new Error('Completed layaway cannot be cancelled');
+      throw new Error('Cannot delete a completed layaway — it has already become a sale');
     }
 
-    // Optional: if you want to restore any reserved stock logic later, do it here
+    // Allowed: pending_payment OR full_paid_pending_pickup
+    // (as you requested)
 
-    await Layaway.deleteOne({ id: layaway.id }, { session });
+    await Layaway.deleteOne({ id }, { session });
 
     await session.commitTransaction();
-    session.endSession();
 
-    res.json({ message: 'Layaway cancelled/deleted successfully' });
+    res.json({
+      success: true,
+      message: 'Layaway deleted successfully'
+    });
 
   } catch (err) {
     await session.abortTransaction();
+    console.error('Layaway delete error:', err);
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to delete layaway'
+    });
+  } finally {
     session.endSession();
-    res.status(400).json({ message: err.message || 'Failed to cancel layaway' });
   }
 });
 
