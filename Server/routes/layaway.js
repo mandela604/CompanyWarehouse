@@ -424,6 +424,7 @@ router.put('/layaway/:id/complete', ensureAuth, async (req, res) => {
 });
 
 
+
 // DELETE /api/layaway/:id  →  NOW WORKS FOR BOTH PENDING AND FULL_PAID
 router.delete('/layaway/:id', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();

@@ -3556,12 +3556,12 @@ async function renderLayawayOrders(page = 1) {
           onclick="openLayawayManagementModal('${order.id}')">
     View / Manage
   </button>
-  ${order.status !== 'completed' && order.status !== 'full_paid_pending_pickup' ? `
-    <button class="btn" style="background:#dc3545;color:white;font-size:11px;padding:6px 12px;margin-left:6px;"
-            onclick="confirmCancelLayaway('${order.id}', '${order.customerName || 'Walk-in'}')">
-      Cancel
-    </button>
-  ` : ''}
+${order.status !== 'completed' ? `
+  <button class="btn" style="background:#dc3545;color:white;font-size:11px;padding:6px 12px;margin-left:6px;"
+          onclick="confirmCancelLayaway('${order.id}', '${order.customerName || 'Walk-in'}')">
+    Cancel Layaway
+  </button>
+` : ''}
 </td>
           </tr>
         `;
@@ -3715,23 +3715,26 @@ async function openLayawayManagementModal(orderId) {
 
     <!-- Action buttons -->
 <div style="text-align:right; margin-top:28px; display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
-  <button class="btn secondary" onclick="closeLayawayModal()">Cancel</button>
-  
-  <button class="btn" id="saveLayawayChanges" style="background:var(--blue); color:white;">
-    Save Changes
-  </button>
+  <!-- Show Cancel only if not yet completed -->
+  ${order.status !== 'completed' ? `
+    <button class="btn secondary" onclick="cancelLayaway('${order.id}'); closeLayawayModal()">
+      Cancel Layaway
+    </button>
+  ` : ''}
 
-  ${order.balance <= 0 ? `
+  <!-- Save Changes always (unless completed) -->
+  ${order.status !== 'completed' ? `
+    <button class="btn" id="saveLayawayChanges" style="background:var(--blue); color:white;">
+      Save Changes
+    </button>
+  ` : ''}
+
+  <!-- Mark as Fully Collected only when balance <= 0 and not completed -->
+  ${order.balance <= 0 && order.status !== 'completed' ? `
     <button class="btn" id="markFullyCollected" style="background:#10b981; color:white;">
       Mark as Fully Collected
     </button>
   ` : ''}
-
-  <!-- DELETE BUTTON — ALWAYS SHOWN (as you asked) -->
-  <button class="btn" id="deleteLayawayBtn" 
-          style="background:#dc3545; color:white;">
-    Delete Layaway
-  </button>
 </div>
     `;
 
@@ -3991,79 +3994,6 @@ async function cancelLayaway(orderId) {
   }
 }
 
-
-// ───── DELETE BUTTON HANDLER (custom modal, works for both statuses) ─────
-const deleteBtn = document.getElementById('deleteLayawayBtn');
-if (deleteBtn) {
-  deleteBtn.onclick = () => {
-    const isFullPaid = order.status === 'full_paid_pending_pickup';
-    const customer = order.customerName || 'Walk-in';
-    const total = formatNGN(order.totalAmount || 0);
-
-    const confirmHTML = `
-      <div class="modal" style="max-width:440px; text-align:center;">
-        <h3 style="color:#dc3545; margin:0 0 16px;">⚠️ Delete Layaway?</h3>
-        <p><strong>This action cannot be undone.</strong></p>
-        
-        <div style="background:#f8f9fa; padding:16px; border-radius:10px; margin:16px 0; font-size:14px; border:2px solid #fca5a5;">
-          <div><strong>Customer:</strong> ${customer}</div>
-          <div><strong>Total:</strong> ${total}</div>
-          ${isFullPaid ? `<div style="color:#dc3545; font-weight:600; margin-top:8px;">⚠️ This layaway is FULLY PAID</div>` : ''}
-        </div>
-
-        <p style="color:#dc3545; font-size:13px;">
-          ${isFullPaid 
-            ? 'Stock will NOT be automatically restored. You may need to manually adjust inventory later.' 
-            : 'Stock was never deducted.'}
-        </p>
-
-        <div style="display:flex; gap:12px; justify-content:center; margin-top:24px;">
-          <button class="btn secondary" onclick="closeConfirmModal()" style="min-width:110px;">No, Keep It</button>
-          <button class="btn" id="confirmDeleteBtn" 
-                  style="background:#dc3545; color:white; min-width:160px;">
-            Yes, Delete Now
-          </button>
-        </div>
-      </div>
-    `;
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = confirmHTML;
-    backdrop.style.display = 'flex';
-    document.body.appendChild(backdrop);
-
-    backdrop.querySelector('#confirmDeleteBtn').onclick = async () => {
-      backdrop.remove();
-      try {
-        const res = await fetch(`/api/layaway/${order.id}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ outletId: OUTLET_ID })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.message || 'Delete failed');
-
-        showToast('Layaway deleted successfully ✅', 'success');
-        closeLayawayModal();
-        renderLayawayOrders(layawayCurPage);
-      } catch (err) {
-        showToast(err.message || 'Failed to delete', 'error');
-      }
-    };
-
-    window.closeConfirmModal = () => {
-      if (backdrop && backdrop.parentNode) backdrop.remove();
-      delete window.closeConfirmModal;
-    };
-
-    backdrop.onclick = e => {
-      if (e.target === backdrop) closeConfirmModal();
-    };
-  };
-}
 
 // ─── FIX 1: Sales Breakdown Report Print ───────────────────────────────────────
 document.getElementById('printOutletSalesReportBtn')?.addEventListener('click', () => {
