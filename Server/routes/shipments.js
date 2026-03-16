@@ -971,12 +971,6 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
           throw new Error(`Company inTransit mismatch for product ${p.productId}`);
         }
 
-        // Also return to company product stock if needed
-        await Product.updateOne(
-          { id: p.productId },
-          { $inc: { qty: p.qty } },
-          { session }
-        );
       }
 
       if (shipment.fromType === 'Warehouse') {
@@ -1101,7 +1095,7 @@ router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) 
               productId: p.productId,
               inTransit: { $gte: p.qty }
             },
-            { $inc: { inTransit: -p.qty } },
+            { $inc: { inTransit: -p.qty, qty: p.qty  } },
             { session }
           );
 
@@ -1230,6 +1224,12 @@ router.put('/shipments/:id', async (req, res) => {
           { $inc: { inTransit: -oldP.qty } },
           { session }
         );
+             await Product.updateOne(
+          { id: oldP.productId },
+          { $inc: { qty: oldP.qty } },
+          { session }
+        );
+      
       } else {
         await WarehouseInventory.updateOne(
           {
@@ -1246,11 +1246,20 @@ router.put('/shipments/:id', async (req, res) => {
     /**
      * 4️⃣ APPLY NEW inTransit
      */
-    for (const newP of enrichedProducts) {
+for (const newP of enrichedProducts) {
       if (shipment.fromType === 'Company') {
         await Company.updateOne(
           { id: shipment.from.id },
           { $inc: { inTransit: newP.qty } },
+          { session }
+        );
+       const prod = await Product.findOne({ id: newP.productId }).session(session);
+        if (!prod || prod.qty < newP.qty) {
+          throw new Error(`Not enough stock for product ${newP.productId}`);
+        }
+        await Product.updateOne(
+          { id: newP.productId },
+          { $inc: { qty: -newP.qty } },
           { session }
         );
       } else {
