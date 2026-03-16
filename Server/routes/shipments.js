@@ -955,14 +955,14 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
       }
 
       // ─── SOURCE STOCK RETURN / ADJUSTMENT ───────────────────────────
-      if (shipment.fromType === 'Company') {
+if (shipment.fromType === 'Company') {
         const companyUpdate = await Company.updateOne(
           {
             id: shipment.from.id,
-            inTransit: { $gte: p.qty }          // Safety guard
+            inTransit: { $gte: p.qty }
           },
           {
-            $inc: { inTransit: -p.qty }
+            $inc: { inTransit: -p.qty, totalStock: -p.qty }
           },
           { session }
         );
@@ -970,7 +970,6 @@ router.put('/shipments/approve/:id', ensureAuth, async (req, res) => {
         if (companyUpdate.modifiedCount === 0) {
           throw new Error(`Company inTransit mismatch for product ${p.productId}`);
         }
-
       }
 
       if (shipment.fromType === 'Warehouse') {

@@ -341,9 +341,8 @@ router.post('/products/:id/restock', ensureAdmin, async (req, res) => {
   console.log('Params ID:', req.params.id);
 
  
+  const session = await mongoose.startSession();
   try {
-    const session = await mongoose.startSession();
-    console.log('Session started');
 
     session.startTransaction();
     console.log('Transaction started');

@@ -150,9 +150,10 @@ await Warehouse.updateOne(
 
 
       await Company.updateOne(
-        {},      
-        { $inc: { totalStock: -qtySold } }
-      ).session(session);
+  {},
+  { $inc: { totalStock: -qtySold } },
+  { session }
+);
 
 
       const sale = new Sale({
@@ -661,7 +662,7 @@ router.put('/transactions/:transactionId', ensureAdmin, async (req, res) => {
       }
 
       await companyService.incrementRevenue(session, -oldSale.totalAmount, -oldSale.qtySold);
-      await Company.updateOne({}, { $inc: { totalStock: oldSale.qtySold } }).session(session); // return stock
+      await Company.updateOne({}, { $inc: { totalStock: oldSale.qtySold } }, { session });
     }
 
     // Delete old line items
@@ -697,7 +698,7 @@ router.put('/transactions/:transactionId', ensureAdmin, async (req, res) => {
       );
 
       await companyService.incrementRevenue(session, totalAmount, qtySold);
-      await Company.updateOne({}, { $inc: { totalStock: -qtySold } }).session(session);
+      await Company.updateOne({}, { $inc: { totalStock: -qtySold } }, { session });
 
       // Create new sale line
       const newSale = new Sale({
@@ -767,7 +768,7 @@ router.delete('/transactions/:transactionId', ensureAdmin, async (req, res) => {
       }
 
       await companyService.incrementRevenue(session, -sale.totalAmount, -sale.qtySold);
-      await Company.updateOne({}, { $inc: { totalStock: sale.qtySold } }).session(session); // return stock
+      await Company.updateOne({}, { $inc: { totalStock: sale.qtySold } }, { session });
     }
 
     // Delete all line items

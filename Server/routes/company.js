@@ -44,7 +44,7 @@ router.put('/company', ensureAdmin, async (req, res) => {
     const company = await Company.findOne();
     if (!company) return res.status(404).json({ message: 'Company not found' });
 
-    const updates = req.body; // e.g., { name: 'New Name' }
+    const updates = req.body; 
     Object.assign(company, updates, { lastUpdated: new Date() });
     await company.save();
 
