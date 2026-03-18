@@ -2400,12 +2400,14 @@ async function deleteSale(realTransactionId) {
 }
 
 // Confirm before marking layaway as fully collected
+// Confirm before marking layaway as fully collected
 function confirmCompleteLayaway(orderId, customerName = 'Walk-in', totalAmount = 0, balance = 0) {
   if (!orderId) {
     showToast('Invalid layaway ID', 'error');
     return;
   }
 
+  // Create the confirmation modal - use the emptyModalBackdrop instead of native confirm
   const confirmHTML = `
     <div class="modal" style="max-width:420px;text-align:center;">
       <h3 style="color:#10b981;margin:0 0 16px;">Complete Layaway?</h3>
@@ -2421,7 +2423,7 @@ function confirmCompleteLayaway(orderId, customerName = 'Walk-in', totalAmount =
       <div style="display:flex;gap:12px;justify-content:center;">
         <button class="btn secondary" onclick="closeConfirmModal()" style="min-width:100px;">Cancel</button>
         <button class="btn" style="background:#10b981;color:white;min-width:180px;"
-                onclick="completeLayaway('${orderId}'); closeConfirmModal()">
+                onclick="completeLayawayAndCloseModal('${orderId}')"> <!-- Changed: use new function -->
           Yes, Complete Layaway
         </button>
       </div>
@@ -2442,6 +2444,41 @@ function confirmCompleteLayaway(orderId, customerName = 'Walk-in', totalAmount =
     delete window.closeConfirmModal;
   };
 }
+
+//Complete layaway and close both modals
+async function completeLayawayAndCloseModal(orderId) {
+  // First close the confirmation modal
+  if (window.closeConfirmModal) {
+    window.closeConfirmModal();
+  }
+  
+  // Then close the layaway management modal
+  closeLayawayModal();
+  
+  // Now execute the completion
+  try {
+    const res = await fetch(`/api/layaway/${orderId}/complete`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outletId: OUTLET_ID })
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to complete');
+    }
+
+    showToast('Layaway completed — stock deducted', 'success');
+    renderLayawayOrders(); 
+    renderOutletOverview(); 
+    renderOutletInventory(); 
+  } catch (err) {
+    showToast(err.message || 'Failed to complete layaway', 'error');
+  }
+}
+
+
 
 // ─── OUTLET SALES REPORT VARIABLES ────────────────────────────────────────
 let outletSalesCurPage = 1;
@@ -3713,12 +3750,12 @@ async function openLayawayManagementModal(orderId) {
         </ul>
       ` : '<p style="color:#666; font-style:italic;">No previous payments recorded.</p>'}
 
-    <!-- Action buttons -->
+<!-- Action buttons -->
 <div style="text-align:right; margin-top:28px; display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
   <!-- Show Cancel only if not yet completed -->
   ${order.status !== 'completed' ? `
-    <button class="btn secondary" onclick="cancelLayaway('${order.id}'); closeLayawayModal()">
-      Cancel Layaway
+    <button class="btn secondary" onclick="closeLayawayModal()"> <!-- Changed: now calls closeLayawayModal, not cancelLayaway -->
+      Cancel
     </button>
   ` : ''}
 
@@ -3908,8 +3945,8 @@ document.getElementById('saveLayawayChanges').onclick = async () => {
 
 
 // 9. Mark as fully collected (only shown when balance ≤ 0)
-    const markBtn = document.getElementById('markFullyCollected');
- if (markBtn) {
+const markBtn = document.getElementById('markFullyCollected');
+if (markBtn) {
   markBtn.onclick = () => {
     confirmCompleteLayaway(
       orderId,
