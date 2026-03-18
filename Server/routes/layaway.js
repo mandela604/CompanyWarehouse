@@ -103,6 +103,33 @@ router.post('/layaway', ensureAuth, async (req, res) => {
   }
 });
 
+
+// GET /api/layaway/:id  ← Single layaway details (this was missing!)
+router.get('/layaway/:id', ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { outletId } = req.query;
+
+    if (!outletId) {
+      return res.status(400).json({ message: 'outletId is required' });
+    }
+
+    const layaway = await Layaway.findOne({ 
+      id: id, 
+      outletId: outletId 
+    });
+
+    if (!layaway) {
+      return res.status(404).json({ message: 'Layaway order not found' });
+    }
+
+    res.json(layaway);
+  } catch (err) {
+    console.error('Error fetching single layaway:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // ────────────────────────────────────────────────────────────────
 // GET /api/layaway - List + stats (already good)
 // ────────────────────────────────────────────────────────────────
