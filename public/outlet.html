@@ -3637,10 +3637,11 @@ async function completeLayaway(orderId) {
 
 // Production-ready: Manage existing layaway order
 // ==================== FULL FIXED openLayawayManagementModal ====================
+// ==================== COMPLETE FIXED openLayawayManagementModal ====================
 async function openLayawayManagementModal(orderId) {
-  try {
-    console.log(`[Layaway Management] Opening for order: ${orderId}`);
+  console.log(`[DEBUG] openLayawayManagementModal called with ID: ${orderId}`);
 
+  try {
     // Show loading screen
     openLayawayModal(`
       <div style="text-align:center; padding:60px 20px;">
@@ -3648,54 +3649,51 @@ async function openLayawayManagementModal(orderId) {
         <p style="color:#666;margin-top:12px;">Please wait...</p>
       </div>
     `);
+    console.log("[DEBUG] Loading screen shown");
 
     if (!orderId) throw new Error('No layaway ID provided');
 
     // 1. Fetch the layaway order
     const orderRes = await fetch(`/api/layaway/${orderId}?outletId=${OUTLET_ID}`);
-    
+    console.log(`[DEBUG] Fetch /api/layaway/${orderId} status: ${orderRes.status}`);
+
     if (!orderRes.ok) {
-      const errText = await orderRes.text().catch(() => 'Unknown error');
-      console.error('Layaway fetch failed:', orderRes.status, errText);
+      const errText = await orderRes.text().catch(() => 'No error text');
       throw new Error(`Failed to load layaway: ${orderRes.status} - ${errText}`);
     }
 
     const order = await orderRes.json();
-    console.log('[Layaway Management] Order loaded successfully:', order);
+    console.log("[DEBUG] Order data received:", order);
 
-    // 2. Fetch current outlet inventory (for stock validation)
+    // 2. Fetch current inventory
     const invRes = await fetch(`/api/outlet/inventory?outletId=${OUTLET_ID}`);
-    if (!invRes.ok) {
-      throw new Error('Failed to load current inventory');
-    }
+    if (!invRes.ok) throw new Error('Failed to load inventory');
     const inventoryData = await invRes.json();
+    console.log("[DEBUG] Inventory loaded, products count:", inventoryData.products?.length || 0);
 
-    // Create quick stock lookup
+    // Stock lookup
     const currentStock = {};
     (inventoryData.products || []).forEach(p => {
       currentStock[p.productId] = Number(p.qty) || 0;
     });
 
-    // 3. Build management cart with real stock limits
+    // Build management cart
     const managementCart = order.items.map(item => {
-      const productId = item.productId;
-      const alreadyReserved = Number(item.qtyRequested) || 0;
-      const availableNow = currentStock[productId] || 0;
-      const realMax = alreadyReserved + availableNow;
-
+      const already = Number(item.qtyRequested) || 0;
+      const avail = currentStock[item.productId] || 0;
       return {
-        productId,
+        productId: item.productId,
         name: item.productName || 'Unknown Product',
         price: Number(item.unitPrice) || 0,
-        qty: alreadyReserved,
-        max: realMax,
-        originalQty: alreadyReserved
+        qty: already,
+        max: already + avail,
+        originalQty: already
       };
     });
 
-    // 4. Build the full modal HTML
+    // Build full modal HTML
     const modalHTML = `
-      <h3>Manage Layaway #${order.orderId || order.id || '—'}</h3>
+      <h3>Manage Layaway #${order.id || '—'}</h3>
       
       <div style="margin:16px 0; padding:16px; background:#f8fafc; border-radius:8px; font-size:14px;">
         <div><strong>Customer:</strong> ${order.customerName || 'Walk-in'}</div>
@@ -3726,7 +3724,7 @@ async function openLayawayManagementModal(orderId) {
       </div>
 
       <!-- Add new product -->
-      <div class="form-row" style="display:flex; gap:12px; align-items:end; margin:20px 0;">
+      <div style="display:flex; gap:12px; align-items:end; margin:20px 0;">
         <div style="flex:1;">
           <label>Add Product</label>
           <select id="addProductSelect" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;"></select>
@@ -3739,7 +3737,7 @@ async function openLayawayManagementModal(orderId) {
       </div>
 
       <!-- Payment input -->
-      <div class="form-row" style="margin:20px 0;">
+      <div style="margin:20px 0;">
         <label>Amount Paying Today (₦)</label>
         <input type="number" id="paymentToday" min="0" value="0" step="1000"
                style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;" />
@@ -3748,13 +3746,11 @@ async function openLayawayManagementModal(orderId) {
       <!-- Action buttons -->
       <div style="text-align:right; margin-top:28px; display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
         <button class="btn secondary" onclick="closeLayawayModal()">Cancel</button>
-        
         ${order.status !== 'completed' ? `
           <button class="btn" id="saveLayawayChanges" style="background:var(--blue); color:white;">
             Save Changes
           </button>
         ` : ''}
-
         ${order.balance <= 0 && order.status !== 'completed' ? `
           <button class="btn" id="markFullyCollected" style="background:#10b981; color:white;">
             Mark as Fully Collected
@@ -3763,24 +3759,111 @@ async function openLayawayManagementModal(orderId) {
       </div>
     `;
 
-    // Replace loading with real content
+    console.log("[DEBUG] Setting modal innerHTML");
     document.getElementById('modal').innerHTML = modalHTML;
 
-    // Populate "Add Product" dropdown
+    // === Attach events AFTER HTML is inserted ===
+    console.log("[DEBUG] Attaching event listeners");
+
+    // Add item button
+    const addBtn = document.getElementById('addManagementItemBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        console.log("[DEBUG] Add item button clicked");
+        const sel = document.getElementById('addProductSelect');
+        if (!sel.value) return showToast('Select product', 'error');
+        const qty = parseInt(document.getElementById('addQtyInput').value) || 1;
+        const opt = sel.selectedOptions[0];
+        const price = parseFloat(opt.dataset.price) || 0;
+        const available = parseInt(opt.dataset.qty) || 0;
+        const name = opt.textContent.split(' (')[0].trim();
+
+        if (qty > available) return showToast(`Only ${available} available`, 'error');
+
+        const existingIndex = managementCart.findIndex(x => x.productId === sel.value);
+        if (existingIndex !== -1) {
+          managementCart[existingIndex].qty += qty;
+        } else {
+          managementCart.push({ productId: sel.value, name, price, qty, max: available, originalQty: 0 });
+        }
+        document.getElementById('addQtyInput').value = '1';
+        sel.value = '';
+        renderManagementCart();
+      };
+    }
+
+    // Save Changes button
+    const saveBtn = document.getElementById('saveLayawayChanges');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        console.log("[DEBUG] Save Changes clicked");
+        const btn = saveBtn;
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        const paymentToday = parseFloat(document.getElementById('paymentToday').value) || 0;
+        const updatedItems = managementCart.map(item => ({
+          productId: item.productId,
+          qtyRequested: item.qty,
+          unitPrice: item.price
+        }));
+
+        try {
+          const res = await fetch(`/api/layaway/${orderId}/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              outletId: OUTLET_ID,
+              items: updatedItems,
+              additionalPayment: paymentToday
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Update failed');
+
+          showToast('Layaway updated successfully!', 'success');
+          closeLayawayModal();
+          renderLayawayOrders();
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || 'Failed to save changes', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Save Changes';
+        }
+      };
+    }
+
+    // Mark Fully Collected button
+    const markBtn = document.getElementById('markFullyCollected');
+    if (markBtn) {
+      markBtn.onclick = () => {
+        console.log("[DEBUG] Mark Fully Collected clicked");
+        confirmCompleteLayaway(
+          orderId,
+          order.customerName || 'Walk-in',
+          order.totalAmount || 0,
+          order.balance || 0
+        );
+      };
+    }
+
+    // Populate Add Product dropdown
     const productOptions = inventoryData.products
       .filter(p => Number(p.qty) > 0)
       .map(p => `
-        <option value="${p.productId}"
-                data-price="${Number(p.unitPrice || p.price || 0)}"
-                data-qty="${Number(p.qty || 0)}">
-          ${p.productName || 'Unnamed'} (${p.qty} left) - ₦${Number(p.unitPrice || p.price || 0).toLocaleString()}
+        <option value="${p.productId}" 
+                data-price="${Number(p.unitPrice || p.price || 0)}" 
+                data-qty="${Number(p.qty)}">
+          ${p.productName} (${p.qty} left) - ₦${Number(p.unitPrice || p.price || 0).toLocaleString()}
         </option>
       `).join('');
 
-    document.getElementById('addProductSelect').innerHTML =
+    document.getElementById('addProductSelect').innerHTML = 
       '<option value="">Select product to add...</option>' + productOptions;
 
-    // Render current items
+    // Render cart function
     function renderManagementCart() {
       const tbody = document.getElementById('managementItems');
       let grandTotal = 0;
@@ -3822,100 +3905,17 @@ async function openLayawayManagementModal(orderId) {
       }
     };
 
-    // Add item handler
-    document.getElementById('addManagementItemBtn').onclick = () => {
-      const sel = document.getElementById('addProductSelect');
-      if (!sel.value) return showToast('Please select a product', 'error');
-      const qty = parseInt(document.getElementById('addQtyInput').value) || 1;
-      const opt = sel.selectedOptions[0];
-      const price = parseFloat(opt.dataset.price) || 0;
-      const available = parseInt(opt.dataset.qty) || 0;
-      const name = opt.textContent.split(' (')[0].trim();
-
-      if (qty > available) return showToast(`Only ${available} available`, 'error');
-
-      const existingIndex = managementCart.findIndex(x => x.productId === sel.value);
-      if (existingIndex !== -1) {
-        managementCart[existingIndex].qty += qty;
-      } else {
-        managementCart.push({
-          productId: sel.value,
-          name,
-          price,
-          qty,
-          max: available,
-          originalQty: 0
-        });
-      }
-      document.getElementById('addQtyInput').value = '1';
-      sel.value = '';
-      renderManagementCart();
-    };
-
-    // Save changes
-    document.getElementById('saveLayawayChanges').onclick = async () => {
-      const btn = document.getElementById('saveLayawayChanges');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-
-      const paymentToday = parseFloat(document.getElementById('paymentToday')?.value) || 0;
-
-      const updatedItems = managementCart.map(item => ({
-        productId: item.productId,
-        qtyRequested: item.qty,
-        unitPrice: item.price
-      }));
-
-      try {
-        const res = await fetch(`/api/layaway/${orderId}/update`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            outletId: OUTLET_ID,
-            items: updatedItems,
-            additionalPayment: paymentToday
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.message || 'Update failed');
-
-        showToast('Layaway updated successfully!', 'success');
-        closeLayawayModal();
-        renderLayawayOrders();
-      } catch (err) {
-        console.error(err);
-        showToast(err.message || 'Failed to save changes', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-      }
-    };
-
-    // Mark as fully collected
-    const markBtn = document.getElementById('markFullyCollected');
-    if (markBtn) {
-      markBtn.onclick = () => {
-        confirmCompleteLayaway(
-          orderId,
-          order.customerName || 'Walk-in',
-          order.totalAmount || 0,
-          order.balance || 0
-        );
-      };
-    }
-
     // Initial render
     renderManagementCart();
+
+    console.log("[DEBUG] Modal fully built and events attached - SUCCESS");
 
   } catch (err) {
     console.error('Failed to open layaway management modal:', err);
     closeLayawayModal();
-    showToast('Could not load layaway details. Please try again.', 'error');
+    showToast('Could not load layaway details: ' + (err.message || 'Unknown error'), 'error');
   }
 }
-
 // Add this function near confirmDeleteSale()
 function confirmCancelLayaway(orderId, customerName) {
   if (!orderId) {
