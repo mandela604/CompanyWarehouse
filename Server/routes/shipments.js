@@ -1047,7 +1047,7 @@ if (shipment.fromType === 'Company') {
 
 
 // Reject shipment
-router.put('/shipments/reject/:id', ensureAuth, ensureManager, async (req, res) => {
+router.put('/shipments/reject/:id', ensureAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 

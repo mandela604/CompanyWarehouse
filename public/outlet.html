@@ -1559,14 +1559,45 @@ $('#shipmentsTable').addEventListener('click', async e => {
     }
   }
 
-  if (btn.classList.contains('reject-btn')) {
-    if (!confirm('Are you sure you want to REJECT this shipment? This will return all items to the source warehouse.')) {
-      btn.disabled = false;
-      return;
-    }
+if (btn.classList.contains('reject-btn')) {
+  // Use custom modal instead of browser confirm
+  const confirmHTML = `
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h3 style="color:#dc3545;margin:0 0 16px;">Reject Shipment?</h3>
+      <p>Are you sure you want to <strong>reject</strong> this shipment?</p>
+      <div style="background:#f8f9fa;padding:16px;border-radius:10px;margin:16px 0;font-size:14px;border:1px solid #fca5a5;">
+        <p style="margin:0;"><strong>This will return all items to the source warehouse.</strong></p>
+      </div>
+      <p style="color:#dc3545;font-size:13px;">This action cannot be undone.</p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn secondary" onclick="closeConfirmModal()" style="min-width:100px;">Cancel</button>
+        <button class="btn" style="background:#dc3545;color:white;min-width:160px;" 
+                onclick="executeRejectShipment('${id}'); closeConfirmModal()">
+          Yes, Reject
+        </button>
+      </div>
+    </div>
+  `;
 
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = confirmHTML;
+  backdrop.style.display = 'flex';
+  backdrop.onclick = (e) => {
+    if (e.target === backdrop) backdrop.remove();
+  };
+  document.body.appendChild(backdrop);
+
+  window.closeConfirmModal = () => {
+    if (backdrop && backdrop.parentNode) backdrop.remove();
+    delete window.closeConfirmModal;
+    btn.disabled = false; // Re-enable button if cancelled
+  };
+
+  // Store the execution function globally
+  window.executeRejectShipment = async (shipmentId) => {
     try {
-      const res = await fetch(`/api/shipments/reject/${id}`, {
+      const res = await fetch(`/api/shipments/reject/${shipmentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -1577,14 +1608,16 @@ $('#shipmentsTable').addEventListener('click', async e => {
       showToast('Shipment rejected — items returned to source', 'success');
       await renderOutletOverview();
       await renderShipments();
-
     } catch (err) {
       console.error(err);
       showToast(err?.message || 'Failed to reject shipment', 'error');
     } finally {
       btn.disabled = false;
     }
-  }
+  };
+
+  return; 
+}
 });
 
 
