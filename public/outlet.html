@@ -1511,7 +1511,7 @@ async function renderShipments(page = 1) {
         <button class="btn view-details" style="font-size:11px;padding:5px 10px;background:var(--blue);color:white;border-radius:8px;margin-right:4px;" data-id="${s.id}">View</button>
         ${s.status === 'In Transit'
           ? `<button class="btn receive-btn" style="background:#10b981;color:white;font-size:11px;padding:5px 10px;border-radius:8px;margin-right:4px;" data-id="${s.id}">Receive</button>
-             <button class="btn reject-btn" style="background:#dc3545;color:white;font-size:11px;padding:5px 10px;border-radius:8px;" data-id="${s.id}">Reject</button>`
+             <button class="btn reject-btn" style="background:#dc3545;color:white;font-size:11px;padding:5px 8px;border-radius:8px;" data-id="${s.id}">🗑️</button>`
           : ''
         }
       </td>
