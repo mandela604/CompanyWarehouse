@@ -19,6 +19,18 @@ const warehouseRoutes = require('./Server/routes/warehouses');
 
 const app = express();
 
+
+// Add this right after requires, before anything else:
+console.log('=== Environment Debug ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
+console.log('MONGO_URI length:', process.env.MONGO_URI?.length || 0);
+console.log('PORT:', process.env.PORT);
+console.log('SESSION_SECRET exists:', !!process.env.SESSION_SECRET);
+console.log('========================');
+
+
+
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: {
